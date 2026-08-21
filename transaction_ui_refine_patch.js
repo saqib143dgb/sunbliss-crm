@@ -4,10 +4,17 @@
   var style = document.createElement('style');
   style.id = 'transactionUiRefineStyle';
   style.textContent = [
-    '.tx-list .tx-actions-btn{width:24px!important;height:24px!important;border-radius:6px!important;font-size:17px!important;line-height:18px!important;}',
-    '.tx-list .tx-actions-menu{top:28px!important;}'
+    '.tx-list .tx-actions-btn{width:22px!important;height:22px!important;border-radius:6px!important;font-size:16px!important;line-height:16px!important;}',
+    '.tx-list .tx-actions-menu{top:26px!important;}'
   ].join('');
   document.head.appendChild(style);
+
+  function refineTransactionActions(){
+    document.querySelectorAll('.tx-list .tx-actions-btn').forEach(function(btn){
+      var wrap = btn.parentElement;
+      if (wrap) wrap.style.setProperty('align-self','baseline','important');
+    });
+  }
 
   function removeRecordPaymentHeading(){
     document.querySelectorAll('.detail .section-label').forEach(function(label){
@@ -15,10 +22,15 @@
     });
   }
 
-  removeRecordPaymentHeading();
+  function refineDetail(){
+    refineTransactionActions();
+    removeRecordPaymentHeading();
+  }
+
+  refineDetail();
 
   var app = document.getElementById('app');
   if (app && window.MutationObserver){
-    new MutationObserver(removeRecordPaymentHeading).observe(app,{childList:true,subtree:true});
+    new MutationObserver(refineDetail).observe(app,{childList:true,subtree:true});
   }
 })();
