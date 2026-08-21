@@ -7,7 +7,8 @@
     '.tx-list .tx-actions-btn{width:22px!important;height:22px!important;border-radius:6px!important;font-size:16px!important;line-height:16px!important;}',
     '.tx-list .tx-actions-menu{top:26px!important;}',
     '.tx-list .tx-row>.tx-date,.tx-list .tx-row>.tx-amt{align-self:center!important;}',
-    '.tx-list .tx-row>.tx-main{align-self:center!important;transform:translateY(28px)!important;}',
+    '.tx-list .tx-row>.tx-main{align-self:center!important;}',
+    '.tx-list .tx-row>.tx-main>br{display:none!important;}',
     '.tx-list .tx-row>.tx-main>.tx-status:empty{display:none!important;}'
   ].join('');
   document.head.appendChild(style);
