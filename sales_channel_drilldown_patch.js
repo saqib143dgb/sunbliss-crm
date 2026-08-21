@@ -213,8 +213,8 @@
 
   decorate();
 
-  var main = document.getElementById('main');
-  if (main && window.MutationObserver){
-    new MutationObserver(function(){ decorate(); }).observe(main, { childList:true, subtree:true });
+  var app = document.getElementById('app');
+  if (app && window.MutationObserver){
+    new MutationObserver(function(){ decorate(); }).observe(app, { childList:true, subtree:true });
   }
 })();
