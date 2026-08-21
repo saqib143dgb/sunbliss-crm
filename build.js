@@ -5,7 +5,7 @@ const BASE = 'https://sunbliss-q3pmfsk79-sunbliss-crm.vercel.app';
 const OUT = path.join(process.cwd(), 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_PATCH_FILES = ['feature_patch.js', 'detail_menu_patch.js', 'hide_duplicate_payment_patch.js', 'transaction_ui_refine_patch.js'];
+const LOCAL_PATCH_FILES = ['feature_patch.js', 'detail_menu_patch.js', 'hide_duplicate_payment_patch.js', 'transaction_ui_refine_patch.js', 'primary_contact_patch.js'];
 
 async function download(file, required = true) {
   const res = await fetch(`${BASE}/${file}`, { redirect: 'follow' });
@@ -56,6 +56,9 @@ async function main() {
   }
   if (!html.includes('transaction_ui_refine_patch.js')) {
     html = html.replace('</body>', '<script src="transaction_ui_refine_patch.js"></script>\n</body>');
+  }
+  if (!html.includes('primary_contact_patch.js')) {
+    html = html.replace('</body>', '<script src="primary_contact_patch.js"></script>\n</body>');
   }
   fs.writeFileSync(indexPath, html);
 
