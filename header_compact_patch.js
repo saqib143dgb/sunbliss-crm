@@ -1,10 +1,13 @@
 (function(){
   'use strict';
 
-  if (document.getElementById('sunblissCompactHeaderStyle')) return;
+  var style = document.getElementById('sunblissCompactHeaderStyle');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'sunblissCompactHeaderStyle';
+    document.head.appendChild(style);
+  }
 
-  var style = document.createElement('style');
-  style.id = 'sunblissCompactHeaderStyle';
   style.textContent = `
     .topbar{
       position:relative;
@@ -16,21 +19,11 @@
     .brand-row{gap:8px;}
 
     .eyebrow{
-      display:flex;
-      align-items:center;
-      gap:8px;
+      display:block;
       margin:0 0 4px;
       font-size:10.5px;
       letter-spacing:.14em;
       line-height:1.25;
-    }
-
-    .eyebrow::after{
-      content:'';
-      width:28px;
-      height:1px;
-      flex:none;
-      background:rgba(198,151,46,.58);
     }
 
     .title{
@@ -89,6 +82,17 @@
       line-height:1.35;
     }
 
+    .header-sync-mini{
+      flex:none;
+      margin-left:auto;
+      font-family:'IBM Plex Mono',monospace;
+      font-size:9px;
+      line-height:1;
+      letter-spacing:.02em;
+      color:rgba(237,230,214,.55);
+      white-space:nowrap;
+    }
+
     @media (max-width:480px){
       .topbar{
         padding:16px 15px 11px;
@@ -97,13 +101,10 @@
       .brand-row{gap:7px;}
 
       .eyebrow{
-        gap:7px;
         margin-bottom:3px;
         font-size:9.5px;
         letter-spacing:.13em;
       }
-
-      .eyebrow::after{width:22px;}
 
       .title{
         font-size:23px;
@@ -135,8 +136,52 @@
       }
 
       .sync-status{font-size:10px;}
+      .header-sync-mini{font-size:8.5px;}
     }
   `;
 
-  document.head.appendChild(style);
+  function formatSyncTime(value){
+    if (!value) return '';
+    var date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function refineHeader(){
+    var eyebrow = document.querySelector('.topbar .eyebrow');
+    if (eyebrow) {
+      eyebrow.textContent = eyebrow.textContent.replace(/(\bLLC)\s*[-–—]\s*$/i, '$1');
+    }
+
+    var row = document.querySelector('.topbar .sync-row');
+    if (!row) return;
+
+    var old = row.querySelector('.header-sync-mini');
+    var syncValue = window.state && window.state.syncedAt;
+    var timeText = formatSyncTime(syncValue);
+
+    if (!timeText) {
+      if (old) old.remove();
+      return;
+    }
+
+    var label = old || document.createElement('span');
+    label.className = 'header-sync-mini';
+    label.textContent = 'Synced ' + timeText;
+    label.title = 'CRM data last synced at ' + new Date(syncValue).toLocaleString();
+
+    if (!old) row.appendChild(label);
+  }
+
+  if (typeof window.render === 'function' && !window.__sunblissCompactHeaderRenderWrapped) {
+    var originalRender = window.render;
+    window.render = function(){
+      var result = originalRender.apply(this, arguments);
+      refineHeader();
+      return result;
+    };
+    window.__sunblissCompactHeaderRenderWrapped = true;
+  }
+
+  refineHeader();
 })();
