@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunbliss CRM</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#0F1A26;color:#EDE6D6;font-family:system-ui,sans-serif}
+    .boot{min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="boot">Loading Sunbliss CRM…</div>
+  <script>
+  (async function(){
+    var BASE='https://sunbliss-67kmmf6r9-sunbliss-crm.vercel.app';
+    try{
+      var response=await fetch(BASE+'/',{cache:'no-store'});
+      if(!response.ok) throw new Error('Could not load the current CRM bundle ('+response.status+').');
+      var html=await response.text();
+
+      // The immutable deployment contains the exact production app. Vercel may
+      // inject preview-only toolbar markup into its fetched HTML; strip that and
+      // keep only the real application chunks.
+      html=html.replace(/<script src="chunk_13\.js"><\/script>\s*/g,'');
+      html=html.replace(/<script async data-explicit-opt-in=[\s\S]*?<\/script>\s*$/g,'');
+
+      // Resolve all application chunks against the immutable deployment so a Git
+      // deployment never loses features that were previously uploaded directly.
+      html=html.replace(/src="chunk_(\d+)\.js"/g,'src="'+BASE+'/chunk_$1.js"');
+
+      // Load our Git-tracked feature patch after the existing application code.
+      html=html.replace('</body>','<script src="/feature_patch.js"></'+'script></body>');
+
+      document.open();
+      document.write(html);
+      document.close();
+    }catch(err){
+      document.body.innerHTML='<div class="boot"><div><h2>CRM could not start</h2><p>'+String(err&&err.message?err.message:err)+'</p></div></div>';
+    }
+  })();
+  </script>
+</body>
+</html>
