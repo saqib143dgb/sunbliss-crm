@@ -4,7 +4,6 @@
   var style = document.createElement('style');
   style.id = 'transactionUiRefineStyle';
   style.textContent = [
-    '.tx-list .tx-row{align-items:center!important;}',
     '.tx-list .tx-actions-btn{width:24px!important;height:24px!important;border-radius:6px!important;font-size:17px!important;line-height:18px!important;}',
     '.tx-list .tx-actions-menu{top:28px!important;}'
   ].join('');
