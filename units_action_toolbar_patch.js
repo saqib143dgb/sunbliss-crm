@@ -27,8 +27,8 @@
   ].join('');
   document.head.appendChild(style);
 
-  function replaceDirectText(button,label){
-    if (!button) return;
+  function labelButtonOnce(button,label){
+    if (!button || button.getAttribute('data-units-toolbar-labelled') === '1') return;
     var changed = false;
     Array.prototype.forEach.call(button.childNodes,function(node){
       if (node.nodeType === 3 && String(node.nodeValue || '').trim()){
@@ -36,9 +36,8 @@
         changed = true;
       }
     });
-    if (!changed && button.id !== 'btnToggleFilters'){
-      button.appendChild(document.createTextNode(label));
-    }
+    if (!changed) button.appendChild(document.createTextNode(label));
+    button.setAttribute('data-units-toolbar-labelled','1');
   }
 
   function refineUnitsActions(){
@@ -68,11 +67,11 @@
     toolbar.classList.toggle('two-actions',!add);
 
     if (add){
-      replaceDirectText(add,'Add customer');
+      labelButtonOnce(add,'Add customer');
       add.setAttribute('aria-label','Add new customer');
       add.setAttribute('title','Add new customer');
     }
-    replaceDirectText(exportBtn,'Export');
+    labelButtonOnce(exportBtn,'Export');
     exportBtn.setAttribute('aria-label','Export this list');
     exportBtn.setAttribute('title','Export this list');
   }
