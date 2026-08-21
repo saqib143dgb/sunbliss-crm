@@ -5,7 +5,7 @@ const BASE = 'https://sunbliss-q3pmfsk79-sunbliss-crm.vercel.app';
 const OUT = path.join(process.cwd(), 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_PATCH_FILES = ['feature_patch.js', 'detail_menu_patch.js', 'hide_duplicate_payment_patch.js', 'transaction_ui_refine_patch.js', 'primary_contact_patch.js', 'insights_chart_responsive_patch.js', 'search_focus_patch.js'];
+const LOCAL_PATCH_FILES = ['feature_patch.js', 'detail_menu_patch.js', 'hide_duplicate_payment_patch.js', 'transaction_ui_refine_patch.js', 'primary_contact_patch.js', 'insights_chart_responsive_patch.js', 'search_focus_patch.js', 'header_compact_patch.js'];
 
 async function download(file, required = true) {
   const res = await fetch(`${BASE}/${file}`, { redirect: 'follow' });
@@ -65,6 +65,9 @@ async function main() {
   }
   if (!html.includes('search_focus_patch.js')) {
     html = html.replace('</body>', '<script src="search_focus_patch.js"></script>\n</body>');
+  }
+  if (!html.includes('header_compact_patch.js')) {
+    html = html.replace('</body>', '<script src="header_compact_patch.js"></script>\n</body>');
   }
   fs.writeFileSync(indexPath, html);
 
