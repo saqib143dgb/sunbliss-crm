@@ -29,8 +29,8 @@
     '.rm-unit-card:hover,.rm-unit-card:active{background:var(--paper-dim);}',
     '.rm-unit-card:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;}',
     '.rm-unit-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}',
-    '.rm-unit-head-main{flex:1;min-width:0;}',
-    '.rm-unit-customer{font-family:Fraunces,serif;font-size:15px;font-weight:600;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
+    '.rm-unit-head-main{flex:1;min-width:0;overflow:hidden;}',
+    '.rm-unit-customer{display:block;font-family:Fraunces,serif;font-size:15px;font-weight:600;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
     '.rm-unit-head-sub{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.35;}',
     '.rm-unit-value{flex:none;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;}',
     '.rm-unit-value small{display:block;font-family:Inter,sans-serif;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:2px;}',
@@ -62,6 +62,10 @@
     if (!text) return '';
     if (typeof window.titleCase === 'function') return window.titleCase(text);
     return text.toLowerCase().replace(/\b\w/g,function(ch){return ch.toUpperCase();});
+  }
+
+  function shortCustomerName(value){
+    return nice(value).split(/\s+/).filter(Boolean).slice(0,2).join(' ');
   }
 
   function money(value){
@@ -126,7 +130,7 @@
     if (info.area !== null && info.area !== undefined && String(info.area).trim() !== '') areaFloor.push(info.area + ' sqft');
 
     var html = '<button type="button" class="rm-unit-card" data-unit="'+esc(customer.unit)+'" data-sno="'+esc(customer.sno)+'">';
-    html += '<div class="rm-unit-head"><span class="row-unit">'+esc(customer.unit || '—')+'</span><span class="rm-unit-head-main"><span class="rm-unit-customer">'+esc(nice(customer.name))+'</span><span class="rm-unit-head-sub">'+esc([typeLine,areaFloor.join(' · ')].filter(Boolean).join(' · '))+'</span></span><span class="rm-unit-value">'+esc(money(total))+'<small>sales value</small></span></div>';
+    html += '<div class="rm-unit-head"><span class="row-unit">'+esc(customer.unit || '—')+'</span><span class="rm-unit-head-main"><span class="rm-unit-customer">'+esc(shortCustomerName(customer.name))+'</span><span class="rm-unit-head-sub">'+esc([typeLine,areaFloor.join(' · ')].filter(Boolean).join(' · '))+'</span></span><span class="rm-unit-value">'+esc(money(total))+'<small>sales value</small></span></div>';
     html += '<div class="rm-unit-grid">';
     html += field('Booking',dateText(info.bookingDate));
     html += field('Channel',channel);
