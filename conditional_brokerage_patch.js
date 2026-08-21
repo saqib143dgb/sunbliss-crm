@@ -20,6 +20,14 @@
     return 'AED ' + Math.round(num).toLocaleString('en-US');
   }
 
+  function isBrokerSale(info){
+    info = info || {};
+    var source = String(info.source || '').trim().toLowerCase();
+    if (source.indexOf('direct') === 0) return false;
+    if (source.indexOf('broker') !== -1) return true;
+    return !!(String(info.brokerName || '').trim() || String(info.brokerCompany || '').trim());
+  }
+
   function customerForCard(card){
     var dues = window.state && Array.isArray(window.state.dues) ? window.state.dues : [];
     var sno = String(card.getAttribute('data-sno') || '');
@@ -28,6 +36,15 @@
       if (!customer) return false;
       if (sno && String(customer.sno || '') === sno) return true;
       return unit && String(customer.unit || '') === unit;
+    }) || null;
+  }
+
+  function selectedCustomer(){
+    var dues = window.state && Array.isArray(window.state.dues) ? window.state.dues : [];
+    var selected = window.state ? String(window.state.selectedUnit || '') : '';
+    if (!selected) return null;
+    return dues.find(function(customer){
+      return customer && String(customer.unit || '') + '::' + String(customer.sno || '') === selected;
     }) || null;
   }
 
@@ -67,12 +84,11 @@
     var customer = customerForCard(card);
     if (!customer) return;
     var info = customer.info || {};
-    var broker = String(info.brokerName || '').trim();
     var grid = card.querySelector('.rm-unit-grid');
     if (!grid) return;
 
     grid.querySelectorAll('.conditional-brokerage-field').forEach(function(row){ row.remove(); });
-    if (!broker) return;
+    if (!isBrokerSale(info)) return;
 
     var existing = labelsIn(grid);
     var values = brokerageValues(info);
@@ -119,9 +135,37 @@
     }
   }
 
+  function refineCustomerDetail(){
+    var detail = document.querySelector('.detail');
+    if (!detail) return;
+    var customer = selectedCustomer();
+    if (!customer) return;
+    var showBrokerage = isBrokerSale(customer.info || {});
+    var saleLabel = null;
+
+    detail.querySelectorAll('.section-label').forEach(function(label){
+      if (String(label.textContent || '').trim().toLowerCase() === 'sale & compliance') saleLabel = label;
+    });
+    if (!saleLabel) return;
+
+    var node = saleLabel.nextElementSibling;
+    while (node && !(node.classList && node.classList.contains('section-label'))){
+      var next = node.nextElementSibling;
+      if (node.classList && node.classList.contains('field-row')){
+        var labelEl = node.querySelector('.field-label');
+        var text = labelEl ? String(labelEl.textContent || '').trim().toLowerCase() : '';
+        if (text === 'brokerage %' || text === 'brokerage amount'){
+          node.style.display = showBrokerage ? '' : 'none';
+        }
+      }
+      node = next;
+    }
+  }
+
   function refine(){
     document.querySelectorAll('.rm-unit-card').forEach(refineRmCard);
     document.querySelectorAll('.broker-unit-card').forEach(refineBrokerCard);
+    refineCustomerDetail();
   }
 
   refine();
