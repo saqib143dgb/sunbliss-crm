@@ -5,6 +5,16 @@
 
   var originalRenderList = window.renderList;
 
+  function prepareDockSearch(input){
+    if (!input || window.__sunblissDockSearchOpen !== true) return;
+    var search = input.closest ? input.closest('.search') : null;
+    if (!search) return;
+    // The pill-only search is normally hidden inside Units. When live filtering
+    // rebuilds the list, make the replacement search visible before restoring
+    // focus so mobile browsers do not dismiss the keyboard after one letter.
+    search.classList.add('dock-search-surface','dock-search-open');
+  }
+
   window.renderList = function(){
     var active = document.activeElement;
     var restoreSearchFocus = !!(active && active.id === 'searchInput');
@@ -16,6 +26,8 @@
     if (restoreSearchFocus){
       var input = document.getElementById('searchInput');
       if (input){
+        prepareDockSearch(input);
+
         try {
           input.focus({ preventScroll: true });
         } catch (e) {
