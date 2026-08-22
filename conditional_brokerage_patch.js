@@ -67,6 +67,13 @@
     return row;
   }
 
+  function setFieldValue(row,kind,value){
+    if (!row) return;
+    var selector = kind === 'broker' ? '.broker-unit-field-value' : '.rm-unit-field-value';
+    var valueEl = row.querySelector(selector);
+    if (valueEl && valueEl.textContent !== String(value)) valueEl.textContent = value;
+  }
+
   function brokerageValues(info){
     var pctRaw = info ? info.brokeragePct : null;
     var amtRaw = info ? info.brokerageAmt : null;
@@ -87,8 +94,10 @@
     var grid = card.querySelector('.rm-unit-grid');
     if (!grid) return;
 
-    grid.querySelectorAll('.conditional-brokerage-field').forEach(function(row){ row.remove(); });
-    if (!isBrokerSale(info)) return;
+    if (!isBrokerSale(info)){
+      grid.querySelectorAll('.conditional-brokerage-field').forEach(function(row){ row.remove(); });
+      return;
+    }
 
     var existing = labelsIn(grid);
     var values = brokerageValues(info);
@@ -98,14 +107,19 @@
       var pctRow = makeField('rm','Brokerage %',values.pct);
       if (anchor){ addAfter(anchor,pctRow); anchor = pctRow; }
       else { grid.appendChild(pctRow); anchor = pctRow; }
+      existing['brokerage %'] = pctRow;
     } else {
       anchor = existing['brokerage %'];
+      setFieldValue(anchor,'rm',values.pct);
     }
 
     if (!existing['brokerage amount']){
       var amountRow = makeField('rm','Brokerage amount',values.amount);
       if (anchor) addAfter(anchor,amountRow);
       else grid.appendChild(amountRow);
+      existing['brokerage amount'] = amountRow;
+    } else {
+      setFieldValue(existing['brokerage amount'],'rm',values.amount);
     }
   }
 
@@ -124,14 +138,19 @@
       var pctRow = makeField('broker','Brokerage %',values.pct);
       if (anchor){ addAfter(anchor,pctRow); anchor = pctRow; }
       else { grid.appendChild(pctRow); anchor = pctRow; }
+      existing['brokerage %'] = pctRow;
     } else {
       anchor = existing['brokerage %'];
+      setFieldValue(anchor,'broker',values.pct);
     }
 
     if (!existing['brokerage amount']){
       var amountRow = makeField('broker','Brokerage amount',values.amount);
       if (anchor) addAfter(anchor,amountRow);
       else grid.appendChild(amountRow);
+      existing['brokerage amount'] = amountRow;
+    } else {
+      setFieldValue(existing['brokerage amount'],'broker',values.amount);
     }
   }
 
@@ -171,6 +190,17 @@
   refine();
   var app = document.getElementById('app');
   if (app && window.MutationObserver){
-    new MutationObserver(refine).observe(app,{childList:true,subtree:true});
+    var observer = new MutationObserver(function(){
+      // Brokerage refinement can add/remove rows. Pause this observer while
+      // doing that work so those same row changes cannot recursively trigger
+      // another refinement/repaint cycle.
+      observer.disconnect();
+      try {
+        refine();
+      } finally {
+        observer.observe(app,{childList:true,subtree:true});
+      }
+    });
+    observer.observe(app,{childList:true,subtree:true});
   }
 })();
