@@ -15,34 +15,41 @@
       color:var(--cream-text);
       border-bottom:1px solid rgba(198,151,46,.16);
       background:
-        radial-gradient(380px 120px at 0% 0%,rgba(198,151,46,.075),transparent 72%),
+        radial-gradient(380px 120px at 50% 0%,rgba(198,151,46,.075),transparent 72%),
         linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,0));
     }
 
     .topbar::after{
       content:"";
       position:absolute;
-      left:18px;
+      left:50%;
       bottom:-1px;
       width:42px;
       height:2px;
       border-radius:999px;
       background:var(--gold);
       opacity:.78;
+      transform:translateX(-50%);
       pointer-events:none;
     }
 
     .brand-row{
       gap:8px;
       align-items:center;
+      justify-content:center;
       margin-bottom:7px;
+      text-align:center;
+    }
+
+    .brand-row>div{
+      text-align:center;
     }
 
     .eyebrow{
       display:inline-flex;
       align-items:center;
       width:max-content;
-      margin:0;
+      margin:0 auto;
       padding:4px 8px;
       border:1px solid rgba(198,151,46,.25);
       border-radius:999px;
@@ -55,12 +62,13 @@
     }
 
     .title{
-      margin:0;
+      margin:0 auto;
       max-width:540px;
       font-size:27px;
       font-weight:600;
       line-height:1.06;
       letter-spacing:-.018em;
+      text-align:center;
       text-wrap:balance;
     }
 
@@ -68,12 +76,13 @@
 
     .brand-tagline{
       max-width:520px;
-      margin:0 0 10px;
+      margin:0 auto 10px;
       color:rgba(237,230,214,.52);
       font-size:10.5px;
       font-style:normal;
       line-height:1.35;
       letter-spacing:.01em;
+      text-align:center;
     }
 
     .brand-edit-btn{
@@ -187,13 +196,17 @@
       white-space:nowrap;
     }
 
+    .sync-row .signout-link{
+      flex:none;
+      margin-left:0;
+    }
+
     @media (max-width:480px){
       .topbar{
         padding:15px 14px 12px;
       }
 
       .topbar::after{
-        left:14px;
         width:36px;
       }
 
@@ -300,6 +313,7 @@
     }
 
     var old = row.querySelector('.header-sync-mini');
+    var signout = row.querySelector('#btnSignOut, .signout-link');
     var syncValue = window.state && window.state.syncedAt;
     var timeText = formatSyncTime(syncValue);
 
@@ -313,7 +327,11 @@
     label.textContent = 'Synced ' + timeText;
     label.title = 'CRM data last synced at ' + new Date(syncValue).toLocaleString();
 
-    if (!old) row.appendChild(label);
+    if (signout) {
+      if (label.nextSibling !== signout) row.insertBefore(label, signout);
+    } else if (!old) {
+      row.appendChild(label);
+    }
   }
 
   if (typeof window.render === 'function' && !window.__sunblissCompactHeaderRenderWrapped) {
