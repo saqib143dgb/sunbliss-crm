@@ -95,6 +95,17 @@
 
   var app = document.getElementById('app');
   if (app && window.MutationObserver){
-    new MutationObserver(refineUnitsActions).observe(app,{childList:true,subtree:true});
+    var observer = new MutationObserver(function(){
+      // This function moves existing Units controls into the requested layout.
+      // Pause observation while moving them so those moves do not recursively
+      // trigger this same observer and lock the UI in a repaint loop.
+      observer.disconnect();
+      try {
+        refineUnitsActions();
+      } finally {
+        observer.observe(app,{childList:true,subtree:true});
+      }
+    });
+    observer.observe(app,{childList:true,subtree:true});
   }
 })();
