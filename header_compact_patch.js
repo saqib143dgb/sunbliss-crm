@@ -55,7 +55,7 @@
     }
 
     .title{
-      margin:0 0 4px;
+      margin:0;
       max-width:540px;
       font-size:27px;
       font-weight:600;
@@ -64,13 +64,7 @@
       text-wrap:balance;
     }
 
-    .subtitle{
-      max-width:520px;
-      margin:0 0 8px;
-      color:rgba(237,230,214,.68);
-      font-size:12px;
-      line-height:1.42;
-    }
+    .subtitle{display:none!important;}
 
     .brand-tagline{
       max-width:520px;
@@ -143,7 +137,7 @@
       text-overflow:ellipsis;
       white-space:nowrap;
       color:rgba(237,230,214,.56);
-      font-size:9.5px;
+      font-size:10px;
       line-height:1.35;
     }
 
@@ -161,8 +155,21 @@
     }
 
     .sync-status b{
-      color:rgba(237,230,214,.86);
-      font-weight:500;
+      color:rgba(237,230,214,.90);
+      font-weight:600;
+    }
+
+    .sync-status .role-pill{
+      margin-left:6px;
+      padding:3px 7px;
+      border:1px solid rgba(237,230,214,.12);
+      background:rgba(237,230,214,.055);
+      color:rgba(237,230,214,.64);
+      font-size:8px;
+      font-weight:600;
+      line-height:1;
+      vertical-align:1px;
+      text-transform:none;
     }
 
     .header-sync-mini{
@@ -202,15 +209,8 @@
       }
 
       .title{
-        margin-bottom:4px;
         font-size:24px;
         line-height:1.06;
-      }
-
-      .subtitle{
-        margin-bottom:7px;
-        font-size:11px;
-        line-height:1.38;
       }
 
       .brand-tagline{
@@ -239,7 +239,13 @@
 
       .sync-status{
         padding-left:10px;
-        font-size:8.75px;
+        font-size:9px;
+      }
+
+      .sync-status .role-pill{
+        margin-left:5px;
+        padding:3px 6px;
+        font-size:7.5px;
       }
 
       .header-sync-mini{
@@ -256,14 +262,42 @@
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
 
+  function formatRole(value){
+    var role = String(value || '').trim().toLowerCase();
+    if (role === 'crm_officer') return 'CRM Officer';
+    if (role === 'manager') return 'Manager';
+    return role.replace(/_/g,' ').replace(/\b\w/g,function(ch){ return ch.toUpperCase(); });
+  }
+
   function refineHeader(){
     var eyebrow = document.querySelector('.topbar .eyebrow');
     if (eyebrow) {
       eyebrow.textContent = eyebrow.textContent.replace(/(\bLLC)\s*[-–—]\s*$/i, '$1');
     }
 
+    var subtitle = document.querySelector('.topbar .subtitle');
+    if (subtitle && /^\s*Drill into\b/i.test(subtitle.textContent || '')) subtitle.remove();
+
     var row = document.querySelector('.topbar .sync-row');
     if (!row) return;
+
+    var status = row.querySelector('.sync-status');
+    if (status) {
+      status.textContent = '';
+
+      var name = document.createElement('b');
+      name.className = 'header-user-name';
+      name.textContent = window.state && window.state.userName ? window.state.userName : '';
+      status.appendChild(name);
+
+      var roleText = formatRole(window.state && window.state.userRole);
+      if (roleText) {
+        var role = document.createElement('span');
+        role.className = 'role-pill';
+        role.textContent = roleText;
+        status.appendChild(role);
+      }
+    }
 
     var old = row.querySelector('.header-sync-mini');
     var syncValue = window.state && window.state.syncedAt;
