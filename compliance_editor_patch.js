@@ -27,6 +27,69 @@
     });
   }
 
+  function currentCustomer(){
+    if (!window.state || !state.selectedUnit) return null;
+    return state.dues.find(function(c){ return (c.unit + '::' + c.sno) === state.selectedUnit; }) || null;
+  }
+
+  function valueOf(id){
+    var el = document.getElementById(id);
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  function numberOrNull(id,label,maximum){
+    var raw = valueOf(id);
+    if (!raw) return null;
+    var n = Number(raw);
+    if (!isFinite(n) || n < 0) throw new Error(label + ' must be a valid non-negative number.');
+    if (maximum !== undefined && n > maximum) throw new Error(label + ' cannot be more than ' + maximum + '.');
+    return n;
+  }
+
+  async function saveSaleOnly(){
+    var c = currentCustomer();
+    var save = document.getElementById('scSave');
+    var err = document.getElementById('saleComplianceError');
+    if (!c || !save) return;
+
+    try{
+      var payload = {
+        booking_date:valueOf('scBookingDate') || null,
+        booking_amount:numberOrNull('scBookingAmount','Booking amount'),
+        sold_by:valueOf('scSoldBy') || null,
+        source:valueOf('scSource') || null,
+        broker_name:valueOf('scBrokerName') || null,
+        broker_company:valueOf('scBrokerCompany') || null,
+        brokerage_percentage:numberOrNull('scBrokeragePct','Brokerage percentage',100),
+        brokerage_amount:numberOrNull('scBrokerageAmount','Brokerage amount'),
+        remarks:valueOf('scRemarks') || null,
+        updated_at:new Date().toISOString()
+      };
+
+      save.disabled = true;
+      save.textContent = 'Saving…';
+      if (err) err.style.display = 'none';
+
+      var result = await sb.from('sales').update(payload).eq('unit_id',c.sno);
+      if (result.error) throw result.error;
+
+      var unit = c.unit, sno = c.sno, from = state.detailFrom || 'list';
+      await loadFromSupabase();
+      goToDetail(unit,sno,from);
+    }catch(ex){
+      if (err){
+        err.textContent = ex && ex.message ? ex.message : 'Could not save sale details.';
+        err.style.display = 'block';
+      }else{
+        alert(ex && ex.message ? ex.message : 'Could not save sale details.');
+      }
+      if (save){
+        save.disabled = false;
+        save.textContent = 'Save changes';
+      }
+    }
+  }
+
   function cleanSaleEditor(){
     var panel = document.getElementById('saleComplianceEditPanel');
     if (!panel) return;
@@ -34,18 +97,14 @@
     panel.querySelectorAll('.section-label').forEach(function(label){
       var text = normalize(label.textContent);
       if (text === 'edit sale & compliance') label.textContent = 'Edit Sale';
-      if (text === 'compliance') label.hidden = true;
+      if (text === 'compliance') label.remove();
     });
 
     ['scSpaStatus','scSpaDate','scOqoodStatus','scOqoodDate','scFurnitureStatus','scDldStatus'].forEach(function(id){
       var field = document.getElementById(id);
       if (!field) return;
       var holder = field.closest ? field.closest('label.brand-field') : field.parentNode;
-      if (holder){
-        holder.hidden = true;
-        holder.setAttribute('aria-hidden','true');
-      }
-      field.setAttribute('tabindex','-1');
+      if (holder) holder.remove();
     });
 
     var remarks = document.getElementById('scRemarks');
@@ -65,10 +124,10 @@
 
   function renameDetailActions(){
     var saleAction = document.getElementById('actionEditSaleCompliance');
-    if (saleAction) saleAction.textContent = 'Edit Sale';
+    if (saleAction && saleAction.textContent !== 'Edit Sale') saleAction.textContent = 'Edit Sale';
 
     var complianceAction = document.getElementById('actionUpdateStatus');
-    if (complianceAction) complianceAction.textContent = 'Compliance';
+    if (complianceAction && complianceAction.textContent !== 'Compliance') complianceAction.textContent = 'Compliance';
 
     document.querySelectorAll('.detail .section-label').forEach(function(label){
       if (normalize(label.textContent) === 'update spa & oqood status') label.textContent = 'Compliance';
@@ -177,6 +236,14 @@
     window.__sunblissComplianceEditorInstalled = true;
 
     installComplianceForm();
+
+    document.addEventListener('click',function(ev){
+      var target = ev.target && ev.target.closest ? ev.target.closest('#scSave') : null;
+      if (!target) return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      saveSaleOnly();
+    },true);
 
     var originalRenderDetail = window.renderDetail;
     window.renderDetail = function(){
