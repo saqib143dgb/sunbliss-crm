@@ -31,7 +31,8 @@ const LOCAL_PATCH_FILES = [
   'compliance_editor_patch.js',
   'action_required_patch.js',
   'sequenced_payment_labels_patch.js',
-  'extra_installments_patch.js'
+  'extra_installments_patch.js',
+  'persistent_back_patch.js'
 ];
 
 async function download(file, required = true) {
