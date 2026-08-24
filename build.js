@@ -5,6 +5,9 @@ const BASE = 'https://sunbliss-q3pmfsk79-sunbliss-crm.vercel.app';
 const OUT = path.join(process.cwd(), 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
+const LOCAL_REPLACEMENT_FILES = {
+  'chunk_11.js': 'auth_core_replacement.js'
+};
 const LOCAL_PATCH_FILES = [
   'feature_patch.js',
   'detail_menu_patch.js',
@@ -50,6 +53,12 @@ async function main() {
   for (const file of TEXT_FILES) {
     const body = await download(file, true);
     fs.writeFileSync(path.join(OUT, file), body);
+  }
+
+  for (const [target, source] of Object.entries(LOCAL_REPLACEMENT_FILES)) {
+    const replacementSource = path.join(process.cwd(), source);
+    if (!fs.existsSync(replacementSource)) throw new Error(`${source} is missing`);
+    fs.copyFileSync(replacementSource, path.join(OUT, target));
   }
 
   for (const file of OPTIONAL_BINARY_FILES) {
