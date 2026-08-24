@@ -4,6 +4,13 @@
   if (window.__sunblissOriginalBrandLogoInstalled) return;
   window.__sunblissOriginalBrandLogoInstalled = true;
 
+  function normalizeLogoData(value){
+    var data=String(value||'').trim();
+    if(!data) return '';
+    if(/^data:image\//i.test(data)) return data;
+    return 'data:image/webp;base64,'+data;
+  }
+
   function restoreOriginalLogo(){
     var top=document.querySelector('.sunbliss-header-top');
     if(!top) return;
@@ -12,7 +19,7 @@
     if(recreated) recreated.remove();
 
     var logo=top.querySelector('.sunbliss-original-brand-logo');
-    var logoData=window.__sunblissHeroLogo || '';
+    var logoData=normalizeLogoData(window.__sunblissHeroLogo || '');
     if(!logoData) return;
 
     if(!logo){
@@ -21,7 +28,7 @@
       logo.alt='Purvanchal Real Estate Developers LLC';
       top.insertBefore(logo,top.firstChild);
     }
-    if(logo.src!==logoData) logo.src=logoData;
+    if(logo.getAttribute('src')!==logoData) logo.setAttribute('src',logoData);
   }
 
   var style=document.createElement('style');
