@@ -1,5 +1,6 @@
 (function(){
   'use strict';
+  // Compact hero: 30% shorter with Sign out aligned to the live user-name row.
   if (window.__sunblissHeader30PctAlignInstalled) return;
   window.__sunblissHeader30PctAlignInstalled = true;
 
