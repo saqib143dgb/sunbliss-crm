@@ -33,7 +33,9 @@ const LOCAL_PATCH_FILES = [
   'sequenced_payment_labels_patch.js',
   'extra_installments_patch.js',
   'persistent_back_patch.js',
-  'new_customer_sales_channel_patch.js'
+  'new_customer_sales_channel_patch.js',
+  'furnishing_type_patch.js',
+  'furnishing_refresh_patch.js'
 ];
 
 async function download(file, required = true) {
@@ -77,8 +79,6 @@ async function main() {
   const indexPath = path.join(OUT, 'index.html');
   let html = fs.readFileSync(indexPath, 'utf8');
 
-  // Make sure the deployed site uses its own local copied chunks and then loads
-  // each CRM extension after the original application code, in the order above.
   html = html.replace(/<script\s+async\s+data-explicit-opt-in=[\s\S]*?<\/script>\s*$/i, '');
   for (const patch of LOCAL_PATCH_FILES) {
     if (!html.includes(patch)) {
