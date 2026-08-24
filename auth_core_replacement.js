@@ -46,12 +46,21 @@ async function denyUnauthorized(message){
 }
 
 async function boot(){
-  var userResult=await sb.auth.getUser();
-  if(userResult.error){renderAuthScreen(userResult.error.message,false);return}
-  var user=userResult.data&&userResult.data.user;
-  if(!user){renderAuthScreen();return}
-
   try{
+    var sessionResult=await sb.auth.getSession();
+    if(sessionResult.error){renderAuthScreen(sessionResult.error.message,false);return}
+    var session=sessionResult.data&&sessionResult.data.session;
+    if(!session){renderAuthScreen();return}
+
+    var userResult=await sb.auth.getUser();
+    if(userResult.error){
+      try{await sb.auth.signOut()}catch(_e){}
+      renderAuthScreen('Your session expired. Please sign in again.',false);
+      return;
+    }
+    var user=userResult.data&&userResult.data.user;
+    if(!user){renderAuthScreen();return}
+
     var profileResult=await sb.from('profiles').select('full_name, role').eq('id',user.id).single();
     var profile=profileResult.data;
     var role=profile&&profile.role;
@@ -59,12 +68,13 @@ async function boot(){
       await denyUnauthorized('This account is not authorized for this CRM.');
       return;
     }
+
     state.userName=profile.full_name||user.email;
     state.userRole=role;
     await loadFromSupabase();
     render();
   }catch(err){
-    await denyUnauthorized(err&&err.message?err.message:'Could not verify this account.');
+    renderAuthScreen(err&&err.message?err.message:'Could not load the CRM. Please try again.',false);
   }
 }
 
