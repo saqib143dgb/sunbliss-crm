@@ -36,7 +36,8 @@ const LOCAL_PATCH_FILES = [
   'new_customer_sales_channel_patch.js',
   'furnishing_type_patch.js',
   'furnishing_refresh_patch.js',
-  'installment_edit_patch.js'
+  'installment_edit_patch.js',
+  'installment_menu_portal_patch.js'
 ];
 
 async function download(file, required = true) {
