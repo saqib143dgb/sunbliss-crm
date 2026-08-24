@@ -41,7 +41,12 @@ const LOCAL_PATCH_FILES = [
   'detail_render_stability_patch.js',
   'unit_editor_patch.js',
   'payment_detail_patch.js',
-  'payment_plan_menu_order_patch.js'
+  'payment_plan_menu_order_patch.js',
+  'header_asset_building_a.js',
+  'header_asset_building_b.js',
+  'header_asset_logo_a.js',
+  'header_asset_logo_b.js',
+  'premium_hero_header_patch.js'
 ];
 
 async function download(file, required = true) {
