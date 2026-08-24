@@ -8,7 +8,8 @@
     var previousLoad = window.loadFromSupabase;
     window.loadFromSupabase = async function(){
       var result = await previousLoad.apply(this,arguments);
-      if (typeof window.renderMain === 'function') window.renderMain();
+      var main = document.getElementById('main');
+      if (main && typeof window.renderMain === 'function') window.renderMain();
       return result;
     };
   }
