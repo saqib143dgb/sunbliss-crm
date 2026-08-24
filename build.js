@@ -32,7 +32,8 @@ const LOCAL_PATCH_FILES = [
   'action_required_patch.js',
   'sequenced_payment_labels_patch.js',
   'extra_installments_patch.js',
-  'persistent_back_patch.js'
+  'persistent_back_patch.js',
+  'new_customer_sales_channel_patch.js'
 ];
 
 async function download(file, required = true) {
@@ -64,7 +65,7 @@ async function main() {
 
   for (const file of OPTIONAL_BINARY_FILES) {
     const body = await download(file, false);
-    if (body) fs.writeFileSync(path.join(OUT, file), body);
+    if (body) fs.writeFileSync(path.join(OUT, file));
   }
 
   for (const file of LOCAL_PATCH_FILES) {
