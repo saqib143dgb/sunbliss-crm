@@ -65,7 +65,7 @@ async function main() {
 
   for (const file of OPTIONAL_BINARY_FILES) {
     const body = await download(file, false);
-    if (body) fs.writeFileSync(path.join(OUT, file));
+    if (body) fs.writeFileSync(path.join(OUT, file), body);
   }
 
   for (const file of LOCAL_PATCH_FILES) {
