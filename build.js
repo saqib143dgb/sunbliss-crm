@@ -40,7 +40,8 @@ const LOCAL_PATCH_FILES = [
   'installment_menu_portal_patch.js',
   'detail_render_stability_patch.js',
   'unit_editor_patch.js',
-  'payment_detail_patch.js'
+  'payment_detail_patch.js',
+  'payment_plan_menu_order_patch.js'
 ];
 
 async function download(file, required = true) {
