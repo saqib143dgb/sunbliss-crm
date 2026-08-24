@@ -48,7 +48,8 @@ const LOCAL_PATCH_FILES = [
   'header_asset_logo_b.js',
   'premium_hero_header_patch.js',
   'premium_hero_header_refine_patch.js',
-  'header_image_edge_fix_patch.js'
+  'header_image_edge_fix_patch.js',
+  'header_curve_remove_patch.js'
 ];
 
 async function download(file, required = true) {
