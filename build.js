@@ -23,7 +23,8 @@ const LOCAL_PATCH_FILES = [
   'footer_surface_patch.js',
   'mobile_input_zoom_patch.js',
   'header_spacing_patch.js',
-  'unit_detail_workflow_patch.js'
+  'unit_detail_workflow_patch.js',
+  'detail_action_cleanup_patch.js'
 ];
 
 async function download(file, required = true) {
