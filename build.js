@@ -25,7 +25,8 @@ const LOCAL_PATCH_FILES = [
   'header_spacing_patch.js',
   'unit_detail_workflow_patch.js',
   'detail_action_cleanup_patch.js',
-  'compliance_editor_patch.js'
+  'compliance_editor_patch.js',
+  'action_required_patch.js'
 ];
 
 async function download(file, required = true) {
