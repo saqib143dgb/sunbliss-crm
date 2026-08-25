@@ -52,7 +52,8 @@ const LOCAL_PATCH_FILES = [
   'header_image_edge_fix_patch.js',
   'header_curve_remove_patch.js',
   'original_brand_logo_patch.js',
-  'header_30pct_signout_align_patch.js'
+  'header_30pct_signout_align_patch.js',
+  'units_tab_search_patch.js'
 ];
 
 function requireFile(filePath, label) {
