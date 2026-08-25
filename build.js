@@ -56,7 +56,8 @@ const LOCAL_PATCH_FILES = [
   'units_tab_search_patch.js',
   'dock_order_patch.js',
   'cancelled_unit_archive_patch.js',
-  'insights_people_search_patch.js'
+  'insights_people_search_patch.js',
+  'brand_identity_split_patch.js'
 ];
 
 function requireFile(filePath, label) {
