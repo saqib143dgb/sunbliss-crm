@@ -55,12 +55,13 @@ const LOCAL_PATCH_FILES = [
   'header_30pct_signout_align_patch.js',
   'units_tab_search_patch.js',
   'dock_order_patch.js',
-  'cancelled_unit_archive_patch.js'
+  'cancelled_unit_archive_patch.js',
+  'insights_people_search_patch.js'
 ];
 
 function requireFile(filePath, label) {
   if (!fs.existsSync(filePath)) {
-    throw new Error(`${label} is missing: ${path.relative(ROOT, filePath)}. Run \"npm run vendor:base\" only when intentionally refreshing the frozen base snapshot.`);
+    throw new Error(`${label} is missing: ${path.relative(ROOT, filePath)}. Run "npm run vendor:base" only when intentionally refreshing the frozen base snapshot.`);
   }
 }
 
