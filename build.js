@@ -62,7 +62,8 @@ const LOCAL_PATCH_FILES = [
   'cancelled_forfeit_rule_patch.js',
   'reference_p_mark_header_patch.js',
   'cancelled_unit_edit_patch.js',
-  'professional_customer_statement_patch.js'
+  'professional_customer_statement_patch.js',
+  'payment_statement_reference_match_patch.js'
 ];
 
 function requireFile(filePath, label) {
