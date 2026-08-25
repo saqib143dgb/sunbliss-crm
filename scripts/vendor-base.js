@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// This URL is used only when intentionally refreshing the frozen bootstrap snapshot.
+// Maintenance-only source for refreshing the frozen bootstrap snapshot.
 // Normal production builds never make a network request to it.
 const SOURCE = (process.env.CRM_BASE_URL || 'https://sunbliss-q3pmfsk79-sunbliss-crm.vercel.app').replace(/\/+$/, '');
 const OUT = process.env.CRM_BASE_OUT || path.join(process.cwd(), 'vendor', 'base');
