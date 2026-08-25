@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE = 'https://sunbliss-q3pmfsk79-sunbliss-crm.vercel.app';
-const OUT = path.join(process.cwd(), 'dist');
+const ROOT = process.cwd();
+const BASE = path.join(ROOT, 'vendor', 'base');
+const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
 const LOCAL_REPLACEMENT_FILES = {
@@ -54,42 +55,38 @@ const LOCAL_PATCH_FILES = [
   'header_30pct_signout_align_patch.js'
 ];
 
-async function download(file, required = true) {
-  const res = await fetch(`${BASE}/${file}`, { redirect: 'follow' });
-  if (!res.ok) {
-    if (!required) {
-      console.warn(`Optional asset ${file} unavailable (${res.status}); skipping.`);
-      return null;
-    }
-    throw new Error(`Failed to download ${file}: HTTP ${res.status}`);
+function requireFile(filePath, label) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`${label} is missing: ${path.relative(ROOT, filePath)}. Run \"npm run vendor:base\" only when intentionally refreshing the frozen base snapshot.`);
   }
-  return Buffer.from(await res.arrayBuffer());
 }
 
-async function main() {
+function copyRequired(source, target, label) {
+  requireFile(source, label);
+  fs.copyFileSync(source, target);
+}
+
+function main() {
+  requireFile(path.join(BASE, 'manifest.json'), 'Vendored base manifest');
+
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
 
   for (const file of TEXT_FILES) {
-    const body = await download(file, true);
-    fs.writeFileSync(path.join(OUT, file), body);
+    copyRequired(path.join(BASE, file), path.join(OUT, file), `Vendored base file ${file}`);
   }
 
   for (const [target, source] of Object.entries(LOCAL_REPLACEMENT_FILES)) {
-    const replacementSource = path.join(process.cwd(), source);
-    if (!fs.existsSync(replacementSource)) throw new Error(`${source} is missing`);
-    fs.copyFileSync(replacementSource, path.join(OUT, target));
+    copyRequired(path.join(ROOT, source), path.join(OUT, target), `Local replacement ${source}`);
   }
 
   for (const file of OPTIONAL_BINARY_FILES) {
-    const body = await download(file, false);
-    if (body) fs.writeFileSync(path.join(OUT, file), body);
+    const source = path.join(BASE, file);
+    if (fs.existsSync(source)) fs.copyFileSync(source, path.join(OUT, file));
   }
 
   for (const file of LOCAL_PATCH_FILES) {
-    const patchSource = path.join(process.cwd(), file);
-    if (!fs.existsSync(patchSource)) throw new Error(`${file} is missing`);
-    fs.copyFileSync(patchSource, path.join(OUT, file));
+    copyRequired(path.join(ROOT, file), path.join(OUT, file), `Local patch ${file}`);
   }
 
   const indexPath = path.join(OUT, 'index.html');
@@ -103,10 +100,12 @@ async function main() {
   }
 
   fs.writeFileSync(indexPath, html);
-  console.log(`Built self-contained CRM into ${OUT}`);
+  console.log(`Built self-contained CRM into ${OUT} using only repository files`);
 }
 
-main().catch(err => {
-  console.error(err);
+try {
+  main();
+} catch (error) {
+  console.error(error);
   process.exit(1);
-});
+}

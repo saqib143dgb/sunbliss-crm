@@ -1,0 +1,76 @@
+{
+  "source": "https://sunbliss-q3pmfsk79-sunbliss-crm.vercel.app",
+  "purpose": "Frozen bootstrap snapshot for deterministic, network-free production builds.",
+  "files": [
+    {
+      "file": "index.html",
+      "bytes": 25270,
+      "sha256": "3e0e9e634e7c0be2b6897c68ede636cfaf1b2dc39ec8e281ac2f911019de7900"
+    },
+    {
+      "file": "chunk_00.js",
+      "bytes": 9957,
+      "sha256": "9de20b4b2a85f247c4f7ea41279d3b75e85c5fdbf8b93c81da7c297b75f78850"
+    },
+    {
+      "file": "chunk_01.js",
+      "bytes": 8334,
+      "sha256": "240cde016365eb8d5fc679d7e993c1aad0c993495a2fea5b5e32793cd1882d10"
+    },
+    {
+      "file": "chunk_02.js",
+      "bytes": 7862,
+      "sha256": "0ce48840ac43d447a1131dbae4338d6ad7f9b40ee594f537ed25b255a8a03207"
+    },
+    {
+      "file": "chunk_03.js",
+      "bytes": 7754,
+      "sha256": "244dd008fd95cc4b71a72659c85cbc3520f615a6c79deade5bab81868da3f1fe"
+    },
+    {
+      "file": "chunk_04.js",
+      "bytes": 9840,
+      "sha256": "ccbcb6bcd9c1b29b3cebd5712bd2f52660e141095b81d5ace3252a5715d9f713"
+    },
+    {
+      "file": "chunk_05.js",
+      "bytes": 11288,
+      "sha256": "ea50d653d9eb9f9d55642d74a02fb725a0370dc6ff0d9e4857ce436672130062"
+    },
+    {
+      "file": "chunk_06.js",
+      "bytes": 6159,
+      "sha256": "f1c81eefe9225a55ddb03956a3258e0b531ab6a8c1638906539d65ef0c54201a"
+    },
+    {
+      "file": "chunk_07.js",
+      "bytes": 9107,
+      "sha256": "4c036645b5dada1afc0c6eeb0e1990318735a82f29fcbccdb92477465539c6a6"
+    },
+    {
+      "file": "chunk_08.js",
+      "bytes": 6025,
+      "sha256": "7bccb7ddad09dddef959d679e05edb6865f0b3c984b1c42f5a8456e0bd174ed6"
+    },
+    {
+      "file": "chunk_09.js",
+      "bytes": 10795,
+      "sha256": "d5f1f63e570dd321a206ab2e54db253ac1132a9823b2be8e858c1ceb609f887b"
+    },
+    {
+      "file": "chunk_10.js",
+      "bytes": 16594,
+      "sha256": "9af14e0786d7d55c5224dee4e6f4a3bfd720d2c7a8329ee294192528285d1704"
+    },
+    {
+      "file": "chunk_11.js",
+      "bytes": 3327,
+      "sha256": "009cf438498c9b2e54c8c69c3ae64e62aacdc2398049da57abee7f6f4fad1999"
+    },
+    {
+      "file": "chunk_12.js",
+      "bytes": 7088,
+      "sha256": "e0991dbfbb4a70f6263d9356ca0c37a56e97ae2b4abd0ca6154dc7076d9f6794"
+    }
+  ]
+}
