@@ -1,0 +1,51 @@
+name: Vendor CRM base snapshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - chore/self-contained-build
+    paths:
+      - .github/workflows/vendor-base.yml
+      - scripts/vendor-base.js
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Vendor frozen base snapshot
+        run: npm run vendor:base
+
+      - name: Verify network-free production build
+        run: |
+          npm run build
+          test -f dist/index.html
+          test -f dist/chunk_00.js
+          test -f dist/chunk_12.js
+          ! grep -q "sunbliss-q3pmfsk79-sunbliss-crm.vercel.app" build.js
+          ! grep -q "fetch(" build.js
+
+      - name: Commit frozen snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor/base
+          if git diff --cached --quiet; then
+            echo "Base snapshot is already current."
+            exit 0
+          fi
+          git commit -m "Vendor frozen CRM base snapshot"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
