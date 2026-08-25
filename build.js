@@ -6,6 +6,7 @@ const BASE = path.join(ROOT, 'vendor', 'base');
 const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
+const LOCAL_STATIC_FILES = ['assets/purvanchal-p-dubai.webp'];
 const LOCAL_REPLACEMENT_FILES = {
   'chunk_11.js': 'auth_core_replacement.js'
 };
@@ -58,7 +59,8 @@ const LOCAL_PATCH_FILES = [
   'cancelled_unit_archive_patch.js',
   'insights_people_search_patch.js',
   'brand_identity_split_patch.js',
-  'cancelled_forfeit_rule_patch.js'
+  'cancelled_forfeit_rule_patch.js',
+  'reference_p_mark_header_patch.js'
 ];
 
 function requireFile(filePath, label) {
@@ -89,6 +91,14 @@ function main() {
   for (const file of OPTIONAL_BINARY_FILES) {
     const source = path.join(BASE, file);
     if (fs.existsSync(source)) fs.copyFileSync(source, path.join(OUT, file));
+  }
+
+  for (const file of LOCAL_STATIC_FILES) {
+    const source = path.join(ROOT, file);
+    const target = path.join(OUT, file);
+    requireFile(source, `Local static file ${file}`);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
   }
 
   for (const file of LOCAL_PATCH_FILES) {
