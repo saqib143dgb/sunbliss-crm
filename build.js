@@ -54,7 +54,8 @@ const LOCAL_PATCH_FILES = [
   'original_brand_logo_patch.js',
   'header_30pct_signout_align_patch.js',
   'units_tab_search_patch.js',
-  'dock_order_patch.js'
+  'dock_order_patch.js',
+  'cancelled_unit_archive_patch.js'
 ];
 
 function requireFile(filePath, label) {
