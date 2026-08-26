@@ -70,7 +70,9 @@ const LOCAL_PATCH_FILES = [
   'credit_notes_insights_patch.js',
   'monthly_sales_drilldown_patch.js',
   'all_tasks_overview_patch.js',
-  'inline_spa_oqood_patch.js'
+  'inline_spa_oqood_patch.js',
+  'carry_forward_patch.js',
+  'carry_forward_audit_fix_patch.js'
 ];
 
 function requireFile(filePath, label) {
