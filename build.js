@@ -67,7 +67,8 @@ const LOCAL_PATCH_FILES = [
   'payment_statement_reference_match_patch.js',
   'credit_notes_core_patch.js',
   'credit_notes_detail_patch.js',
-  'credit_notes_insights_patch.js'
+  'credit_notes_insights_patch.js',
+  'monthly_sales_drilldown_patch.js'
 ];
 
 function requireFile(filePath, label) {
