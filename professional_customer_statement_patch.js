@@ -44,26 +44,42 @@
     }) || null;
   }
   function transactionsFor(c){
-    if (!window.state || !Array.isArray(state.recent)) return [];
-    var cn=normName(c.name), cu=normUnit(c.unit);
-    var sameNameCount=Array.isArray(state.dues) ? state.dues.filter(function(d){ return normName(d && d.name)===cn; }).length : 1;
-    return state.recent.filter(function(t){
-      var tn=normName(t && t.name);
-      if (!tn || tn.length<3) return false;
-      var match=tn===cn || cn.indexOf(tn)!==-1 || tn.indexOf(cn)!==-1;
-      if (!match) return false;
-      if (sameNameCount>1){
-        var tu=normUnit(t && t.unit);
-        return !!tu && !!cu && tu===cu;
-      }
-      return true;
-    }).sort(function(a,b){
+    var rows=[];
+    if (window.state && Array.isArray(state.recent)){
+      var cn=normName(c.name), cu=normUnit(c.unit);
+      var sameNameCount=Array.isArray(state.dues) ? state.dues.filter(function(d){ return normName(d && d.name)===cn; }).length : 1;
+      rows=state.recent.filter(function(t){
+        var tn=normName(t && t.name);
+        if (!tn || tn.length<3) return false;
+        var match=tn===cn || cn.indexOf(tn)!==-1 || tn.indexOf(cn)!==-1;
+        if (!match) return false;
+        if (sameNameCount>1){
+          var tu=normUnit(t && t.unit);
+          return !!tu && !!cu && tu===cu;
+        }
+        return true;
+      }).map(function(t){
+        return {date:t && t.date,towards:t && t.towards || 'Payment',amount:t && t.amount,isCreditNote:false};
+      });
+    }
+    (Array.isArray(c && c.creditNotes) ? c.creditNotes : []).forEach(function(n){
+      var towards='Credit note — '+text(n.stageLabel||'Installment');
+      if (n.reason) towards+=' — '+text(n.reason);
+      if (n.reference) towards+=' (Ref '+text(n.reference)+')';
+      rows.push({date:n.issueDate,towards:towards,amount:n.amount,isCreditNote:true});
+    });
+    return rows.sort(function(a,b){
       var da=dateValue(a && a.date), db=dateValue(b && b.date);
-      return (da?da.getTime():0)-(db?db.getTime():0);
+      var diff=(da?da.getTime():0)-(db?db.getTime():0);
+      if (diff) return diff;
+      return a.isCreditNote===b.isCreditNote?0:(a.isCreditNote?1:-1);
     });
   }
+  function hasCreditNotes(c){ return Number(c && c.creditNoteTotal)>0; }
+  function cashReceived(c){ return hasCreditNotes(c) && c.cashReceived!==undefined ? Number(c.cashReceived)||0 : Number(c && c.received)||0; }
+  function settledReceived(c){ return hasCreditNotes(c) && c.settledReceived!==undefined ? Number(c.settledReceived)||0 : Number(c && c.received)||0; }
   function paidPct(c){
-    var total=Number(c && c.total)||0, received=Number(c && c.received)||0;
+    var total=Number(c && c.total)||0, received=settledReceived(c);
     if (total<=0) return 0;
     return Math.max(0,Math.min(100,Math.round((received/total)*1000)/10));
   }
@@ -77,8 +93,10 @@
     var today=new Date();
     var pct=paidPct(c);
     var type=text(c.type).trim();
+    var credit=hasCreditNotes(c);
+    var creditTotal=Number(c.creditNoteTotal)||0;
     var unitLine='UNIT '+text(c.unit).toUpperCase()+(type?' | '+type.toUpperCase():'');
-    var customerMeta='Unit '+text(c.unit)+(type?' | '+type:'');
+    var customerMeta='Unit '+text(c.unit)+(type?' | '+type:'')+(credit?' | Credit notes '+money(creditTotal):'');
     var stages=Array.isArray(c.stages) ? c.stages : [];
     var txs=transactionsFor(c);
 
@@ -94,16 +112,19 @@
 
     html+='<section class="ps-summary">'+
       summaryCard('TOTAL',money(c.total),'total')+
-      summaryCard('RECEIVED',money(c.received),'received')+
+      summaryCard(credit?'CASH RECEIVED':'RECEIVED',money(cashReceived(c)),'received')+
       summaryCard('OUTSTANDING',money(c.outstanding),'outstanding')+
-      summaryCard('PAID',pct.toFixed(pct%1?1:0)+'%','paid','<div class="ps-progress"><span style="width:'+pct+'%"></span></div>')+
+      summaryCard(credit?'SETTLED':'PAID',pct.toFixed(pct%1?1:0)+'%','paid','<div class="ps-progress"><span style="width:'+pct+'%"></span></div>')+
     '</section>';
 
     html+='<section class="ps-section"><h2>Installment Schedule</h2><div class="ps-heading-rule"></div>';
-    html+='<table class="ps-table ps-installments"><thead><tr><th>STAGE</th><th>DUE</th><th>DUE DATE</th><th>PAID</th><th>PAID DATE</th></tr></thead><tbody>';
+    html+='<table class="ps-table ps-installments"><thead><tr><th>STAGE</th><th>DUE</th><th>DUE DATE</th><th>'+(credit?'CASH / CREDIT':'PAID')+'</th><th>PAID DATE</th></tr></thead><tbody>';
     if (stages.length){
       stages.forEach(function(s){
-        html+='<tr><td>'+esc(s && s.label || 'Installment')+'</td><td>'+esc(money(s && s.due))+'</td><td>'+esc(dateLabel(s && s.dueDate))+'</td><td>'+esc(money(s && s.paid))+'</td><td>'+esc((s && Number(s.paid)>0) ? dateLabel(s.paidDate) : '-')+'</td></tr>';
+        var stageCredit=Number(s && s.creditNoteTotal)||0;
+        var stageCash=stageCredit>0 && s.cashPaid!==undefined ? Number(s.cashPaid)||0 : Number(s && s.paid)||0;
+        var paymentCell=stageCredit>0 ? 'Cash '+money(stageCash)+' / CN '+money(stageCredit) : money(stageCash);
+        html+='<tr'+(stageCredit>0?' class="ps-credit-note-stage"':'')+'><td>'+esc(s && s.label || 'Installment')+'</td><td>'+esc(money(s && s.due))+'</td><td>'+esc(dateLabel(s && s.dueDate))+'</td><td>'+esc(paymentCell)+'</td><td>'+esc(stageCash>0 ? dateLabel(s.paidDate) : '-')+'</td></tr>';
       });
     }else{
       html+='<tr><td colspan="5" class="ps-empty">No installment schedule on record.</td></tr>';
@@ -114,7 +135,7 @@
     html+='<table class="ps-table ps-transactions"><thead><tr><th>DATE</th><th>TOWARDS</th><th>AMOUNT</th></tr></thead><tbody>';
     if (txs.length){
       txs.forEach(function(t){
-        html+='<tr><td>'+esc(dateLabel(t && t.date))+'</td><td>'+esc(t && t.towards || 'Payment')+'</td><td>'+esc(money(t && t.amount))+'</td></tr>';
+        html+='<tr'+(t.isCreditNote?' class="ps-credit-note-transaction"':'')+'><td>'+esc(dateLabel(t && t.date))+'</td><td>'+(t.isCreditNote?'<span class="ps-credit-note-label">CREDIT NOTE</span> ':'')+esc(t && t.towards || 'Payment')+'</td><td>'+esc(money(t && t.amount))+'</td></tr>';
       });
     }else{
       html+='<tr><td colspan="3" class="ps-empty">No transactions on record.</td></tr>';
@@ -155,6 +176,7 @@
       '.ps-table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid #d9dde2;border-radius:1.6mm;overflow:hidden;font-size:2.45mm;line-height:1.18;table-layout:fixed}.ps-table thead{display:table-header-group}.ps-table tr{break-inside:avoid;page-break-inside:avoid}.ps-table th{background:#12344f;color:#fff;text-align:left;padding:2.1mm 2.8mm;font-size:2.1mm;font-weight:700;letter-spacing:.025em}.ps-table td{padding:1.75mm 2.8mm;border-bottom:1px solid #e6e8eb;color:#303a45;vertical-align:middle}.ps-table tbody tr:nth-child(even) td{background:#f7f8f9}.ps-table tbody tr:last-child td{border-bottom:none}.ps-table .ps-empty{text-align:center;color:#7a8490;padding:4mm}',
       '.ps-installments th:nth-child(1){width:29%}.ps-installments th:nth-child(2){width:19%}.ps-installments th:nth-child(3){width:18%}.ps-installments th:nth-child(4){width:18%}.ps-installments th:nth-child(5){width:16%}',
       '.ps-transactions th:nth-child(1){width:23%}.ps-transactions th:nth-child(2){width:57%}.ps-transactions th:nth-child(3){width:20%}.ps-transactions td:last-child,.ps-transactions th:last-child{text-align:right}',
+      '.ps-credit-note-stage td{background:#fbf7ed!important}.ps-credit-note-transaction td{background:#fbf7ed!important;color:#5e4a1b!important}.ps-credit-note-label{display:inline-block;font-weight:700;font-size:1.85mm;letter-spacing:.04em;color:#8f6a1e;margin-right:1mm}',
       '.ps-footer{position:absolute;left:11.5mm;right:11.5mm;bottom:7.2mm;border-top:1px solid #d7dade;padding-top:3.1mm;display:flex;justify-content:space-between;gap:8mm;font-size:1.95mm;color:#7b858e;letter-spacing:.01em;}',
       '@media screen{#printArea .professional-payment-statement{margin:0 auto;box-shadow:0 16px 50px rgba(0,0,0,.15)}}'
     ].join('');
