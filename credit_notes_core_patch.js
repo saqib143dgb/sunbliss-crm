@@ -16,6 +16,22 @@
     var d=v instanceof Date?v:new Date(text(v).length===10?text(v)+'T00:00:00':v);
     return isNaN(d.getTime())?text(v):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   }
+  function unitKey(v){ return text(v).trim().toUpperCase().replace(/\s+/g,''); }
+  function stageCode(name){
+    if(typeof window.stageCodeFromName==='function') return window.stageCodeFromName(name);
+    var s=text(name).trim().toLowerCase();
+    if(s.indexOf('down')!==-1) return 'DP';
+    if(s.indexOf('dld')!==-1) return 'DLD';
+    if(s.indexOf('1st')!==-1||s.indexOf('first')!==-1) return '1ST';
+    if(s.indexOf('2nd')!==-1||s.indexOf('second')!==-1) return '2ND';
+    if(s.indexOf('3rd')!==-1||s.indexOf('third')!==-1) return '3RD';
+    if(s.indexOf('4th')!==-1||s.indexOf('fourth')!==-1) return '4TH';
+    if(s.indexOf('5th')!==-1||s.indexOf('fifth')!==-1) return '5TH';
+    if(s.indexOf('6th')!==-1||s.indexOf('sixth')!==-1) return '6TH';
+    if(s.indexOf('7th')!==-1||s.indexOf('seventh')!==-1) return '7TH';
+    if(s.indexOf('final')!==-1||s.indexOf('handover')!==-1) return 'FIN';
+    return '';
+  }
   function selectedCustomer(){
     if(!window.state||!state.selectedUnit||!Array.isArray(state.dues)) return null;
     return state.dues.find(function(c){ return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit); })||null;
@@ -61,21 +77,34 @@
   }
   async function enrichCreditNotes(){
     if(!window.sb||!window.state) return;
-    var r=await sb.from('credit_notes').select('id,customer_id,unit_id,payment_schedule_id,issue_date,amount,reason,reference_number,created_at').order('issue_date',{ascending:false}).order('id',{ascending:false});
-    if(r.error) throw r.error;
-    var notes=(r.data||[]).map(function(x){ return {id:x.id,customerId:x.customer_id,unitId:x.unit_id,scheduleId:x.payment_schedule_id,issueDate:x.issue_date||'',amount:Number(x.amount)||0,reason:x.reason||'',reference:x.reference_number||'',createdAt:x.created_at||'',stageLabel:''}; });
+    var results=await Promise.all([
+      sb.from('credit_notes').select('id,customer_id,unit_id,payment_schedule_id,issue_date,amount,reason,reference_number,created_at').order('issue_date',{ascending:false}).order('id',{ascending:false}),
+      sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,paid_amount,paid_date'),
+      sb.from('units').select('id,customer_id,unit_no')
+    ]);
+    results.forEach(function(r){if(r.error)throw r.error;});
+    var notes=(results[0].data||[]).map(function(x){ return {id:x.id,customerId:x.customer_id,unitId:x.unit_id,scheduleId:x.payment_schedule_id,issueDate:x.issue_date||'',amount:Number(x.amount)||0,reason:x.reason||'',reference:x.reference_number||'',createdAt:x.created_at||'',stageLabel:''}; });
+    var schedules=results[1].data||[],units=results[2].data||[];
     state.creditNotes=notes;
-    var bySchedule={},byUnit={};
+    var bySchedule={},byUnit={},scheduleByUnit={},unitByNo={};
     notes.forEach(function(n){ var sk=text(n.scheduleId),uk=text(n.unitId); (bySchedule[sk]||(bySchedule[sk]=[])).push(n); (byUnit[uk]||(byUnit[uk]=[])).push(n); });
+    schedules.forEach(function(r){(scheduleByUnit[text(r.unit_id)]||(scheduleByUnit[text(r.unit_id)]=[])).push(r);});
+    units.forEach(function(u){var key=unitKey(u.unit_no);if(key&&!unitByNo[key])unitByNo[key]=u;});
     [state.dues,state.cancelled].forEach(function(list){
       if(!Array.isArray(list)) return;
       list.forEach(function(c){
-        var unitNotes=byUnit[text(c.sno)]||[]; c.cashReceived=Number(c.received)||0; c.creditNotes=unitNotes; c.creditNoteTotal=unitNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0); c.settledReceived=c.cashReceived+c.creditNoteTotal;
-        (c.stages||[]).forEach(function(stage){
-          var stageNotes=bySchedule[text(stage&&stage.id)]||[],cash=stage&&stage.cashPaid!==undefined?(Number(stage.cashPaid)||0):(Number(stage&&stage.paid)||0),credit=stageNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);
-          stage.cashPaid=cash; stage.creditNotes=stageNotes; stage.creditNoteTotal=credit; stage.settledAmount=cash+credit; stage.paid=stage.settledAmount; stageNotes.forEach(function(n){n.stageLabel=stage.label||'';});
+        var dbUnit=unitByNo[unitKey(c.unit)]||null,actualUnitId=dbUnit?dbUnit.id:c.unitId,actualCustomerId=dbUnit?dbUnit.customer_id:c.customerId;
+        c.unitId=actualUnitId||null;c.customerId=actualCustomerId||null;
+        var unitRows=scheduleByUnit[text(actualUnitId)]||[],unitNotes=byUnit[text(actualUnitId)]||[];
+        c.cashReceived=Number(c.received)||0;c.creditNotes=unitNotes;c.creditNoteTotal=unitNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);c.settledReceived=c.cashReceived+c.creditNoteTotal;
+        (c.stages||[]).forEach(function(st){
+          var sr=unitRows.find(function(r){return stageCode(r.stage_name)===st.code;})||null;
+          if(sr){st.id=sr.id;st.scheduleId=sr.id;st.customerId=sr.customer_id;st.unitId=sr.unit_id;st.cashPaid=Number(sr.paid_amount)||0;if(sr.paid_date&& !st.paidDate)st.paidDate=new Date(sr.paid_date+'T00:00:00');}
+          else st.cashPaid=st.cashPaid!==undefined?(Number(st.cashPaid)||0):(Number(st.paid)||0);
+          var stageNotes=bySchedule[text(st.id)]||[],credit=stageNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);
+          st.creditNotes=stageNotes;st.creditNoteTotal=credit;st.settledAmount=(Number(st.cashPaid)||0)+credit;st.paid=st.settledAmount;stageNotes.forEach(function(n){n.stageLabel=st.label||'';});
         });
-        adjustOutstanding(c); recomputeNextDue(c);
+        adjustOutstanding(c);recomputeNextDue(c);
       });
     });
   }
@@ -102,10 +131,10 @@
     var paymentDate=pDate?pDate.value:'',paymentRef=pRef?pRef.value.trim():'',remark=remarks?remarks.value.trim():'',creditDate=open&&cnDate?cnDate.value:'',creditReason=open&&cnReason?cnReason.value.trim():'',creditRef=open&&cnRef?cnRef.value.trim():'';
     state.paymentFormStage=code;
     if(!code){formError('Select an installment.');return;} if(!isFinite(cash)||cash<0){formError('Enter a valid cash payment amount.');return;} if(!isFinite(credit)||credit<0){formError('Enter a valid credit note amount.');return;} if(cash<=0&&credit<=0){formError('Enter a cash payment, a credit note, or both.');return;} if(cash>0&&!paymentDate){formError('Select a payment date.');return;} if(credit>0&&!creditDate){formError('Select the credit note issue date.');return;} if(credit>0&&!creditReason){formError('Enter the credit note reason.');return;}
-    var stage=(customer.stages||[]).find(function(s){return s.code===code;}); if(!stage||!stage.id){formError('That installment has no schedule row to update.');return;}
+    var st=(customer.stages||[]).find(function(s){return s.code===code;}); if(!st||!st.id){formError('That installment is not linked to its database schedule. Refresh and try again.');return;}
     var btn=document.getElementById('pfSave'),key=state.selectedUnit,from=state.detailFrom||'list'; if(btn){btn.disabled=true;btn.textContent='Saving…';} state.paymentFormSaving=true; state.paymentFormError=null;
     try{
-      var r=await sb.rpc('crm_record_payment_with_credit_note',{p_schedule_id:stage.id,p_cash_amount:Math.round(cash*100)/100,p_payment_date:cash>0?paymentDate:null,p_payment_reference:paymentRef||null,p_remarks:remark||null,p_credit_amount:Math.round(credit*100)/100,p_credit_issue_date:credit>0?creditDate:null,p_credit_reason:credit>0?creditReason:null,p_credit_reference:credit>0?(creditRef||null):null});
+      var r=await sb.rpc('crm_record_payment_with_credit_note',{p_schedule_id:st.id,p_cash_amount:Math.round(cash*100)/100,p_payment_date:cash>0?paymentDate:null,p_payment_reference:paymentRef||null,p_remarks:remark||null,p_credit_amount:Math.round(credit*100)/100,p_credit_issue_date:credit>0?creditDate:null,p_credit_reason:credit>0?creditReason:null,p_credit_reference:credit>0?(creditRef||null):null});
       if(r.error) throw r.error;
       state.paymentFormOpen=false;state.paymentFormSaving=false;state.paymentFormStage=null;state.paymentFormError=null;await loadFromSupabase();state.selectedUnit=key;state.detailFrom=from;state.view='detail';if(typeof window.renderMain==='function')window.renderMain();else renderDetail();
     }catch(e){state.paymentFormSaving=false;formError(e&&e.message?e.message:'Could not save that payment or credit note.');if(btn){btn.disabled=false;btn.textContent='Save payment';}}
