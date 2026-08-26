@@ -64,7 +64,10 @@ const LOCAL_PATCH_FILES = [
   'reference_p_mark_header_patch.js',
   'cancelled_unit_edit_patch.js',
   'professional_customer_statement_patch.js',
-  'payment_statement_reference_match_patch.js'
+  'payment_statement_reference_match_patch.js',
+  'credit_notes_core_patch.js',
+  'credit_notes_detail_patch.js',
+  'credit_notes_insights_patch.js'
 ];
 
 function requireFile(filePath, label) {
