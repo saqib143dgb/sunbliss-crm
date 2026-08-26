@@ -65,6 +65,9 @@
   }
 
   function removeMenuCompliance(){
+    var saleAction=document.getElementById('actionEditSaleCompliance');
+    if (saleAction) saleAction.textContent='Edit Sale';
+
     var action=document.getElementById('actionUpdateStatus');
     if (action) action.remove();
     var menu=document.getElementById('customerActionMenu');
