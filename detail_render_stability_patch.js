@@ -67,17 +67,25 @@
     window.goToDetail = guardedGoToDetail;
   }
 
-  function suppressRedundantFurnishingMutations(){
+  function suppressRedundantUiTextMutations(){
     try {
       var descriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
       if (!descriptor || !descriptor.get || !descriptor.set) return;
       var nativeGet = descriptor.get;
       var nativeSet = descriptor.set;
+      var stableLeafSelector = [
+        '.detail .d-type',
+        '.detail .badges .badge',
+        '.detail .money-label',
+        '.detail .money-value',
+        '.detail .stage-row > span',
+        '#paymentDetailDialog .payment-detail-row-meta > span',
+        '#installmentEditDialog #ieStatus'
+      ].join(',');
 
       function stableSet(value){
         var next = value === null || value === undefined ? '' : String(value);
-        var isTarget = this && this.nodeType === 1 && this.matches &&
-          (this.matches('.detail .d-type') || this.matches('.detail .badges .badge'));
+        var isTarget = this && this.nodeType === 1 && this.matches && this.matches(stableLeafSelector);
         if (isTarget && nativeGet.call(this) === next) return;
         return nativeSet.call(this, value);
       }
@@ -89,11 +97,11 @@
         set: stableSet
       });
     } catch (err) {
-      console.warn('Could not install furnishing mutation guard', err);
+      console.warn('Could not install CRM redundant-text mutation guard', err);
     }
   }
 
-  suppressRedundantFurnishingMutations();
+  suppressRedundantUiTextMutations();
   wrapRenderer('renderMain', false);
   wrapRenderer('renderDetail', true);
   wrapGoToDetail();
