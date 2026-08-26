@@ -325,15 +325,19 @@
       }
 
       var existing=card.querySelector('.carry-forward-stage-row');
-      if (existing) existing.remove();
       if (Number(s.carryApplied)>0){
-        var row=document.createElement('div');
-        row.className='stage-row carry-forward-stage-row positive';
-        row.innerHTML='<span>Carry applied</span><span>'+safe(money(s.carryApplied))+'</span>';
-        var creditRow=card.querySelector('.credit-note-stage-row');
-        if (creditRow) creditRow.insertAdjacentElement('afterend',row);
-        else if (paid) paid.insertAdjacentElement('afterend',row);
-        else card.appendChild(row);
+        if (!existing){
+          existing=document.createElement('div');
+          existing.className='stage-row carry-forward-stage-row positive';
+          var creditRow=card.querySelector('.credit-note-stage-row');
+          if (creditRow) creditRow.insertAdjacentElement('afterend',existing);
+          else if (paid) paid.insertAdjacentElement('afterend',existing);
+          else card.appendChild(existing);
+        }
+        var carryHtml='<span>Carry applied</span><span>'+safe(money(s.carryApplied))+'</span>';
+        if (existing.innerHTML!==carryHtml) existing.innerHTML=carryHtml;
+      }else if (existing){
+        existing.remove();
       }
     });
   }
@@ -350,12 +354,17 @@
       Array.prototype.forEach.call(meta.querySelectorAll('span'),function(span){
         if (/^(Paid|Cash):/i.test(text(span.textContent))) span.textContent='Cash: '+money(s.cashPaid||0);
       });
-      var old=row.querySelector('.carry-payment-detail-meta'); if (old) old.remove();
+      var item=row.querySelector('.carry-payment-detail-meta');
       if (Number(s.carryApplied)>0){
-        var item=document.createElement('span');
-        item.className='carry-payment-detail-meta';
-        item.textContent='Carry applied: '+money(s.carryApplied);
-        meta.appendChild(item);
+        if (!item){
+          item=document.createElement('span');
+          item.className='carry-payment-detail-meta';
+          meta.appendChild(item);
+        }
+        var carryText='Carry applied: '+money(s.carryApplied);
+        if (item.textContent!==carryText) item.textContent=carryText;
+      }else if (item){
+        item.remove();
       }
     });
   }
@@ -507,9 +516,10 @@
 
     new MutationObserver(function(){
       if (!window.state) return;
-      if (state.view==='detail') decorate();
+      var c=selectedCustomer();
       protectInstallmentEditor();
-      decoratePaymentDetail(selectedCustomer());
+      decoratePaymentDetail(c);
+      decorateStageCards(c);
     }).observe(document.body,{childList:true,subtree:true});
 
     window.__sunblissCarryForwardApi={
