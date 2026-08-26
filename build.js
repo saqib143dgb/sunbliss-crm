@@ -6,7 +6,7 @@ const BASE = path.join(ROOT, 'vendor', 'base');
 const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_STATIC_FILES = ['assets/purvanchal-p-dubai.webp'];
+const LOCAL_STATIC_FILES = ['assets/purvanchal-p-dubai.webp', 'assets/purvanchal-full-lockup.webp'];
 const LOCAL_REPLACEMENT_FILES = {
   'chunk_11.js': 'auth_core_replacement.js'
 };
@@ -79,7 +79,8 @@ const LOCAL_PATCH_FILES = [
   'global_detail_navigation_stability_patch.js',
   'payment_statement_full_page_width_patch.js',
   'payment_statement_cleanup_patch.js',
-  'full_width_print_buttons_patch.js'
+  'full_width_print_buttons_patch.js',
+  'combined_brand_header_patch.js'
 ];
 
 function requireFile(filePath, label) {
