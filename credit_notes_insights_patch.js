@@ -4,7 +4,7 @@
   function install(){
     var A=window.__sunblissCreditNoteApi;
     if(!A||typeof window.renderInsights!=='function'){setTimeout(install,50);return;}
-    function owner(note){return A.allCustomers().find(function(c){return A.text(c.sno)===A.text(note.unitId);})||{name:'',unit:''};}
+    function owner(note){return A.allCustomers().find(function(c){return A.text(c.unitId)===A.text(note.unitId);})||{name:'',unit:''};}
     function filtered(){var from=A.text(state.creditNoteFilterFrom||''),to=A.text(state.creditNoteFilterTo||'');return(state.creditNotes||[]).filter(function(n){var d=A.text(n.issueDate);return(!from||d>=from)&&(!to||d<=to);});}
     function section(){
       var notes=state.creditNotes||[];if(!notes.length)return null;var rows=filtered(),all=notes.reduce(function(s,n){return s+(Number(n.amount)||0);},0),period=rows.reduce(function(s,n){return s+(Number(n.amount)||0);},0),to=A.text(state.creditNoteFilterTo||''),running=notes.filter(function(n){return!to||A.text(n.issueDate)<=to;}).reduce(function(s,n){return s+(Number(n.amount)||0);},0),months={};
