@@ -73,6 +73,7 @@ const LOCAL_PATCH_FILES = [
   'inline_spa_oqood_patch.js',
   'carry_forward_patch.js',
   'carry_forward_audit_fix_patch.js',
+  'carry_forward_action_display_patch.js',
   'global_detail_navigation_stability_patch.js'
 ];
 
