@@ -4,7 +4,6 @@
   window.__sunblissMonthlySalesDrilldownInstalled = true;
 
   var archivePromise = null;
-  var lastArchive = null;
 
   function text(v){ return v == null ? '' : String(v); }
   function safe(v){
@@ -49,7 +48,6 @@
     if (value===null || value===undefined || text(value).trim()==='') return '';
     return '<div class="monthly-sale-field"><span>'+safe(label)+'</span><strong>'+safe(value)+'</strong></div>';
   }
-  function unitKey(v){ return text(v).trim().toUpperCase().replace(/\s+/g,''); }
 
   function ensureStyles(){
     if (document.getElementById('sunblissMonthlySalesStyles')) return;
@@ -95,17 +93,15 @@
       (results[1].data||[]).forEach(function(c){ customers[c.id]=c; });
       (results[2].data||[]).forEach(function(u){ units[u.id]=u; });
       (results[3].data||[]).forEach(function(c){ cancelled[text(c.unit_id)+'|'+text(c.customer_id)]=c; });
-      var rows=(results[0].data||[]).filter(function(s){ return !!monthKey(s.booking_date); }).map(function(s){
+      return (results[0].data||[]).filter(function(s){ return !!monthKey(s.booking_date); }).map(function(s){
         var u=units[s.unit_id]||{},c=customers[s.customer_id]||{},cx=cancelled[text(s.unit_id)+'|'+text(s.customer_id)]||null;
         var snap=cx&&num(cx.cancelled_sale_value)!==null?num(cx.cancelled_sale_value):null;
         var price=snap!==null?snap:num(u.total_price);
         return {
           id:s.id,month:monthKey(s.booking_date),bookingDate:s.booking_date||'',customerId:s.customer_id,customer:c.customer_name||'',unitId:s.unit_id,unit:u.unit_no||'',type:u.unit_type||'',floor:u.floor||'',area:num(u.area),pricePerSqft:num(u.price_per_sqft),price:price,unitStatus:cx?'Cancelled':(u.status||''),
-          bookingAmount:num(s.booking_amount),rm:s.sold_by||'',source:s.source||'',individualSource:s.individual_source_name||'',broker:s.broker_name||'',brokerCompany:s.broker_company||'',brokeragePct:num(s.brokerage_percentage),brokerageAmount:num(s.brokerage_amount),spa:s.spa_status||'',oqood:s.oqood_status||'',furnishing:s.furnishing_type||s.furniture_type||s.furniture||u.furnishing_type||u.furniture_type||'',cancelledDate:cx?cx.cancellation_date||'':''
+          bookingAmount:num(s.booking_amount),rm:s.sold_by||'',source:s.source||'',individualSource:s.individual_source_name||'',broker:s.broker_name||'',brokerCompany:s.broker_company||'',brokeragePct:num(s.brokerage_percentage),brokerageAmount:num(s.brokerage_amount),spa:s.spa_status||'',spaDate:s.spa_date||'',oqood:s.oqood_status||'',oqoodDate:s.oqood_date||'',dldStatus:s.dld_status||'',furnishing:s.furniture_status||u.furnishing_type||u.furniture_type||'',incentiveType:s.incentive_type||'',remarks:s.remarks||'',cancelledDate:cx?cx.cancellation_date||'':''
         };
       });
-      lastArchive=rows;
-      return rows;
     })().catch(function(err){ archivePromise=null; throw err; });
     return archivePromise;
   }
@@ -169,7 +165,7 @@
     }catch(err){console.warn('Could not load monthly sales drill-down',err);}
   }
 
-  function saleSearchText(r){return [r.unit,r.customer,r.type,r.rm,r.source,r.individualSource,r.broker,r.brokerCompany].join(' ').toLowerCase();}
+  function saleSearchText(r){return [r.unit,r.customer,r.type,r.rm,r.source,r.individualSource,r.broker,r.brokerCompany,r.incentiveType,r.unitStatus].join(' ').toLowerCase();}
 
   function saleCard(r){
     var brokerLine=text(r.broker).trim()?nice(r.broker)+(text(r.brokerCompany).trim()?' · '+nice(r.brokerCompany):''):'—';
@@ -191,11 +187,16 @@
     html+=field('Floor',r.floor||'Not recorded');
     html+=field('Brokerage %',r.brokeragePct===null?'Not recorded':r.brokeragePct+'%');
     html+=field('Brokerage amount',r.brokerageAmount===null?'Not recorded':money(r.brokerageAmount));
+    html+=field('Incentive type',r.incentiveType||'Not recorded');
     html+=field('SPA status',r.spa||'Not recorded');
+    html+=field('SPA date',r.spaDate?dateLabel(r.spaDate):'Not recorded');
     html+=field('OQOOD status',r.oqood||'Not recorded');
-    html+=field('Furnishing',r.furnishing||'Not recorded');
+    html+=field('OQOOD date',r.oqoodDate?dateLabel(r.oqoodDate):'Not recorded');
+    html+=field('DLD status',r.dldStatus||'Not recorded');
+    html+=field('Furniture status',r.furnishing||'Not recorded');
     html+=field('Sale / unit status',r.unitStatus||'Not recorded');
     if(r.cancelledDate)html+=field('Cancellation date',dateLabel(r.cancelledDate));
+    html+=field('Sale remarks',r.remarks||'Not recorded');
     html+=field('Sale record','#'+r.id);
     html+='</div></div></details>';
     return html;
@@ -233,7 +234,7 @@
     var baseInsights=window.renderInsights;
     window.renderInsights=function(){var out=baseInsights.apply(this,arguments);window.setTimeout(decorateInsights,0);return out;};
     var baseLoad=window.loadFromSupabase;
-    window.loadFromSupabase=async function(){archivePromise=null;lastArchive=null;return await baseLoad.apply(this,arguments);};
+    window.loadFromSupabase=async function(){archivePromise=null;return await baseLoad.apply(this,arguments);};
     document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&document.getElementById('monthlySalesOverlay'))closeMonth();});
     if(window.state&&state.view==='insights')window.setTimeout(decorateInsights,0);
   }
