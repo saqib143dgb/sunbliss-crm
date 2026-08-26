@@ -72,7 +72,8 @@ const LOCAL_PATCH_FILES = [
   'all_tasks_overview_patch.js',
   'inline_spa_oqood_patch.js',
   'carry_forward_patch.js',
-  'carry_forward_audit_fix_patch.js'
+  'carry_forward_audit_fix_patch.js',
+  'global_detail_navigation_stability_patch.js'
 ];
 
 function requireFile(filePath, label) {
