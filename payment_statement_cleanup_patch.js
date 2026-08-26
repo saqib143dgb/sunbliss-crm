@@ -61,7 +61,7 @@
 
     var transactionTable=statement.querySelector('.ps-transactions');
     var rowCount=visibleBodyRows(installmentTable)+visibleBodyRows(transactionTable);
-    statement.classList.toggle('ps-one-page',rowCount<=18);
+    statement.classList.toggle('ps-one-page',rowCount<=14);
     statement.dataset.statementCleanupDone='1';
   }
 
@@ -72,19 +72,30 @@
     style.textContent=[
       '@media print{',
       '  #printArea{min-height:0!important;height:auto!important;overflow:visible!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page{min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page>.ps-body{padding-top:5.2mm!important;padding-bottom:2.8mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-customer{height:14.5mm!important;min-height:14.5mm!important;margin-bottom:3.4mm!important;padding-top:2.8mm!important;padding-bottom:2.8mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-summary{margin-bottom:2.6mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-card{height:18mm!important;padding-top:2.8mm!important;padding-bottom:2.2mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-card-label{margin-bottom:1.4mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-progress{margin-top:1.8mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-section{margin-top:2.1mm!important;break-inside:auto!important;page-break-inside:auto!important;}',
+      '  #printArea .professional-payment-statement{font-size:10pt!important;}',
+      '  #printArea .professional-payment-statement .ps-body{font-size:10pt!important;line-height:1.25!important;}',
+      '  #printArea .professional-payment-statement .ps-section h2{font-size:12pt!important;line-height:1.15!important;}',
+      '  #printArea .professional-payment-statement .ps-table{font-size:10pt!important;line-height:1.2!important;}',
+      '  #printArea .professional-payment-statement .ps-table th{font-size:8.5pt!important;line-height:1.15!important;}',
+      '  #printArea .professional-payment-statement .ps-customer-name{font-size:13pt!important;line-height:1.1!important;}',
+      '  #printArea .professional-payment-statement .ps-customer-meta{font-size:9pt!important;}',
+      '  #printArea .professional-payment-statement .ps-mini-label,#printArea .professional-payment-statement .ps-card-label{font-size:8pt!important;}',
+      '  #printArea .professional-payment-statement .ps-card-value{font-size:12pt!important;}',
+      '  #printArea .professional-payment-statement .ps-header-right{font-size:9pt!important;}',
+      '  #printArea .professional-payment-statement .ps-footer{font-size:8.5pt!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page{height:286mm!important;min-height:286mm!important;max-height:286mm!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page>.ps-body{padding-top:4.8mm!important;padding-bottom:15mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-customer{height:auto!important;min-height:15mm!important;margin-bottom:3.2mm!important;padding:2.7mm 4.5mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-summary{margin-bottom:2.5mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-card{height:18.5mm!important;padding-top:2.7mm!important;padding-bottom:2.1mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-card-label{margin-bottom:1.2mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-progress{margin-top:1.6mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-section{margin-top:2mm!important;break-inside:auto!important;page-break-inside:auto!important;}',
       '  #printArea .professional-payment-statement.ps-one-page .ps-transactions-section{break-before:auto!important;page-break-before:auto!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-heading-rule{margin:.9mm 0 1.8mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-table th{padding-top:1.4mm!important;padding-bottom:1.4mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-table td{padding-top:1mm!important;padding-bottom:1mm!important;}',
-      '  #printArea .professional-payment-statement.ps-one-page .ps-footer{position:static!important;left:auto!important;right:auto!important;bottom:auto!important;margin:3mm 11.5mm 0!important;padding-top:1.8mm!important;min-height:7mm!important;break-inside:avoid!important;page-break-inside:avoid!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-heading-rule{margin:.8mm 0 1.6mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-table th{padding-top:1.25mm!important;padding-bottom:1.25mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-table td{padding-top:1.05mm!important;padding-bottom:1.05mm!important;}',
+      '  #printArea .professional-payment-statement.ps-one-page .ps-footer{position:absolute!important;left:11.5mm!important;right:11.5mm!important;bottom:4.5mm!important;margin:0!important;padding-top:2mm!important;min-height:7mm!important;justify-content:flex-start!important;break-inside:avoid!important;page-break-inside:avoid!important;}',
       '  #printArea .ps-footer{justify-content:flex-start!important;}',
       '}',
       '@media screen{#printArea .ps-footer{justify-content:flex-start!important;}}'
