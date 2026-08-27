@@ -21,7 +21,7 @@
     state.recent.sort(function(a,b){
       var aDay=dayKey(a&&a.date);
       var bDay=dayKey(b&&b.date);
-      if(aDay!==bDay)return aDay>bDay ? -1 : 1;
+      if(aDay!==bDay)return aDay<bDay ? -1 : 1;
       return Number(a&&a.id||0)-Number(b&&b.id||0);
     });
   }
