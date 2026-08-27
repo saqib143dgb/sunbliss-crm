@@ -1,20 +1,92 @@
 (function(){
   'use strict';
-  if(window.__sunblissCreditNotesInsightsInstalled)return;window.__sunblissCreditNotesInsightsInstalled=true;
+  if(window.__sunblissCreditNotesInsightsInstalled)return;
+  window.__sunblissCreditNotesInsightsInstalled=true;
+
   function install(){
     var A=window.__sunblissCreditNoteApi;
     if(!A||typeof window.renderInsights!=='function'){setTimeout(install,50);return;}
-    function owner(note){return A.allCustomers().find(function(c){return A.text(c.unitId)===A.text(note.unitId);})||{name:'',unit:''};}
-    function filtered(){var from=A.text(state.creditNoteFilterFrom||''),to=A.text(state.creditNoteFilterTo||'');return(state.creditNotes||[]).filter(function(n){var d=A.text(n.issueDate);return(!from||d>=from)&&(!to||d<=to);});}
-    function section(){
-      var notes=state.creditNotes||[];if(!notes.length)return null;var rows=filtered(),all=notes.reduce(function(s,n){return s+(Number(n.amount)||0);},0),period=rows.reduce(function(s,n){return s+(Number(n.amount)||0);},0),to=A.text(state.creditNoteFilterTo||''),running=notes.filter(function(n){return!to||A.text(n.issueDate)<=to;}).reduce(function(s,n){return s+(Number(n.amount)||0);},0),months={};
-      rows.forEach(function(n){var key=A.text(n.issueDate).slice(0,7)||'Undated';if(!months[key])months[key]={key:key,total:0,count:0};months[key].total+=Number(n.amount)||0;months[key].count++;});
-      var el=document.createElement('div');el.className='credit-note-portfolio';el.id='creditNotePortfolio';el.innerHTML='<p class="section-label" style="margin:0 0 10px">Credit notes</p><div class="credit-note-portfolio-summary"><div><small>All time</small><strong>'+A.safe(A.money(all))+'</strong></div><div><small>Selected period</small><strong>'+A.safe(A.money(period))+'</strong></div><div><small>'+A.safe(to?'Running through '+A.dateLabel(to):'Running total to date')+'</small><strong>'+A.safe(A.money(running))+'</strong></div></div><div class="credit-note-filter-grid"><label class="brand-field">From<input type="date" id="creditNoteFrom" value="'+A.safe(state.creditNoteFilterFrom||'')+'" /></label><label class="brand-field">To<input type="date" id="creditNoteTo" value="'+A.safe(state.creditNoteFilterTo||'')+'" /></label><button class="btn-paper" type="button" id="creditNoteClear" style="margin:0">Clear</button></div><div class="stat-sub" style="margin:0 0 7px">'+rows.length+' credit note'+(rows.length===1?'':'s')+' in this period.</div>';
-      var monthRows=Object.keys(months).sort().reverse().map(function(k){return months[k];});if(monthRows.length){var box=document.createElement('div');box.innerHTML='<p class="section-label" style="margin:10px 0 3px">By month</p>';monthRows.forEach(function(r){var item=document.createElement('div'),label=r.key;if(/^\d{4}-\d{2}$/.test(r.key)){var p=r.key.split('-');label=new Date(Number(p[0]),Number(p[1])-1,1).toLocaleDateString('en-US',{month:'short',year:'numeric'});}item.className='credit-note-month-row';item.innerHTML='<span>'+A.safe(label)+' · '+r.count+' note'+(r.count===1?'':'s')+'</span><strong>'+A.safe(A.money(r.total))+'</strong>';box.appendChild(item);});el.appendChild(box);}
-      if(rows.length){var detail=document.createElement('div');detail.innerHTML='<p class="section-label" style="margin:13px 0 3px">Issued in period</p>';rows.slice().sort(function(a,b){return A.text(b.issueDate).localeCompare(A.text(a.issueDate))||Number(b.id||0)-Number(a.id||0);}).forEach(function(n){var c=owner(n),item=document.createElement('div');item.className='credit-note-portfolio-row';item.innerHTML='<div><div>'+A.safe(A.dateLabel(n.issueDate))+' · '+A.safe(c.unit||'Unit')+' · '+A.safe(n.stageLabel||'Installment')+'</div><div class="meta">'+A.safe(c.name||'')+(n.reason?' · '+A.safe(n.reason):'')+(n.reference?' · Ref '+A.safe(n.reference):'')+'</div></div><strong>'+A.safe(A.money(n.amount))+'</strong>';detail.appendChild(item);});el.appendChild(detail);}return el;
+
+    function owner(note){
+      return A.allCustomers().find(function(c){return A.text(c.unitId)===A.text(note.unitId);})||{name:'',unit:''};
     }
-    function decorate(){if(!window.state||state.view!=='insights'||!(state.creditNotes||[]).length)return;var o=document.querySelector('.overview');if(!o||document.getElementById('creditNotePortfolio'))return;var s=section();if(!s)return;o.insertBefore(s,o.firstChild);var f=document.getElementById('creditNoteFrom'),t=document.getElementById('creditNoteTo'),c=document.getElementById('creditNoteClear');if(f)f.addEventListener('change',function(){state.creditNoteFilterFrom=f.value;renderInsights();});if(t)t.addEventListener('change',function(){state.creditNoteFilterTo=t.value;renderInsights();});if(c)c.addEventListener('click',function(){state.creditNoteFilterFrom='';state.creditNoteFilterTo='';renderInsights();});}
-    var base=window.renderInsights;window.renderInsights=function(){var out=base.apply(this,arguments);decorate();return out;};
+
+    function ensureStyles(){
+      if(document.getElementById('sunblissMinimalCreditNoteInsightsStyle'))return;
+      var style=document.createElement('style');
+      style.id='sunblissMinimalCreditNoteInsightsStyle';
+      style.textContent=[
+        '.credit-note-mini{margin:0 0 18px;border:1px solid var(--paper-line);border-radius:14px;background:var(--paper);overflow:hidden}',
+        '.credit-note-mini-toggle{width:100%;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 17px;text-align:left;cursor:pointer}',
+        '.credit-note-mini-label{font:700 10.5px/1.25 IBM Plex Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}',
+        '.credit-note-mini-total{font-family:Fraunces,serif;font-size:22px;line-height:1.15;font-weight:700;color:var(--ink)}',
+        '.credit-note-mini-arrow{font-size:20px;line-height:1;color:var(--muted);transition:transform .15s ease}',
+        '.credit-note-mini[data-open="true"] .credit-note-mini-arrow{transform:rotate(180deg)}',
+        '.credit-note-mini-detail{border-top:1px solid var(--paper-line);padding:0 17px}',
+        '.credit-note-mini-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 0;border-bottom:1px solid var(--paper-line)}',
+        '.credit-note-mini-row:last-child{border-bottom:0}',
+        '.credit-note-mini-main{font-size:13px;line-height:1.4;color:var(--ink);font-weight:600}',
+        '.credit-note-mini-meta{font-size:11.5px;line-height:1.45;color:var(--muted);margin-top:3px}',
+        '.credit-note-mini-amount{font:700 12px/1.4 IBM Plex Mono,monospace;color:var(--gold-deep);white-space:nowrap}',
+        '@media(max-width:430px){.credit-note-mini-toggle{padding:15px}.credit-note-mini-detail{padding:0 15px}.credit-note-mini-row{grid-template-columns:1fr}.credit-note-mini-amount{justify-self:start}}'
+      ].join('');
+      document.head.appendChild(style);
+    }
+
+    function section(){
+      var notes=(state.creditNotes||[]).slice();
+      if(!notes.length)return null;
+      var total=notes.reduce(function(sum,n){return sum+(Number(n.amount)||0);},0);
+      var open=state.creditNoteInsightsOpen===true;
+      var el=document.createElement('section');
+      el.className='credit-note-mini';
+      el.id='creditNotePortfolio';
+      el.setAttribute('data-open',open?'true':'false');
+
+      var toggle=document.createElement('button');
+      toggle.type='button';
+      toggle.className='credit-note-mini-toggle';
+      toggle.id='creditNoteMiniToggle';
+      toggle.setAttribute('aria-expanded',open?'true':'false');
+      toggle.innerHTML='<div><div class="credit-note-mini-label">Credit notes issued</div><div class="credit-note-mini-total">'+A.safe(A.money(total))+'</div></div><span class="credit-note-mini-arrow" aria-hidden="true">⌄</span>';
+      el.appendChild(toggle);
+
+      if(open){
+        var detail=document.createElement('div');
+        detail.className='credit-note-mini-detail';
+        notes.sort(function(a,b){return A.text(b.issueDate).localeCompare(A.text(a.issueDate))||Number(b.id||0)-Number(a.id||0);}).forEach(function(n){
+          var c=owner(n),item=document.createElement('div');
+          item.className='credit-note-mini-row';
+          var who=(c.name||'Customer')+(c.unit?' · '+c.unit:'');
+          var why=n.reason||'No reason recorded';
+          var meta=A.dateLabel(n.issueDate)+' · '+why;
+          if(n.stageLabel)meta+=' · '+n.stageLabel;
+          if(n.reference)meta+=' · Ref '+n.reference;
+          item.innerHTML='<div><div class="credit-note-mini-main">'+A.safe(who)+'</div><div class="credit-note-mini-meta">'+A.safe(meta)+'</div></div><div class="credit-note-mini-amount">'+A.safe(A.money(n.amount))+'</div>';
+          detail.appendChild(item);
+        });
+        el.appendChild(detail);
+      }
+      return el;
+    }
+
+    function decorate(){
+      if(!window.state||state.view!=='insights'||!(state.creditNotes||[]).length)return;
+      var overview=document.querySelector('.overview');
+      if(!overview||document.getElementById('creditNotePortfolio'))return;
+      ensureStyles();
+      var s=section();
+      if(!s)return;
+      overview.insertBefore(s,overview.firstChild);
+      var toggle=document.getElementById('creditNoteMiniToggle');
+      if(toggle)toggle.addEventListener('click',function(){
+        state.creditNoteInsightsOpen=!state.creditNoteInsightsOpen;
+        renderInsights();
+      });
+    }
+
+    var base=window.renderInsights;
+    window.renderInsights=function(){var out=base.apply(this,arguments);decorate();return out;};
     decorate();
   }
   install();
