@@ -36,7 +36,52 @@
     return d;
   }
 
+  function overdueStages(c,today){
+    var rows=[];
+    if(!c||!Array.isArray(c.stages)) return rows;
+    c.stages.forEach(function(stage){
+      if(!stage) return;
+      var due=Number(stage.due);
+      var paid=Number(stage.paid)||0;
+      var dueDate=localDay(stage.dueDate);
+      var remaining=due-paid;
+      if(!isFinite(due)||remaining<=1||!dueDate||dueDate.getTime()>=today.getTime()) return;
+      rows.push({
+        label:String(stage.label||'Installment'),
+        remaining:remaining,
+        dueDate:dueDate,
+        daysOverdue:Math.max(1,Math.floor((today.getTime()-dueDate.getTime())/86400000))
+      });
+    });
+    rows.sort(function(a,b){return a.dueDate.getTime()-b.dueDate.getTime();});
+    return rows;
+  }
+
   function getAction(c){
+    var today = new Date();
+    today.setHours(0,0,0,0);
+
+    var overdue=overdueStages(c,today);
+    if(overdue.length){
+      var total=overdue.reduce(function(sum,row){return sum+row.remaining;},0);
+      var labels=overdue.map(function(row){return row.label;});
+      var oldest=overdue[0];
+      if(overdue.length===1){
+        return {
+          status:'Overdue',
+          tone:'danger',
+          message:money(total) + ' for ' + labels[0] + ' was due on ' + displayDate(oldest.dueDate) + '. Follow up for payment now.',
+          detail:oldest.daysOverdue + ' day' + (oldest.daysOverdue === 1 ? '' : 's') + ' overdue.'
+        };
+      }
+      return {
+        status:'Overdue',
+        tone:'danger',
+        message:money(total) + ' total overdue for ' + labels.join(' + ') + '. Follow up for payment now.',
+        detail:overdue.length + ' installments overdue · oldest due ' + displayDate(oldest.dueDate) + ' · ' + oldest.daysOverdue + ' day' + (oldest.daysOverdue === 1 ? '' : 's') + ' overdue.'
+      };
+    }
+
     var amount = Number(c && c.upAmt);
     var stage = c && c.upStage ? String(c.upStage) : '';
     var dueDate = localDay(c && c.upDate);
@@ -52,8 +97,6 @@
     }
 
     var amountText = money(amount);
-    var today = new Date();
-    today.setHours(0,0,0,0);
 
     if (!dueDate){
       return {
