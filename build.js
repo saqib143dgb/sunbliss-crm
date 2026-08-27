@@ -72,6 +72,7 @@ const LOCAL_PATCH_FILES = [
   'credit_note_edit_patch.js',
   'unit_meta_inline_patch.js',
   'professional_header_text_v2.js',
+  'header_company_name_size_patch.js',
   'header_manual_sync_patch.js'
 ];
 
