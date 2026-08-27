@@ -9,6 +9,8 @@
   style.textContent = [
     '#app{padding-bottom:0!important;}',
     'main{min-height:calc(100vh - 105px)!important;min-height:calc(100dvh - 105px)!important;padding-bottom:calc(112px + env(safe-area-inset-bottom))!important;}',
+    'body.sunbliss-back-dock-mode{background:var(--paper,#f6f1e4)!important;}',
+    'body.sunbliss-back-dock-mode #app{min-height:100vh!important;min-height:100dvh!important;background:var(--paper,#f6f1e4)!important;}',
     '.tabs .dock-add{background:transparent!important;color:var(--ink-2)!important;box-shadow:none!important;}',
     '.tabs .dock-add:hover{background:rgba(15,26,38,.055)!important;}',
     '.footnote.sunbliss-professional-footer{margin:0!important;padding:18px 18px 20px!important;text-align:center;font-family:"IBM Plex Mono",monospace;font-size:9.5px;line-height:1.45;letter-spacing:.04em;color:var(--muted);}',
