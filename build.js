@@ -72,6 +72,7 @@ const LOCAL_PATCH_FILES = [
   'crm_heading_size_patch.js',
   'credit_note_edit_patch.js',
   'unit_meta_inline_patch.js',
+  'transaction_record_order_patch.js',
   'professional_header_text_v2.js',
   'header_company_name_size_patch.js',
   'header_dubai_skyline_patch.js',
