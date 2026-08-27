@@ -3,13 +3,11 @@
   if(window.__sunblissAdminFeeNeutralPercentagesInstalled)return;
   window.__sunblissAdminFeeNeutralPercentagesInstalled=true;
 
-  var ADMIN_FEE=5100;
-
   function num(v){var n=Number(v);return isFinite(n)?n:0;}
   function isDld(stage){
     if(!stage)return false;
     if(String(stage.code||'').toUpperCase()==='DLD')return true;
-    return /dld/i.test(String(stage.label||stage.stage_name||''));
+    return /\bdld\b|admin\s*fees?/i.test(String(stage.label||stage.stage_name||''));
   }
   function stageDue(stage){return Math.max(0,num(stage&&stage.due));}
   function stageSettled(stage){
@@ -18,11 +16,11 @@
     return Math.max(0,num(v));
   }
   function eligibleDue(stage){
-    var due=stageDue(stage);
-    return isDld(stage)?Math.max(0,due-ADMIN_FEE):due;
+    return isDld(stage)?0:stageDue(stage);
   }
   function eligibleSettled(stage){
-    var cap=eligibleDue(stage);
+    if(isDld(stage))return 0;
+    var cap=stageDue(stage);
     return Math.min(stageSettled(stage),cap);
   }
   function eligibleCollected(customer){
@@ -54,7 +52,8 @@
   }
 
   window.__sunblissPaymentPercentageRules={
-    adminFee:ADMIN_FEE,
+    adminFee:0,
+    dldAndAdminSeparate:true,
     eligibleDue:eligibleDue,
     eligibleSettled:eligibleSettled,
     eligibleCollected:eligibleCollected,
@@ -117,9 +116,11 @@
       customers.forEach(function(c){
         var stage=(c.stages||[]).find(function(s){return isDld(s);});
         if(!stage||stage.due===null||stage.due===undefined)return;
-        due+=eligibleDue(stage);settled+=eligibleSettled(stage);
+        due+=stageDue(stage);settled+=Math.min(stageSettled(stage),stageDue(stage));
       });
       result.collectedPct=due>0?Math.max(0,Math.min(100,Math.round(settled/due*1000)/10)):0;
+      result.totalDue=due;
+      result.totalCollected=settled;
       return result;
     };
     window.__sunblissAdminNeutralDldWrapped=true;
@@ -130,13 +131,13 @@
     window.svgStageRateChart=function(rows,options){
       var copy=(rows||[]).map(function(row){var x={};Object.keys(row||{}).forEach(function(k){x[k]=row[k];});return x;});
       copy.forEach(function(row){
-        if(!/dld/i.test(String(row.label||'')))return;
+        if(!/dld|admin/i.test(String(row.label||'')))return;
         var due=0,settled=0;
         var customers=window.state&&Array.isArray(state.dues)?state.dues:[];
         customers.forEach(function(c){
           var stage=(c.stages||[]).find(function(s){return isDld(s);});
           if(!stage||stage.due===null||stage.due===undefined)return;
-          due+=eligibleDue(stage);settled+=eligibleSettled(stage);
+          due+=stageDue(stage);settled+=Math.min(stageSettled(stage),stageDue(stage));
         });
         row.due=due;row.received=settled;
       });
@@ -190,16 +191,16 @@
     if(brokerPage){
       var brokerName=brokerPage.querySelector('.broker-detail-name'),cells=brokerPage.querySelectorAll('.broker-detail-summary .stat-cell');
       if(brokerName&&cells.length>=3){
-        var key=personKey(brokerName.textContent),pct=aggregatePct(customers.filter(function(c){return c&&c.info&&personKey(c.info.brokerName)===key;})),sub=cells[2].querySelector('.stat-sub'),text=formatPct(pct)+'% collected';
-        if(sub&&sub.textContent!==text)sub.textContent=text;
+        var key=personKey(brokerName.textContent),pct=aggregatePct(customers.filter(function(c){return c&&c.info&&personKey(c.info.brokerName)===key;})),sub=cells[2].querySelector('.stat-sub'),label=formatPct(pct)+'% collected';
+        if(sub&&sub.textContent!==label)sub.textContent=label;
       }
     }
     var rmPage=document.querySelector('.rm-detail-page');
     if(rmPage){
       var rmName=rmPage.querySelector('.rm-detail-name'),rmCells=rmPage.querySelectorAll('.rm-detail-summary .stat-cell');
       if(rmName&&rmCells.length>=3){
-        var rmKey=personKey(rmName.textContent),rmPct=aggregatePct(customers.filter(function(c){return c&&c.info&&personKey(c.info.soldBy)===rmKey;})),rmSub=rmCells[2].querySelector('.stat-sub'),rmText=formatPct(rmPct)+'% collected';
-        if(rmSub&&rmSub.textContent!==rmText)rmSub.textContent=rmText;
+        var rmKey=personKey(rmName.textContent),rmPct=aggregatePct(customers.filter(function(c){return c&&c.info&&personKey(c.info.soldBy)===rmKey;})),rmSub=rmCells[2].querySelector('.stat-sub'),rmLabel=formatPct(rmPct)+'% collected';
+        if(rmSub&&rmSub.textContent!==rmLabel)rmSub.textContent=rmLabel;
       }
     }
   }
