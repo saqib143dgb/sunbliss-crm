@@ -4,7 +4,7 @@
   window.__sunblissProfessionalHeaderInstalled=true;
 
   function text(v){return v===null||v===undefined?'':String(v);}
-  function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c];});}
   function roleLabel(v){
     var s=text(v).trim().toLowerCase();
     if(s==='crm_officer')return 'CRM Officer';
@@ -36,13 +36,15 @@
     style.id='sunblissProfessionalHeaderStyles';
     style.textContent=`
       .topbar.sunbliss-professional-header{
-        position:relative!important;overflow:hidden!important;min-height:250px!important;box-sizing:border-box!important;
+        position:relative!important;overflow:hidden!important;min-height:292px!important;box-sizing:border-box!important;
         padding:22px 28px 28px!important;border:0!important;border-radius:0!important;color:#f8f4ea!important;text-align:left!important;
         background:radial-gradient(430px 220px at 88% 18%,rgba(198,151,46,.11),transparent 68%),linear-gradient(118deg,#071520 0%,#0a1a26 54%,#0d202d 100%)!important;box-shadow:none!important;
       }
       .topbar.sunbliss-professional-header::before{content:''!important;display:block!important;position:absolute;right:-80px;bottom:-125px;width:330px;height:330px;border:1px solid rgba(198,151,46,.12);border-radius:50%;box-shadow:0 0 0 46px rgba(198,151,46,.035),0 0 0 92px rgba(198,151,46,.018);pointer-events:none;}
-      .topbar.sunbliss-professional-header::after{content:''!important;display:block!important;position:absolute;left:28px;right:28px;top:76px;height:1px;background:linear-gradient(90deg,rgba(198,151,46,.55),rgba(198,151,46,.15),transparent 84%);pointer-events:none;}
-      .sb-pro-top{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;min-height:40px;}
+      .topbar.sunbliss-professional-header::after{content:''!important;display:block!important;position:absolute;left:28px;right:28px;top:126px;height:1px;background:linear-gradient(90deg,rgba(198,151,46,.55),rgba(198,151,46,.15),transparent 84%);pointer-events:none;}
+      .sb-pro-top{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:80px;}
+      .sb-pro-logo{display:flex;align-items:center;min-width:0;width:300px;max-width:52%;}
+      .sb-pro-logo img{display:block;width:100%;height:auto;max-height:92px;object-fit:contain;object-position:left center;}
       .sb-pro-actions{display:flex;align-items:center;gap:10px;flex:none;}
       .sb-pro-signout{height:40px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;border:1px solid rgba(214,162,70,.68);border-radius:12px;background:rgba(255,255,255,.018);color:#fffaf0;font:600 12px/1 Inter,system-ui,sans-serif;cursor:pointer;touch-action:manipulation;}
       .sb-pro-signout svg{width:17px;height:17px;fill:none;stroke:#dfaa4f;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
@@ -58,12 +60,12 @@
       .sb-pro-sync{height:32px;display:flex;align-items:center;gap:7px;padding:0 11px;flex:none;border:1px solid rgba(237,230,214,.14);border-radius:10px;background:rgba(255,255,255,.022);color:rgba(248,244,234,.64);font:500 10.5px/1 Inter,system-ui,sans-serif;white-space:nowrap;}
       .sb-pro-sync svg{width:14px;height:14px;fill:none;stroke:#d6a246;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
       @media(max-width:720px){
-        .topbar.sunbliss-professional-header{min-height:196px!important;padding:14px 16px 20px!important;}.topbar.sunbliss-professional-header::after{left:16px;right:16px;top:62px;}.topbar.sunbliss-professional-header::before{width:220px;height:220px;right:-85px;bottom:-112px;box-shadow:0 0 0 32px rgba(198,151,46,.03),0 0 0 64px rgba(198,151,46,.015);}
-        .sb-pro-top{min-height:34px;}.sb-pro-signout{height:34px;padding:0 10px;gap:6px;border-radius:10px;font-size:10px;}.sb-pro-signout svg{width:15px;height:15px;}
-        .sb-pro-main{margin-top:26px;}.sb-pro-welcome{margin-bottom:4px;font-size:11px;}.sb-pro-name-row{gap:8px;flex-wrap:nowrap;}.sb-pro-name{font-size:25px;white-space:nowrap;}.sb-pro-role{min-height:26px;padding:0 9px;font-size:8.5px;}
+        .topbar.sunbliss-professional-header{min-height:220px!important;padding:14px 16px 20px!important;}.topbar.sunbliss-professional-header::after{left:16px;right:16px;top:82px;}.topbar.sunbliss-professional-header::before{width:220px;height:220px;right:-85px;bottom:-112px;box-shadow:0 0 0 32px rgba(198,151,46,.03),0 0 0 64px rgba(198,151,46,.015);}
+        .sb-pro-top{min-height:54px;gap:12px;}.sb-pro-logo{width:188px;max-width:58%;}.sb-pro-logo img{max-height:58px;}.sb-pro-signout{height:34px;padding:0 10px;gap:6px;border-radius:10px;font-size:10px;}.sb-pro-signout svg{width:15px;height:15px;}
+        .sb-pro-main{margin-top:24px;}.sb-pro-welcome{margin-bottom:4px;font-size:11px;}.sb-pro-name-row{gap:8px;flex-wrap:nowrap;}.sb-pro-name{font-size:25px;white-space:nowrap;}.sb-pro-role{min-height:26px;padding:0 9px;font-size:8.5px;}
         .sb-pro-project-row{margin-top:12px;gap:10px;}.sb-pro-project{gap:7px;font-size:12px;}.sb-pro-project-icon{width:27px;height:27px;border-radius:8px;}.sb-pro-project-icon svg{width:15px;height:15px;}.sb-pro-project-sep{width:12px;}.sb-pro-sync{height:28px;padding:0 8px;gap:5px;border-radius:9px;font-size:8.8px;}.sb-pro-sync svg{width:12px;height:12px;}
       }
-      @media(max-width:390px){.topbar.sunbliss-professional-header{min-height:190px!important;padding-left:13px!important;padding-right:13px!important;}.topbar.sunbliss-professional-header::after{left:13px;right:13px;}.sb-pro-signout{padding:0 8px;font-size:9.4px;}.sb-pro-name{font-size:23px;}.sb-pro-role{padding:0 8px;font-size:8px;}.sb-pro-project{font-size:11.3px;}.sb-pro-sync{padding:0 7px;font-size:8.2px;}}
+      @media(max-width:390px){.topbar.sunbliss-professional-header{min-height:216px!important;padding-left:13px!important;padding-right:13px!important;}.topbar.sunbliss-professional-header::after{left:13px;right:13px;}.sb-pro-logo{width:170px;max-width:56%;}.sb-pro-signout{padding:0 8px;font-size:9.4px;}.sb-pro-name{font-size:23px;}.sb-pro-role{padding:0 8px;font-size:8px;}.sb-pro-project{font-size:11.3px;}.sb-pro-sync{padding:0 7px;font-size:8.2px;}}
     `;
     document.head.appendChild(style);
   }
@@ -73,9 +75,10 @@
     var name=text(st.userName).trim()||'CRM User';
     var role=roleLabel(st.userRole);
     var synced=syncTime(st.syncedAt);
-    return '<div class="sb-pro-top"><div class="sb-pro-actions">'+
-        '<button type="button" class="sb-pro-signout" id="btnSignOut">'+signoutIcon()+'<span>Sign out</span></button>'+
-      '</div></div>'+
+    return '<div class="sb-pro-top">'+
+        '<div class="sb-pro-logo"><img src="assets/purvanchal-full-lockup.webp" alt="Purvanchal Real Estate Developers LLC"></div>'+
+        '<div class="sb-pro-actions"><button type="button" class="sb-pro-signout" id="btnSignOut">'+signoutIcon()+'<span>Sign out</span></button></div>'+
+      '</div>'+
     '<div class="sb-pro-main"><div class="sb-pro-copy">'+
         '<p class="sb-pro-welcome">Welcome back</p>'+
         '<div class="sb-pro-name-row"><h1 class="sb-pro-name">'+esc(name)+'</h1><span class="sb-pro-role">'+esc(role)+'</span></div>'+
