@@ -76,7 +76,7 @@
     var role=roleLabel(st.userRole);
     var synced=syncTime(st.syncedAt);
     return '<div class="sb-pro-top">'+
-        '<div class="sb-pro-logo"><img src="assets/purvanchal-full-lockup.webp" alt="Purvanchal Real Estate Developers LLC"></div>'+
+        '<div class="sb-pro-logo"><img src="assets/purvanchal-full-lockup.jpeg" alt="Purvanchal Real Estate Developers LLC"></div>'+
         '<div class="sb-pro-actions"><button type="button" class="sb-pro-signout" id="btnSignOut">'+signoutIcon()+'<span>Sign out</span></button></div>'+
       '</div>'+
     '<div class="sb-pro-main"><div class="sb-pro-copy">'+
