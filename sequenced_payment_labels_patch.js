@@ -10,30 +10,35 @@
     return String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
   }
 
-  function isStagePayment(paymentType, baseLabel){
-    var type = normalize(paymentType);
+  function isStagePayment(row, stageId, baseLabel){
+    if (row && row.payment_schedule_id != null && stageId != null && String(row.payment_schedule_id) === String(stageId)) return true;
+    var type = normalize(row && row.payment_type);
     var base = normalize(baseLabel);
     return type === base ||
       type.indexOf(base + ' partial-') === 0 ||
       type === base + ' remaining';
   }
 
-  function paymentLabel(baseLabel, priorStagePayments){
-    if (priorStagePayments <= 0) return baseLabel + ' Partial-1';
-    if (priorStagePayments === 1) return baseLabel + ' Partial-2';
-    return baseLabel + ' Remaining';
+  function paymentLabel(baseLabel, due, amount, priorStagePayments, priorStageAmount){
+    var totalAfter = Number(priorStageAmount || 0) + Number(amount || 0);
+    if (totalAfter >= Number(due || 0) - 1) return baseLabel + ' Remaining';
+    return baseLabel + ' Partial-' + (Number(priorStagePayments || 0) + 1);
   }
 
-  async function countPriorStagePayments(unitId, baseLabel){
+  async function priorStagePaymentSummary(unitId, stageId, baseLabel){
     var query = await sb.from('payment_transactions')
-      .select('id,payment_type,created_at')
+      .select('id,payment_schedule_id,payment_type,amount,created_at')
       .eq('unit_id',unitId)
       .order('created_at',{ascending:true})
       .order('id',{ascending:true});
     if (query.error) throw query.error;
-    return (query.data || []).filter(function(row){
-      return isStagePayment(row.payment_type,baseLabel);
-    }).length;
+    var rows = (query.data || []).filter(function(row){
+      return isStagePayment(row,stageId,baseLabel);
+    });
+    return {
+      count:rows.length,
+      amount:rows.reduce(function(sum,row){ return sum + Number(row.amount || 0); },0)
+    };
   }
 
   async function saveSequencedPayment(c){
@@ -82,8 +87,8 @@
       var paidBefore = Number(stage.paid || 0);
       var due = Number(stage.due || 0);
       var paidAfter = paidBefore + amount;
-      var priorStagePayments = await countPriorStagePayments(c.sno,stage.label);
-      var transactionLabel = paymentLabel(stage.label,priorStagePayments);
+      var priorStage = await priorStagePaymentSummary(c.sno,stage.id,stage.label);
+      var transactionLabel = paymentLabel(stage.label,due,amount,priorStage.count,priorStage.amount);
       var scheduleStatus = paidAfter >= due - 1 ? 'Paid' : 'Partial';
 
       var scheduleUpdate = await sb.from('payment_schedule').update({
@@ -96,6 +101,7 @@
       var transactionInsert = await sb.from('payment_transactions').insert({
         customer_id:c.customerId,
         unit_id:c.sno,
+        payment_schedule_id:stage.id,
         payment_date:paymentDate,
         payment_type:transactionLabel,
         amount:amount,
