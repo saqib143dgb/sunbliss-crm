@@ -18,23 +18,27 @@
       type === base + ' remaining';
   }
 
-  function paymentLabel(baseLabel, due, paidBefore, paidAfter, priorStagePayments){
-    var completed = paidAfter >= due - 1;
-    if (completed){
-      if (paidBefore > 1 || priorStagePayments > 0) return baseLabel + ' Remaining';
-      return baseLabel;
+  function paymentLabel(baseLabel, due, amount, priorStagePayments, priorStageAmount){
+    var completedByRecordedPayments = (Number(priorStageAmount || 0) + Number(amount || 0)) >= Number(due || 0) - 1;
+    if (priorStagePayments <= 0){
+      return completedByRecordedPayments ? baseLabel : baseLabel + ' Partial-1';
     }
+    if (completedByRecordedPayments) return baseLabel + ' Remaining';
     return baseLabel + ' Partial-' + (priorStagePayments + 1);
   }
 
-  async function countPriorStagePayments(unitId, baseLabel){
+  async function priorStagePaymentSummary(unitId, baseLabel){
     var query = await sb.from('payment_transactions')
-      .select('payment_type')
+      .select('payment_type,amount')
       .eq('unit_id',unitId);
     if (query.error) throw query.error;
-    return (query.data || []).filter(function(row){
+    var rows = (query.data || []).filter(function(row){
       return isStagePayment(row.payment_type,baseLabel);
-    }).length;
+    });
+    return {
+      count: rows.length,
+      amount: rows.reduce(function(sum,row){ return sum + Number(row.amount || 0); },0)
+    };
   }
 
   async function saveSequencedPayment(c){
@@ -83,8 +87,8 @@
       var paidBefore = Number(stage.paid || 0);
       var due = Number(stage.due || 0);
       var paidAfter = paidBefore + amount;
-      var priorStagePayments = await countPriorStagePayments(c.sno,stage.label);
-      var transactionLabel = paymentLabel(stage.label,due,paidBefore,paidAfter,priorStagePayments);
+      var priorStage = await priorStagePaymentSummary(c.sno,stage.label);
+      var transactionLabel = paymentLabel(stage.label,due,amount,priorStage.count,priorStage.amount);
       var scheduleStatus = paidAfter >= due - 1 ? 'Paid' : 'Partial';
 
       var scheduleUpdate = await sb.from('payment_schedule').update({
