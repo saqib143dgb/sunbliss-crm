@@ -75,6 +75,15 @@
     var seen={};
     return hits.filter(function(h){if(seen[h.code])return false;seen[h.code]=true;return true;}).map(function(h){return h.code;});
   }
+  function isDldStage(stage){
+    if(!stage)return false;
+    if(text(stage.code).toUpperCase()==='DLD')return true;
+    return /\bdld\b|admin\s*fees?/i.test(text(stage.label||stage.stage_name));
+  }
+  function isDldTransaction(tx,byId){
+    if(tx&&tx.scheduleId&&byId&&byId[text(tx.scheduleId)])return isDldStage(byId[text(tx.scheduleId)]);
+    return transactionCodes(tx&&tx.paymentType).indexOf('DLD')!==-1;
+  }
   function stageDateValue(v){
     if(!v)return '';
     if(v instanceof Date&&!isNaN(v.getTime()))return v.toISOString().slice(0,10);
@@ -165,14 +174,36 @@
       setPaidDate(stage,stage.__txLatestDate||'');
     });
 
-    var actualCash=round2(unitTransactions.reduce(function(sum,t){return sum+(Number(t.amount)||0);},0));
-    var creditTotal=round2(c.creditNoteTotal||0);
-    c.actualCollected=actualCash;
-    c.cashReceived=actualCash;
-    c.received=actualCash;
-    c.settledReceived=round2(actualCash+creditTotal);
+    var grossCash=round2(unitTransactions.reduce(function(sum,t){return sum+(Number(t.amount)||0);},0));
+    var dldAdminCash=round2(unitTransactions.reduce(function(sum,t){return sum+(isDldTransaction(t,byId)?(Number(t.amount)||0):0);},0));
+    var saleCash=round2(grossCash-dldAdminCash);
+    var saleCredit=0,feeCredit=0,feeDue=0,feeSettled=0;
+    stages.forEach(function(stage){
+      var credit=round2(stage.creditNoteTotal||0);
+      if(isDldStage(stage)){
+        feeDue=round2(feeDue+(Number(stage.due)||0));
+        feeCredit=round2(feeCredit+credit);
+        feeSettled=round2(feeSettled+(Number(stage.settledAmount)||0));
+      }else{
+        saleCredit=round2(saleCredit+credit);
+      }
+    });
+
+    c.grossCashReceived=grossCash;
+    c.dldAdminDue=feeDue;
+    c.dldAdminCashReceived=dldAdminCash;
+    c.dldAdminCreditNoteTotal=feeCredit;
+    c.dldAdminSettled=feeSettled;
+    c.dldAdminOutstanding=round2(feeDue-feeSettled);
+    c.allCreditNoteTotal=round2(saleCredit+feeCredit);
+    c.creditNoteTotal=saleCredit;
+    c.actualCollected=saleCash;
+    c.cashReceived=saleCash;
+    c.received=saleCash;
+    c.settledReceived=round2(saleCash+saleCredit);
     if(c.total!==null&&c.total!==undefined&&isFinite(Number(c.total)))c.outstanding=round2(c.settledReceived-Number(c.total));
     c.transactionLedgerReconciled=true;
+    c.dldAdminSeparated=true;
     recomputeNextDue(c);
     return true;
   }
