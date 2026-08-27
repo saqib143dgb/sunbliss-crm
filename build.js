@@ -6,7 +6,7 @@ const BASE = path.join(ROOT, 'vendor', 'base');
 const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_STATIC_FILES = ['assets/purvanchal-p-dubai.webp', 'assets/purvanchal-full-lockup.webp'];
+const LOCAL_STATIC_FILES = [];
 const LOCAL_REPLACEMENT_FILES = {
   'chunk_11.js': 'auth_core_replacement.js'
 };
@@ -71,7 +71,7 @@ const LOCAL_PATCH_FILES = [
   'bold_headings_patch.js',
   'credit_note_edit_patch.js',
   'unit_meta_inline_patch.js',
-  'professional_header_patch.js',
+  'professional_header_text_v2.js',
   'header_manual_sync_patch.js'
 ];
 
@@ -121,6 +121,7 @@ function main() {
   let html = fs.readFileSync(indexPath, 'utf8');
 
   html = html.replace(/<script\s+async\s+data-explicit-opt-in=[\s\S]*?<\/script>\s*$/i, '');
+  html = html.replace(/<script[^>]+src=["'](?:professional_header_patch\.js|fresh_reference_header_patch\.js|fresh_reference_header_mobile_match_patch\.js|combined_brand_header_patch\.js)["'][^>]*><\/script>\s*/gi, '');
   for (const patch of LOCAL_PATCH_FILES) {
     if (!html.includes(patch)) {
       html = html.replace('</body>', `<script src="${patch}"></script>\n</body>`);
