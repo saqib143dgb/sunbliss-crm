@@ -35,7 +35,7 @@
       '.detail>.d-unit,.detail>.d-type{display:none!important}',
       '#unitMetaInline{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:7px 0 14px;color:var(--muted);font-size:12.5px;line-height:1.35}',
       '#unitMetaInline .unit-meta-number{font-family:"IBM Plex Mono",monospace;font-weight:700;color:var(--gold-deep)}',
-      '#unitMetaInline .unit-meta-type{font-weight:650;color:var(--ink)}',
+      '#unitMetaInline .unit-meta-type{font-weight:500;color:var(--muted)}',
       '#unitMetaInline .unit-meta-furnishing{font-weight:500;color:var(--muted)}',
       '#unitMetaInline .unit-meta-sep{opacity:.45}',
       '@media(max-width:390px){#unitMetaInline{gap:5px;font-size:11.5px}}'
