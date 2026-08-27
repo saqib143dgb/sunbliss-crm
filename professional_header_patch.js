@@ -17,7 +17,7 @@
     if(isNaN(d.getTime()))return 'Just now';
     return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
   }
-  function syncIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8.1A7 7 0 0 1 18.4 6L20 8"/><path d="M17.9 15.9A7 7 0 0 1 5.6 18L4 16"/></svg>';}
+  function syncIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.3 2.3 4.8-5"/></svg>';}
   function signoutIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg>';}
   function projectIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l6-3v16"/><path d="M10 21V3l8 4v14"/><path d="M2 21h20"/><path d="M7 11h1M7 15h1M13 9h1M13 13h1M16 10h1M16 14h1"/></svg>';}
 
