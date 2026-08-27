@@ -68,6 +68,14 @@
       if (remarksLabel && remarksLabel.parentNode === panel) panel.insertBefore(card,remarksLabel);
       else panel.appendChild(card);
     }
+
+    // Important: the app-level MutationObserver calls enforce() after child mutations.
+    // Rewriting this card on every scan creates a self-triggering render loop.
+    // Render only when the displayed amount actually changes.
+    var renderKey = (Number(paid) || 0).toFixed(2);
+    if (card.getAttribute('data-sunbliss-render-key') === renderKey && card.childNodes.length) return;
+    card.setAttribute('data-sunbliss-render-key',renderKey);
+
     card.innerHTML =
       '<p class="sunbliss-forfeit-rule-title">Cancellation settlement</p>' +
       '<div class="sunbliss-forfeit-rule-grid">' +
@@ -99,7 +107,9 @@
   }
 
   function scan(){
-    enforce(document.getElementById('unitCancellationPanel'));
+    var panel = document.getElementById('unitCancellationPanel');
+    if (!panel) return;
+    enforce(panel);
   }
 
   document.addEventListener('click',function(event){
@@ -110,7 +120,15 @@
 
   var app = document.getElementById('app');
   if (app && window.MutationObserver){
-    var observer = new MutationObserver(scan);
+    var scanQueued = false;
+    var observer = new MutationObserver(function(){
+      if (scanQueued) return;
+      scanQueued = true;
+      window.requestAnimationFrame(function(){
+        scanQueued = false;
+        scan();
+      });
+    });
     observer.observe(app,{childList:true,subtree:true});
   }
 
