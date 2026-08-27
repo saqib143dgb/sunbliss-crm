@@ -69,6 +69,7 @@ const LOCAL_PATCH_FILES = [
   'payment_percentage_admin_exclusion_patch.js',
   'cancel_unit_hang_fix_patch.js',
   'bold_headings_patch.js',
+  'crm_heading_size_patch.js',
   'credit_note_edit_patch.js',
   'unit_meta_inline_patch.js',
   'professional_header_text_v2.js',
