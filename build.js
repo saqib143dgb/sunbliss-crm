@@ -80,7 +80,8 @@ const LOCAL_PATCH_FILES = [
   'payment_statement_full_page_width_patch.js',
   'payment_statement_cleanup_patch.js',
   'full_width_print_buttons_patch.js',
-  'combined_brand_header_patch.js'
+  'combined_brand_header_patch.js',
+  'payment_percentage_admin_exclusion_patch.js'
 ];
 
 function requireFile(filePath, label) {
