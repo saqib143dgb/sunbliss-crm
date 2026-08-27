@@ -6,7 +6,7 @@ const BASE = path.join(ROOT, 'vendor', 'base');
 const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_STATIC_FILES = ['assets/purvanchal-p-dubai.webp', 'assets/purvanchal-full-lockup.jpeg'];
+const LOCAL_STATIC_FILES = ['assets/purvanchal-p-dubai.webp', 'assets/purvanchal-full-lockup.webp'];
 const LOCAL_REPLACEMENT_FILES = {
   'chunk_11.js': 'auth_core_replacement.js'
 };
