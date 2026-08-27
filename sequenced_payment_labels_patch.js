@@ -21,7 +21,9 @@
 
   function paymentLabel(baseLabel, due, amount, priorStagePayments, priorStageAmount){
     var totalAfter = Number(priorStageAmount || 0) + Number(amount || 0);
-    if (totalAfter >= Number(due || 0) - 1) return baseLabel + ' Remaining';
+    if (totalAfter >= Number(due || 0) - 1){
+      return Number(priorStagePayments || 0) > 0 ? baseLabel + ' Remaining' : baseLabel;
+    }
     return baseLabel + ' Partial-' + (Number(priorStagePayments || 0) + 1);
   }
 
