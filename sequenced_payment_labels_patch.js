@@ -128,6 +128,12 @@
     document.addEventListener('click',function(ev){
       var target = ev.target && ev.target.closest ? ev.target.closest('#pfSave') : null;
       if (!target) return;
+
+      // Credit-note-capable forms are handled by the newer credit note save path.
+      // Do not stop that handler when the credit note section is open.
+      var creditPanel = document.getElementById('pfCreditFields');
+      if (creditPanel && !creditPanel.hidden) return;
+
       var c = currentCustomer();
       if (!c) return;
       ev.preventDefault();
