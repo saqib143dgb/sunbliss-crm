@@ -82,8 +82,7 @@ const LOCAL_PATCH_FILES = [
   'full_width_print_buttons_patch.js',
   'combined_brand_header_patch.js',
   'payment_percentage_admin_exclusion_patch.js',
-  'cancel_unit_hang_fix_patch.js',
-  'cancel_unit_ios_render_fix.js'
+  'cancel_unit_hang_fix_patch.js'
 ];
 
 function requireFile(filePath, label) {
