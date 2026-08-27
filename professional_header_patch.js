@@ -4,7 +4,7 @@
   window.__sunblissProfessionalHeaderInstalled=true;
 
   function text(v){return v===null||v===undefined?'':String(v);}
-  function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c];});}
+  function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function roleLabel(v){
     var s=text(v).trim().toLowerCase();
     if(s==='crm_officer')return 'CRM Officer';
