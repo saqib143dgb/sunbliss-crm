@@ -49,6 +49,65 @@
     return date.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   }
 
+  function moneyText(amount){
+    if (typeof window.fmtAED === 'function') return window.fmtAED(Number(amount)||0);
+    return 'AED ' + (Number(amount)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+  }
+
+  function fallbackOverdueInfo(customer){
+    var result = {isOverdue:false,overdueAmount:0,stageLabels:[]};
+    if (!customer || !Array.isArray(customer.stages)) return result;
+    var today = new Date();
+    customer.stages.forEach(function(stage){
+      var overdue = false;
+      if (typeof window.stageStatus === 'function'){
+        overdue = window.stageStatus(stage.due,stage.paid,stage.dueDate,today) === 'overdue';
+      } else {
+        var dueDate = stage.dueDate instanceof Date ? stage.dueDate : (stage.dueDate ? new Date(stage.dueDate) : null);
+        var due = Number(stage.due)||0;
+        var paid = Number(stage.paid)||0;
+        overdue = !!(dueDate && !isNaN(dueDate.getTime()) && dueDate < today && due-paid > 1);
+      }
+      if (!overdue) return;
+      var remaining = Math.max(0,(Number(stage.due)||0)-(Number(stage.paid)||0));
+      result.overdueAmount += remaining;
+      result.stageLabels.push(String(stage.label || stage.code || 'Installment'));
+    });
+    result.isOverdue = result.stageLabels.length > 0;
+    return result;
+  }
+
+  function overdueInfo(customer){
+    if (!customer) return {isOverdue:false,overdueAmount:0,stageLabels:[]};
+    if (typeof window.customerOverdueInfo === 'function'){
+      try {
+        var info = window.customerOverdueInfo(customer);
+        if (info && Array.isArray(info.stageLabels)) return info;
+      } catch (e) {}
+    }
+    return fallbackOverdueInfo(customer);
+  }
+
+  function addMultipleOverdueSummary(row,customer){
+    if (!row) return;
+    var old = row.querySelector('.multi-overdue-summary');
+    if (old) old.remove();
+
+    var info = overdueInfo(customer);
+    if (!info || !info.isOverdue || !Array.isArray(info.stageLabels) || info.stageLabels.length < 2) return;
+
+    var main = row.querySelector('.row-main');
+    if (!main) return;
+
+    var summary = document.createElement('span');
+    summary.className = 'multi-overdue-summary';
+    var names = info.stageLabels.join(' + ');
+    summary.innerHTML = '<span class="multi-overdue-label">Overdue</span><span class="multi-overdue-stages"></span><strong></strong>';
+    summary.querySelector('.multi-overdue-stages').textContent = names;
+    summary.querySelector('strong').textContent = 'Total ' + moneyText(info.overdueAmount);
+    main.appendChild(summary);
+  }
+
   function ensureStyles(){
     if (document.getElementById('sunblissAllTasksOverviewStyle')) return;
     var style = document.createElement('style');
@@ -57,7 +116,11 @@
       '.all-tasks-date{font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--muted);white-space:nowrap;}',
       '.all-tasks-empty{padding:14px 4px 18px;color:var(--muted);font-size:12px;border-top:1px solid var(--paper-line);}',
       '.all-tasks-list .task-row:first-child{border-top:1px solid var(--paper-line);}',
-      '@media(max-width:420px){.all-tasks-date{font-size:9px}.all-tasks-list .row-meta{flex-wrap:wrap;}}'
+      '.multi-overdue-summary{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:10.5px;line-height:1.35;color:var(--muted);}',
+      '.multi-overdue-label{font-family:"IBM Plex Mono",monospace;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--rust);}',
+      '.multi-overdue-stages{color:var(--ink);}',
+      '.multi-overdue-summary strong{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;color:var(--rust);white-space:nowrap;}',
+      '@media(max-width:420px){.all-tasks-date{font-size:9px}.all-tasks-list .row-meta{flex-wrap:wrap;}.multi-overdue-summary{font-size:10px;gap:5px}.multi-overdue-summary strong{font-size:9.5px;}}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -91,6 +154,7 @@
           meta.appendChild(span);
         }
       }
+      addMultipleOverdueSummary(row,customer);
       list.appendChild(row);
     });
   }
