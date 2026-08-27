@@ -80,10 +80,6 @@
     if(text(stage.code).toUpperCase()==='DLD')return true;
     return /\bdld\b|admin\s*fees?/i.test(text(stage.label||stage.stage_name));
   }
-  function isDldTransaction(tx,byId){
-    if(tx&&tx.scheduleId&&byId&&byId[text(tx.scheduleId)])return isDldStage(byId[text(tx.scheduleId)]);
-    return transactionCodes(tx&&tx.paymentType).indexOf('DLD')!==-1;
-  }
   function stageDateValue(v){
     if(!v)return '';
     if(v instanceof Date&&!isNaN(v.getTime()))return v.toISOString().slice(0,10);
@@ -175,12 +171,11 @@
     });
 
     var grossCash=round2(unitTransactions.reduce(function(sum,t){return sum+(Number(t.amount)||0);},0));
-    var dldAdminCash=round2(unitTransactions.reduce(function(sum,t){return sum+(isDldTransaction(t,byId)?(Number(t.amount)||0):0);},0));
-    var saleCash=round2(grossCash-dldAdminCash);
-    var saleCredit=0,feeCredit=0,feeDue=0,feeSettled=0;
+    var saleCredit=0,feeCredit=0,feeDue=0,feeSettled=0,dldAdminCash=0;
     stages.forEach(function(stage){
       var credit=round2(stage.creditNoteTotal||0);
       if(isDldStage(stage)){
+        dldAdminCash=round2(dldAdminCash+(Number(stage.cashPaid)||0));
         feeDue=round2(feeDue+(Number(stage.due)||0));
         feeCredit=round2(feeCredit+credit);
         feeSettled=round2(feeSettled+(Number(stage.settledAmount)||0));
@@ -188,6 +183,7 @@
         saleCredit=round2(saleCredit+credit);
       }
     });
+    var saleCash=round2(grossCash-dldAdminCash);
 
     c.grossCashReceived=grossCash;
     c.dldAdminDue=feeDue;
