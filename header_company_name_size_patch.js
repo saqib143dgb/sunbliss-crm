@@ -7,7 +7,7 @@
   style.textContent=`
     .sb-pro-brand{width:max-content!important;max-width:72%!important;}
     .sb-pro-brand-name{display:block!important;font-size:50px!important;white-space:nowrap!important;}
-    .sb-pro-brand-sub{display:block!important;width:auto!important;font-size:14px!important;letter-spacing:0;white-space:nowrap!important;text-align:left!important;text-align-last:auto!important;}
+    .sb-pro-brand-sub{display:block!important;width:max-content!important;font-size:14px!important;letter-spacing:0;white-space:nowrap!important;text-align:left!important;text-align-last:auto!important;}
     @media(max-width:720px){
       .sb-pro-brand{width:max-content!important;max-width:69%!important;}
       .sb-pro-brand-name{font-size:33px!important;}
@@ -26,14 +26,41 @@
     var sub=document.querySelector('.sb-pro-brand-sub');
     if(!name||!sub)return;
 
-    sub.style.letterSpacing='0px';
     var target=name.getBoundingClientRect().width;
-    var natural=sub.getBoundingClientRect().width;
-    var chars=(sub.textContent||'').length;
-    if(!target||!natural||chars<2)return;
+    if(!target)return;
 
-    var spacing=Math.max(0,(target-natural)/(chars-1));
-    sub.style.letterSpacing=spacing.toFixed(2)+'px';
+    sub.style.letterSpacing='0px';
+    var natural=sub.getBoundingClientRect().width;
+    if(!natural)return;
+
+    if(natural>=target){
+      sub.style.letterSpacing='0px';
+      return;
+    }
+
+    var low=0;
+    var high=24;
+    var i;
+    for(i=0;i<18;i++){
+      var mid=(low+high)/2;
+      sub.style.letterSpacing=mid+'px';
+      var width=sub.getBoundingClientRect().width;
+      if(width<target) low=mid;
+      else high=mid;
+    }
+
+    var best=(low+high)/2;
+    sub.style.letterSpacing=best.toFixed(3)+'px';
+
+    var finalWidth=sub.getBoundingClientRect().width;
+    var delta=target-finalWidth;
+    if(Math.abs(delta)>0.15){
+      var chars=(sub.textContent||'').length;
+      if(chars>0){
+        best+=delta/chars;
+        sub.style.letterSpacing=Math.max(0,best).toFixed(3)+'px';
+      }
+    }
   }
 
   var queued=false;
@@ -49,7 +76,12 @@
   scheduleFit();
   setTimeout(scheduleFit,60);
   setTimeout(scheduleFit,250);
+  setTimeout(scheduleFit,700);
   window.addEventListener('resize',scheduleFit,{passive:true});
+
+  if(document.fonts&&document.fonts.ready){
+    document.fonts.ready.then(scheduleFit).catch(function(){});
+  }
 
   var app=document.getElementById('app');
   if(app&&window.MutationObserver){
