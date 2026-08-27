@@ -71,7 +71,8 @@ const LOCAL_PATCH_FILES = [
   'bold_headings_patch.js',
   'credit_note_edit_patch.js',
   'unit_meta_inline_patch.js',
-  'professional_header_patch.js'
+  'professional_header_patch.js',
+  'header_manual_sync_patch.js'
 ];
 
 function requireFile(filePath, label) {
