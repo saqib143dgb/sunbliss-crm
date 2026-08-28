@@ -3,6 +3,9 @@
 if(window.__sunblissIssuedCreditNoteHistoryInstalled)return;
 window.__sunblissIssuedCreditNoteHistoryInstalled=true;
 
+var scheduled=false;
+var applying=false;
+
 function text(v){return v==null?'':String(v);}
 function norm(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
 function isMulti(note){
@@ -36,36 +39,51 @@ function hasVisibleRows(card){
   return false;
 }
 function apply(){
-  if(!window.state||state.view!=='detail')return;
-  var card=document.getElementById('customerNotesCard');
-  if(card){
-    var front=specialRow(card);
-    if(front&&isExplicitIssuedOneTime(rowText(front))){
-      front.style.display='none';
-      front.dataset.issuedCreditNoteHistoryHidden='1';
-      if(!hasVisibleRows(card))card.style.display='none';
-    }
-  }
-  var panel=document.getElementById('customerNotesHistoryPanel');
-  if(panel){
-    var history=specialRow(panel);
-    if(history&&isExplicitIssuedOneTime(rowText(history))){
-      history.style.display='';
-      var label=history.querySelector('.customer-note-display-label');
-      if(label)label.textContent='Special Note · Completed';
-      if(!history.querySelector('.issued-credit-note-history-help')){
-        var help=document.createElement('p');
-        help.className='customer-note-archive-help issued-credit-note-history-help';
-        help.textContent='Archived because the required one-time credit note has already been issued.';
-        history.appendChild(help);
+  if(applying||!window.state||state.view!=='detail')return;
+  applying=true;
+  try{
+    var card=document.getElementById('customerNotesCard');
+    if(card){
+      var front=specialRow(card);
+      if(front&&isExplicitIssuedOneTime(rowText(front))){
+        if(front.style.display!=='none')front.style.display='none';
+        front.dataset.issuedCreditNoteHistoryHidden='1';
+        if(!hasVisibleRows(card)&&card.style.display!=='none')card.style.display='none';
       }
     }
+
+    var panel=document.getElementById('customerNotesHistoryPanel');
+    if(panel){
+      var history=specialRow(panel);
+      if(history&&isExplicitIssuedOneTime(rowText(history))){
+        if(history.style.display==='none')history.style.display='';
+        var label=history.querySelector('.customer-note-display-label');
+        if(label&&norm(label.textContent)!=='special note · completed')label.textContent='Special Note · Completed';
+        if(!history.querySelector('.issued-credit-note-history-help')){
+          var help=document.createElement('p');
+          help.className='customer-note-archive-help issued-credit-note-history-help';
+          help.textContent='Archived because the required one-time credit note has already been issued.';
+          history.appendChild(help);
+        }
+        panel.dataset.issuedCreditNoteHistoryApplied='1';
+      }
+    }
+  }finally{
+    applying=false;
   }
+}
+function scheduleApply(){
+  if(scheduled)return;
+  scheduled=true;
+  requestAnimationFrame(function(){
+    scheduled=false;
+    apply();
+  });
 }
 function install(){
   var root=document.getElementById('app')||document.body;
-  new MutationObserver(apply).observe(root,{childList:true,subtree:true});
-  apply();
+  new MutationObserver(scheduleApply).observe(root,{childList:true,subtree:true});
+  scheduleApply();
 }
 install();
 })();
