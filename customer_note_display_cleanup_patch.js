@@ -32,6 +32,39 @@ function hideLowerDuplicateRows(){
     }
   }
 }
+function hideLegacyRemarksNotice(special){
+  if(!special||!window.state||state.view!=='detail')return;
+  var detail=document.querySelector('.detail');
+  if(!detail)return;
+  var wanted=norm(special);
+  var notices=detail.querySelectorAll('.notice');
+  for(var i=0;i<notices.length;i++){
+    var notice=notices[i];
+    if(notice.closest('#customerNotesCard,#customerNotesHistoryPanel,#saleComplianceEditPanel'))continue;
+    var subs=notice.querySelectorAll('.notice-sub');
+    var matched=false;
+    for(var j=0;j<subs.length;j++){
+      if(norm(subs[j].textContent)===wanted){
+        subs[j].style.display='none';
+        subs[j].dataset.customerLegacyRemarkHidden='1';
+        matched=true;
+      }
+    }
+    if(!matched)continue;
+    var parts=notice.querySelectorAll('.notice-title,.notice-body,.notice-sub');
+    var hasVisibleContent=false;
+    for(var k=0;k<parts.length;k++){
+      if(parts[k].style.display!=='none'&&norm(parts[k].textContent)){
+        hasVisibleContent=true;
+        break;
+      }
+    }
+    if(!hasVisibleContent){
+      notice.style.display='none';
+      notice.dataset.customerLegacyRemarkHidden='1';
+    }
+  }
+}
 function isPriceStage(stage){
   var s=norm(stage&&stage.stage_name);
   return Number(stage&&stage.due_amount)>0&&!/(dld|admin|fee)/.test(s);
@@ -100,15 +133,14 @@ async function ensureDedicatedNotice(){
   var uid=unitId();
   if(!detail||!uid)return;
   var key=String(state.selectedUnit);
-  var existing=document.getElementById('customerNotesCard');
-  if(existing&&detail.contains(existing))return;
   if(loadingKey===key)return;
   loadingKey=key;
   try{
     var data=await getData(uid);
     if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
-    existing=document.getElementById('customerNotesCard');
-    if(existing)return;
+    hideLegacyRemarksNotice(data.special);
+    var existing=document.getElementById('customerNotesCard');
+    if(existing&&detail.contains(existing))return;
     var showSpecial=!!data.special&&!data.specialCompleted;
     var showPartial=!!data.partial&&!data.dpPaid;
     if(!showSpecial&&!showPartial)return;
