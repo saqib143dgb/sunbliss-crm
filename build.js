@@ -83,7 +83,8 @@ const LOCAL_PATCH_FILES = [
   'customer_note_display_cleanup_patch.js',
   'sale_compliance_inline_note_hide_patch.js',
   'issued_credit_note_history_patch.js',
-  'notes_management_patch.js'
+  'notes_management_patch.js',
+  'monthly_cash_flow_label_patch.js'
 ];
 
 function requireFile(filePath, label) {
