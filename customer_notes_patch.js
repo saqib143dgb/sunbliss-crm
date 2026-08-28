@@ -34,9 +34,11 @@ function styles(){
     '.customer-note-error{margin:-5px 0 12px;font-size:10.8px;line-height:1.45;color:var(--rust);font-weight:600}',
     '#partialBookingNoteNew[hidden]{display:none!important}',
     '#customerNotesCard{margin:12px 0 15px;padding:12px 13px;border:1px solid var(--paper-line);border-radius:11px;background:var(--paper-dim)}',
-    '#customerNotesCard .customer-note-display-row+ .customer-note-display-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--paper-line)}',
+    '#customerNotesCard .customer-note-display-row+ .customer-note-display-row,#customerNotesHistoryPanel .customer-note-display-row+ .customer-note-display-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--paper-line)}',
     '.customer-note-display-label{margin:0 0 4px;font:700 10px/1.25 IBM Plex Mono,monospace;letter-spacing:.055em;text-transform:uppercase;color:var(--muted)}',
-    '.customer-note-display-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:500 12.5px/1.5 Inter,sans-serif;color:var(--ink)}'
+    '.customer-note-display-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:500 12.5px/1.5 Inter,sans-serif;color:var(--ink)}',
+    '.customer-note-archive-help{margin:5px 0 0;font-size:10.5px;line-height:1.45;color:var(--muted)}',
+    '#customerNotesHistoryPanel{margin:0 0 16px;box-shadow:none;border:1px solid var(--paper-line)}'
   ].join('');
   document.head.appendChild(s);
 }
@@ -132,7 +134,7 @@ async function flushPending(){
     state.__customerNotesSaving=false;
   }
 }
-function noteRow(label,value){
+function noteRow(label,value,help){
   var row=document.createElement('div');
   row.className='customer-note-display-row';
   var heading=document.createElement('p');
@@ -143,10 +145,39 @@ function noteRow(label,value){
   body.textContent=value;
   row.appendChild(heading);
   row.appendChild(body);
+  if(help){
+    var hint=document.createElement('p');
+    hint.className='customer-note-archive-help';
+    hint.textContent=help;
+    row.appendChild(hint);
+  }
   return row;
 }
 function noteAnchor(detail){
   return detail.querySelector('.badges')||detail.querySelector('.d-type')||detail.querySelector('.d-name')||detail.firstElementChild;
+}
+function panelAnchor(detail){
+  var badges=detail&&detail.querySelector('.badges');
+  if(badges&&badges.parentNode)return {node:badges,mode:'after'};
+  var type=detail&&detail.querySelector('.d-type');
+  if(type&&type.parentNode)return {node:type,mode:'after'};
+  return null;
+}
+async function fetchNoteData(uid){
+  var results=await Promise.all([
+    sb.from('sales').select('id,remarks,partial_booking_note').eq('unit_id',uid).order('id',{ascending:false}).limit(1),
+    sb.from('payment_schedule').select('due_amount,paid_amount,status').eq('unit_id',uid).eq('stage_name','Down Payment').limit(1)
+  ]);
+  if(results[0].error)throw results[0].error;
+  if(results[1].error)throw results[1].error;
+  var sale=(results[0].data||[])[0]||{};
+  var dp=(results[1].data||[])[0]||null;
+  var dpPaid=false;
+  if(dp){
+    dpPaid=text(dp.status).trim().toLowerCase()==='paid';
+    if(!dpPaid&&Number(dp.due_amount)>0&&Number(dp.paid_amount)>=Number(dp.due_amount)-0.01)dpPaid=true;
+  }
+  return {sale:sale,dp:dp,dpPaid:dpPaid};
 }
 async function displayFrontPageNotes(){
   var old=document.getElementById('customerNotesCard');
@@ -155,24 +186,22 @@ async function displayFrontPageNotes(){
   var detail=document.querySelector('.detail');
   if(!uid||!detail){if(old)old.remove();return;}
   var key=String(state.selectedUnit);
-  if(old&&old.dataset.noteKey===key)return;
   if(detail.dataset.customerNotesLoading===key)return;
   detail.dataset.customerNotesLoading=key;
   try{
-    var result=await sb.from('sales').select('remarks,partial_booking_note').eq('unit_id',uid).order('id',{ascending:false}).limit(1);
-    if(result.error)throw result.error;
+    var data=await fetchNoteData(uid);
     if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
-    var sale=(result.data||[])[0]||{};
-    var special=text(sale.remarks).trim();
-    var partial=text(sale.partial_booking_note).trim();
+    var special=text(data.sale.remarks).trim();
+    var partial=text(data.sale.partial_booking_note).trim();
     old=document.getElementById('customerNotesCard');
     if(old)old.remove();
-    if(!special&&!partial)return;
+    if(!special&&(!partial||data.dpPaid))return;
     var card=document.createElement('section');
     card.id='customerNotesCard';
     card.dataset.noteKey=key;
+    card.dataset.dpPaid=data.dpPaid?'1':'0';
     if(special)card.appendChild(noteRow('Special Note',special));
-    if(partial)card.appendChild(noteRow('Partial Booking Note',partial));
+    if(partial&&!data.dpPaid)card.appendChild(noteRow('Partial Booking Note',partial));
     var anchor=noteAnchor(detail);
     if(anchor&&anchor.parentNode)anchor.insertAdjacentElement('afterend',card);else detail.appendChild(card);
   }catch(e){
@@ -181,7 +210,98 @@ async function displayFrontPageNotes(){
     if(detail&&detail.dataset.customerNotesLoading===key)delete detail.dataset.customerNotesLoading;
   }
 }
-function decorate(){styles();decorateNewCustomer();flushPending();displayFrontPageNotes();}
+async function archivePaidPartialInEditSale(){
+  if(!window.state||!window.sb||state.view!=='detail'||!state.selectedUnit)return;
+  var panel=document.getElementById('saleComplianceEditPanel');
+  var uid=unitId();
+  if(!panel||!uid||panel.dataset.partialArchiveLoading==='1')return;
+  panel.dataset.partialArchiveLoading='1';
+  try{
+    var data=await fetchNoteData(uid);
+    if(!document.getElementById('saleComplianceEditPanel'))return;
+    if(data.dpPaid){
+      var partial=text(data.sale.partial_booking_note).trim();
+      if(partial)panel.dataset.partialBookingDraft=partial;
+      panel.dataset.partialBookingArchived='1';
+      var wrap=document.getElementById('scPartialBookingWrap');
+      if(wrap)wrap.remove();
+    }else{
+      panel.dataset.partialBookingArchived='0';
+    }
+  }catch(e){
+    console.warn('Could not apply partial booking note lifecycle',e);
+  }finally{
+    if(panel)panel.dataset.partialArchiveLoading='0';
+  }
+}
+function closeActionMenu(){
+  var menu=document.getElementById('customerActionMenu');
+  var button=document.getElementById('customerActionMenuButton');
+  if(menu)menu.style.display='none';
+  if(button)button.setAttribute('aria-expanded','false');
+}
+async function showNotesPanel(){
+  var existing=document.getElementById('customerNotesHistoryPanel');
+  if(existing){existing.remove();return;}
+  var detail=document.querySelector('.detail');
+  var uid=unitId();
+  if(!detail||!uid)return;
+  var panel=document.createElement('div');
+  panel.id='customerNotesHistoryPanel';
+  panel.className='brand-editor';
+  panel.innerHTML='<p class="section-label" style="margin-top:0">Notes</p><p class="stat-sub">Loading notes…</p>';
+  var anchor=panelAnchor(detail);
+  if(anchor)anchor.node.insertAdjacentElement('afterend',panel);else detail.insertBefore(panel,detail.firstChild);
+  try{
+    var data=await fetchNoteData(uid);
+    var special=text(data.sale.remarks).trim();
+    var partial=text(data.sale.partial_booking_note).trim();
+    panel.innerHTML='<p class="section-label" style="margin-top:0">Notes</p>';
+    if(special)panel.appendChild(noteRow('Special Note',special));
+    if(partial)panel.appendChild(noteRow(data.dpPaid?'Partial Booking Note · Completed':'Partial Booking Note',partial,data.dpPaid?'Archived after the Down Payment was completed.':''));
+    if(!special&&!partial){
+      var empty=document.createElement('p');
+      empty.className='stat-sub';
+      empty.textContent='No notes recorded for this customer.';
+      panel.appendChild(empty);
+    }
+    var close=document.createElement('button');
+    close.type='button';
+    close.className='btn-paper';
+    close.style.cssText='width:100%;justify-content:center;margin:12px 0 0';
+    close.textContent='Close';
+    close.onclick=function(){panel.remove();};
+    panel.appendChild(close);
+  }catch(e){
+    panel.innerHTML='<p class="section-label" style="margin-top:0">Notes</p><p class="brand-error">Could not load notes.</p>';
+  }
+}
+function ensureNotesMenu(){
+  if(!window.state||state.view!=='detail'||state.userRole!=='crm_officer')return;
+  var menu=document.getElementById('customerActionMenu');
+  if(!menu||document.getElementById('actionViewNotes'))return;
+  var item=document.createElement('button');
+  item.type='button';
+  item.id='actionViewNotes';
+  item.textContent='Notes';
+  item.style.cssText='display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink,#222);cursor:pointer;';
+  var editSale=document.getElementById('actionEditSaleCompliance');
+  if(editSale&&editSale.parentNode===menu)editSale.insertAdjacentElement('afterend',item);else menu.appendChild(item);
+  item.addEventListener('click',function(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+    closeActionMenu();
+    showNotesPanel();
+  });
+}
+function decorate(){
+  styles();
+  decorateNewCustomer();
+  flushPending();
+  displayFrontPageNotes();
+  archivePaidPartialInEditSale();
+  ensureNotesMenu();
+}
 function install(){
   if(!window.state||!window.sb){setTimeout(install,60);return;}
   document.addEventListener('click',function(e){
