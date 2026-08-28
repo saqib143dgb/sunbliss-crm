@@ -5,7 +5,7 @@
     var text = value === null || value === undefined ? '' : String(value);
     if (typeof window.esc === 'function') return window.esc(text);
     return text.replace(/[&<>"']/g,function(ch){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch];
     });
   }
 
@@ -41,6 +41,9 @@
     if(!c||!Array.isArray(c.stages)) return rows;
     c.stages.forEach(function(stage){
       if(!stage) return;
+      // Small shortages (AED 5,000 or less) are managed only through Carry Forward.
+      // They must not reappear as overdue actions after the next installment is selected.
+      if(stage.carryForwardManaged===true) return;
       var due=Number(stage.due);
       var paid=Number(stage.paid)||0;
       var dueDate=localDay(stage.dueDate);
