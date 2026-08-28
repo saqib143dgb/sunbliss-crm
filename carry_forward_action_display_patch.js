@@ -28,6 +28,11 @@
     var credit=Number(stage&&stage.creditNoteTotal)||0;
     return cash>0.01||credit>0.01;
   }
+  function isCarryPosition(value){
+    var n=round2(value);
+    if(n>0.01)return true;
+    return n< -0.01&&Math.abs(n)<=5000;
+  }
 
   function recomputeNextDue(c){
     var next=null;
@@ -38,8 +43,8 @@
       var remaining=round2(due-settled);
       if(remaining<=1)return;
 
-      // A shortage of AED 5,000 or less stays visible only in Carry Forward.
-      // Action Required advances to the next contractual installment.
+      // Only shortages of AED 5,000 or less are managed through Carry Forward.
+      // Larger shortages remain the current Action Required installment.
       if(stage.carryForwardManaged===true)return;
 
       if(!next){next={stage:stage,remaining:remaining};return}
@@ -58,42 +63,57 @@
     var events=Array.isArray(c.carryForwardEvents)?c.carryForwardEvents:[];
     var eventScheduleSeen={};
     var eventScheduleCarry={};
-    var ledgerCarry=0;
     events.forEach(function(e){
-      var eventAmount=Number(e.amount)||0;
-      ledgerCarry+=eventAmount;
       if(e.scheduleId!==null&&e.scheduleId!==undefined&&text(e.scheduleId)!==''){
         var sid=text(e.scheduleId);
         eventScheduleSeen[sid]=true;
-        eventScheduleCarry[sid]=round2((eventScheduleCarry[sid]||0)+eventAmount);
+        eventScheduleCarry[sid]=round2((eventScheduleCarry[sid]||0)+(Number(e.amount)||0));
       }
+    });
+
+    var eligibleEventSchedules={};
+    var ledgerCarry=0;
+    Object.keys(eventScheduleCarry).forEach(function(sid){
+      var position=round2(eventScheduleCarry[sid]||0);
+      if(isCarryPosition(position)){
+        eligibleEventSchedules[sid]=true;
+        ledgerCarry=round2(ledgerCarry+position);
+      }
+    });
+
+    // Keep large shortages (> AED 5,000) completely out of Carry Forward history/display.
+    // They remain visible only through the installment and Action Required.
+    c.carryForwardEvents=events.filter(function(e){
+      var sid=text(e&&e.scheduleId);
+      if(sid)return !!eligibleEventSchedules[sid];
+      var n=round2(e&&e.amount);
+      return isCarryPosition(n);
     });
 
     var legacyCarry=0;
     c.stages.forEach(function(stage){
       var sid=stageId(stage);
-      var hasLedgerEvent=!!eventScheduleSeen[sid];
-      var ledgerVariance=round2(eventScheduleCarry[sid]||0);
+      var hasAnyLedgerEvent=!!eventScheduleSeen[sid];
+      var hasEligibleLedgerEvent=!!eligibleEventSchedules[sid];
+      var ledgerVariance=hasEligibleLedgerEvent?round2(eventScheduleCarry[sid]||0):0;
       var due=stage.due===null||stage.due===undefined?null:Number(stage.due);
       var cash=amount(stage,'cashPaid','paid');
       var credit=Number(stage.creditNoteTotal)||0;
       var hasPaidDate=!!stage.paidDate;
       var legacyVariance=0;
 
-      // Older imported schedules predate the carry-forward ledger. Only treat a
-      // historical difference as carry when that installment has an actual paid
-      // date. Rows that are merely partially entered with no paid date remain
-      // normal installment actions and are not silently migrated into carry.
-      if(!hasLedgerEvent&&due!==null&&isFinite(due)&&due>0&&hasPaidDate&&paymentActivity(stage)){
-        legacyVariance=round2(cash+credit-due);
-        if(Math.abs(legacyVariance)<=0.01)legacyVariance=0;
+      // Older imported schedules predate the carry-forward ledger. Only a shortage
+      // of AED 5,000 or less becomes legacy carry. Larger shortages stay actionable.
+      if(!hasAnyLedgerEvent&&due!==null&&isFinite(due)&&due>0&&hasPaidDate&&paymentActivity(stage)){
+        var rawLegacy=round2(cash+credit-due);
+        if(isCarryPosition(rawLegacy))legacyVariance=rawLegacy;
       }
 
-      var stageVariance=hasLedgerEvent?ledgerVariance:legacyVariance;
+      var stageVariance=hasEligibleLedgerEvent?ledgerVariance:legacyVariance;
       stage.legacyCarryPosition=legacyVariance;
       stage.carryForwardPosition=stageVariance;
-      stage.carryForwardManaged=stageVariance < -0.01 && Math.abs(stageVariance) <= 5000;
-      legacyCarry+=legacyVariance;
+      stage.carryForwardManaged=stageVariance < -0.01 && Math.abs(stageVariance)<=5000;
+      legacyCarry=round2(legacyCarry+legacyVariance);
     });
 
     c.legacyCarryForward=round2(legacyCarry);
