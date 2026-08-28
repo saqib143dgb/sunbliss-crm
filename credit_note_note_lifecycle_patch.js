@@ -65,6 +65,14 @@ function findSpecialRow(root){
   }
   return null;
 }
+function hasVisibleRows(card){
+  if(!card)return false;
+  var rows=card.querySelectorAll('.customer-note-display-row');
+  for(var i=0;i<rows.length;i++){
+    if(rows[i].style.display!=='none')return true;
+  }
+  return false;
+}
 async function applyFront(){
   if(!window.state||!window.sb||state.view!=='detail'||!state.selectedUnit)return;
   var uid=unitId();
@@ -76,12 +84,25 @@ async function applyFront(){
   try{
     var data=await getState(uid,false);
     if(!window.state||String(state.selectedUnit)!==key||!document.body.contains(card))return;
+    var row=findSpecialRow(card);
     if(data.life.completed){
-      var row=findSpecialRow(card);
-      if(row)row.remove();
-      if(!card.querySelector('.customer-note-display-row'))card.remove();
+      if(row){
+        row.style.display='none';
+        row.dataset.creditLifecycleHidden='1';
+      }
+      if(!hasVisibleRows(card)){
+        card.style.display='none';
+        card.dataset.creditLifecycleHidden='1';
+      }
+    }else{
+      if(row){
+        row.style.display='';
+        delete row.dataset.creditLifecycleHidden;
+      }
+      card.style.display='';
+      delete card.dataset.creditLifecycleHidden;
     }
-    if(document.body.contains(card))card.dataset.creditLifecycleDone='1';
+    card.dataset.creditLifecycleDone='1';
   }catch(e){console.warn('Could not apply credit-note special-note lifecycle',e);}
 }
 async function applyHistory(){
@@ -98,6 +119,7 @@ async function applyHistory(){
     if(data.life.completed){
       var row=findSpecialRow(panel);
       if(row){
+        row.style.display='';
         var label=row.querySelector('.customer-note-display-label');
         if(label)label.textContent='Special Note · Completed';
         if(!row.querySelector('.customer-note-archive-help')){
