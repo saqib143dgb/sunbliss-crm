@@ -1,6 +1,8 @@
 (function(){
   'use strict';
 
+  var saleNoteMetaCache = {};
+
   function normalize(value){
     return String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
   }
@@ -46,6 +48,106 @@
     return n;
   }
 
+  function setFieldLabel(field,labelText){
+    if (!field) return;
+    var holder = field.closest ? field.closest('label.brand-field') : field.parentNode;
+    if (!holder) return;
+    for (var i=0;i<holder.childNodes.length;i++){
+      var node=holder.childNodes[i];
+      if (node.nodeType===3){ node.nodeValue=labelText; return; }
+    }
+  }
+
+  async function getSaleNoteMeta(c,force){
+    if (!c) return null;
+    var key=String(c.sno);
+    if (!force && saleNoteMetaCache[key]) return saleNoteMetaCache[key];
+    var results=await Promise.all([
+      sb.from('sales').select('id,booking_amount,partial_booking_note,remarks').eq('unit_id',c.sno).order('id',{ascending:false}).limit(1).single(),
+      sb.from('payment_schedule').select('due_amount').eq('unit_id',c.sno).eq('stage_name','Down Payment').limit(1)
+    ]);
+    if (results[0].error) throw results[0].error;
+    if (results[1].error) throw results[1].error;
+    var sale=results[0].data || {};
+    var dp=(results[1].data||[])[0] || null;
+    var meta={
+      saleId:sale.id || null,
+      existingPartial:sale.partial_booking_note || '',
+      dpDue:dp && dp.due_amount!=null ? Number(dp.due_amount) : 0
+    };
+    saleNoteMetaCache[key]=meta;
+    return meta;
+  }
+
+  function partialEligible(bookingAmount,dpDue){
+    return Number(bookingAmount)>0 && Number(dpDue)>0 && Number(bookingAmount)<Number(dpDue)-0.01;
+  }
+
+  function partialWrapHtml(value){
+    return '<div id="scPartialBookingWrap">' +
+      '<label class="brand-field">Partial Booking Note <span style="color:var(--rust);font-weight:700">*</span><textarea id="scPartialBookingNote" required placeholder="e.g. RM advised the remaining Down Payment to be completed by 01-Sep-2026." style="display:block;width:100%;min-height:78px;margin-top:5px;padding:9px 11px;border:1px solid var(--paper-line);border-radius:8px;font:500 13.5px/1.45 Inter,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box;resize:vertical">' + escapeHtml(value||'') + '</textarea></label>' +
+      '<p style="margin:-5px 0 12px;font-size:10.8px;line-height:1.45;color:var(--muted)">Mandatory when the original Booking Amount is below the Down Payment. Use it for the RM-advised completion follow-up only; it does not change the contractual Down Payment due date.</p>' +
+      '</div>';
+  }
+
+  function syncPartialBookingField(panel,meta){
+    if (!panel || !meta) return;
+    var bookingRaw=valueOf('scBookingAmount');
+    var booking=bookingRaw===''?0:Number(bookingRaw);
+    var eligible=partialEligible(booking,meta.dpDue);
+    panel.dataset.partialBookingEligible=eligible?'1':'0';
+    panel.dataset.dpDue=String(meta.dpDue||0);
+
+    var existing=document.getElementById('scPartialBookingWrap');
+    if (existing && !eligible){
+      var existingText=valueOf('scPartialBookingNote');
+      if (existingText) panel.dataset.partialBookingDraft=existingText;
+      existing.remove();
+      return;
+    }
+    if (!eligible || existing) return;
+
+    var remarks=document.getElementById('scRemarks');
+    var remarksLabel=remarks && remarks.closest ? remarks.closest('label.brand-field') : null;
+    var value=panel.dataset.partialBookingDraft || meta.existingPartial || '';
+    if (remarksLabel){
+      remarksLabel.insertAdjacentHTML('afterend',partialWrapHtml(value));
+    }else{
+      var actions=panel.querySelector('.brand-editor-actions');
+      if (actions) actions.insertAdjacentHTML('beforebegin',partialWrapHtml(value));
+    }
+  }
+
+  async function ensureSaleNotesFields(){
+    var panel=document.getElementById('saleComplianceEditPanel');
+    var c=currentCustomer();
+    if (!panel || !c) return;
+
+    var remarks=document.getElementById('scRemarks');
+    if (remarks) setFieldLabel(remarks,'Special Note');
+
+    var key=String(c.sno);
+    if (panel.dataset.saleNotesUnit===key && panel.dataset.saleNotesReady==='1') return;
+    if (panel.dataset.saleNotesLoading==='1') return;
+    panel.dataset.saleNotesLoading='1';
+    panel.dataset.saleNotesUnit=key;
+    try{
+      var meta=await getSaleNoteMeta(c,false);
+      if (!document.getElementById('saleComplianceEditPanel') || currentCustomer()!==c) return;
+      syncPartialBookingField(panel,meta);
+      var booking=document.getElementById('scBookingAmount');
+      if (booking && !booking.dataset.partialNoteWatch){
+        booking.dataset.partialNoteWatch='1';
+        booking.addEventListener('input',function(){ syncPartialBookingField(panel,meta); });
+      }
+      panel.dataset.saleNotesReady='1';
+    }catch(err){
+      console.warn('Could not load Edit Sale notes',err);
+    }finally{
+      panel.dataset.saleNotesLoading='0';
+    }
+  }
+
   async function saveSaleOnly(){
     var c = currentCustomer();
     var save = document.getElementById('scSave');
@@ -53,9 +155,25 @@
     if (!c || !save) return;
 
     try{
+      var bookingAmount=numberOrNull('scBookingAmount','Booking amount');
+      var meta=await getSaleNoteMeta(c,true);
+      var isPartial=partialEligible(bookingAmount||0,meta ? meta.dpDue : 0);
+      var partialNote=valueOf('scPartialBookingNote');
+      if (!partialNote && document.getElementById('saleComplianceEditPanel')){
+        partialNote=document.getElementById('saleComplianceEditPanel').dataset.partialBookingDraft || '';
+      }
+      if (isPartial && !partialNote){
+        var partialField=document.getElementById('scPartialBookingNote');
+        if (partialField){
+          partialField.style.borderColor='var(--rust)';
+          partialField.focus();
+        }
+        throw new Error('Partial Booking Note is required because the Booking Amount is less than the Down Payment amount.');
+      }
+
       var payload = {
         booking_date:valueOf('scBookingDate') || null,
-        booking_amount:numberOrNull('scBookingAmount','Booking amount'),
+        booking_amount:bookingAmount,
         sold_by:valueOf('scSoldBy') || null,
         source:valueOf('scSource') || null,
         broker_name:valueOf('scBrokerName') || null,
@@ -65,6 +183,7 @@
         remarks:valueOf('scRemarks') || null,
         updated_at:new Date().toISOString()
       };
+      if (isPartial) payload.partial_booking_note=partialNote;
 
       save.disabled = true;
       save.textContent = 'Saving…';
@@ -72,6 +191,7 @@
 
       var result = await sb.from('sales').update(payload).eq('unit_id',c.sno);
       if (result.error) throw result.error;
+      delete saleNoteMetaCache[String(c.sno)];
 
       var unit = c.unit, sno = c.sno, from = state.detailFrom || 'list';
       await loadFromSupabase();
@@ -108,18 +228,8 @@
     });
 
     var remarks = document.getElementById('scRemarks');
-    if (remarks){
-      var remarksLabel = remarks.closest ? remarks.closest('label.brand-field') : remarks.parentNode;
-      if (remarksLabel){
-        for (var i=0;i<remarksLabel.childNodes.length;i++){
-          var node = remarksLabel.childNodes[i];
-          if (node.nodeType === 3 && normalize(node.nodeValue).indexOf('sales / compliance remarks') === 0){
-            node.nodeValue = 'Sale remarks';
-            break;
-          }
-        }
-      }
-    }
+    if (remarks) setFieldLabel(remarks,'Special Note');
+    ensureSaleNotesFields();
   }
 
   function renameDetailActions(){
@@ -147,23 +257,17 @@
       if (state.statusFormError) html += '<p class="brand-error">' + escapeHtml(state.statusFormError) + '</p>';
 
       html += '<label class="brand-field">SPA status<select id="sfSpa">';
-      ['Not Started','Drafted','Signed'].forEach(function(option){
-        html += '<option value="' + escapeHtml(option) + '"' + selected(values.spa,option) + '>' + escapeHtml(option) + '</option>';
-      });
+      ['Not Started','Drafted','Signed'].forEach(function(option){ html += '<option value="' + escapeHtml(option) + '"' + selected(values.spa,option) + '>' + escapeHtml(option) + '</option>'; });
       html += '</select></label>';
       html += '<label class="brand-field">SPA signed date (optional)<input type="date" id="sfSpaDate" value="' + escapeHtml(values.spaDate) + '" /></label>';
 
       html += '<label class="brand-field">OQOOD status<select id="sfOqood">';
-      ['Not Started','Pending','Completed'].forEach(function(option){
-        html += '<option value="' + escapeHtml(option) + '"' + selected(values.oqood,option) + '>' + escapeHtml(option) + '</option>';
-      });
+      ['Not Started','Pending','Completed'].forEach(function(option){ html += '<option value="' + escapeHtml(option) + '"' + selected(values.oqood,option) + '>' + escapeHtml(option) + '</option>'; });
       html += '</select></label>';
       html += '<label class="brand-field">OQOOD completed date (optional)<input type="date" id="sfOqoodDate" value="' + escapeHtml(values.oqoodDate) + '" /></label>';
 
       html += '<label class="brand-field">Furnishing<select id="sfFurniture">';
-      ['Unfurnished','Furnished'].forEach(function(option){
-        html += '<option value="' + escapeHtml(option) + '"' + selected(values.furniture,option) + '>' + escapeHtml(option) + '</option>';
-      });
+      ['Unfurnished','Furnished'].forEach(function(option){ html += '<option value="' + escapeHtml(option) + '"' + selected(values.furniture,option) + '>' + escapeHtml(option) + '</option>'; });
       html += '</select></label>';
 
       html += '<div class="brand-editor-actions">';
@@ -187,26 +291,13 @@
       var oqoodDate = oqoodDateEl ? oqoodDateEl.value : '';
       var furniture = furnitureEl.value;
 
-      state.statusFormValues = {
-        spa:spa,
-        spaDate:spaDate,
-        oqood:oqood,
-        oqoodDate:oqoodDate,
-        furniture:furniture
-      };
+      state.statusFormValues = {spa:spa,spaDate:spaDate,oqood:oqood,oqoodDate:oqoodDate,furniture:furniture};
       state.statusFormSaving = true;
       state.statusFormError = null;
       renderDetail();
 
       try{
-        var result = await sb.from('sales').update({
-          spa_status:spa,
-          spa_date:spaDate || null,
-          oqood_status:oqood,
-          oqood_date:oqoodDate || null,
-          furniture_status:furniture,
-          updated_at:new Date().toISOString()
-        }).eq('unit_id',c.sno);
+        var result = await sb.from('sales').update({spa_status:spa,spa_date:spaDate || null,oqood_status:oqood,oqood_date:oqoodDate || null,furniture_status:furniture,updated_at:new Date().toISOString()}).eq('unit_id',c.sno);
         if (result.error) throw result.error;
 
         state.statusFormOpen = false;
@@ -225,6 +316,8 @@
   function refresh(){
     renameDetailActions();
     cleanSaleEditor();
+    var frontNotes=document.getElementById('customerNotesCard');
+    if (frontNotes) frontNotes.remove();
   }
 
   function install(){
