@@ -78,7 +78,8 @@ const LOCAL_PATCH_FILES = [
   'header_dubai_skyline_patch.js',
   'header_manual_sync_patch.js',
   'customer_notes_patch.js',
-  'credit_note_note_lifecycle_patch.js'
+  'credit_note_note_lifecycle_patch.js',
+  'customer_notes_stability_patch.js'
 ];
 
 function requireFile(filePath, label) {
