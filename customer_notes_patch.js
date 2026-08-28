@@ -32,7 +32,11 @@ function styles(){
     '.customer-note-required{color:var(--rust);font-weight:700}',
     '.customer-note-help{margin:-5px 0 12px;font-size:10.8px;line-height:1.45;color:var(--muted)}',
     '.customer-note-error{margin:-5px 0 12px;font-size:10.8px;line-height:1.45;color:var(--rust);font-weight:600}',
-    '#partialBookingNoteNew[hidden]{display:none!important}'
+    '#partialBookingNoteNew[hidden]{display:none!important}',
+    '#customerNotesCard{margin:12px 0 15px;padding:12px 13px;border:1px solid var(--paper-line);border-radius:11px;background:var(--paper-dim)}',
+    '#customerNotesCard .customer-note-display-row+ .customer-note-display-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--paper-line)}',
+    '.customer-note-display-label{margin:0 0 4px;font:700 10px/1.25 IBM Plex Mono,monospace;letter-spacing:.055em;text-transform:uppercase;color:var(--muted)}',
+    '.customer-note-display-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:500 12.5px/1.5 Inter,sans-serif;color:var(--ink)}'
   ].join('');
   document.head.appendChild(s);
 }
@@ -120,17 +124,64 @@ async function flushPending(){
     if(r.error)throw r.error;
     state.__pendingCustomerNotes=null;
     state.__customerNotesDraft={general:'',partial:''};
+    var old=document.getElementById('customerNotesCard');
+    if(old)old.remove();
   }catch(e){
     console.warn('Could not save customer notes after customer creation',e);
   }finally{
     state.__customerNotesSaving=false;
   }
 }
-function removeFrontPageNotes(){
-  var card=document.getElementById('customerNotesCard');
-  if(card)card.remove();
+function noteRow(label,value){
+  var row=document.createElement('div');
+  row.className='customer-note-display-row';
+  var heading=document.createElement('p');
+  heading.className='customer-note-display-label';
+  heading.textContent=label;
+  var body=document.createElement('p');
+  body.className='customer-note-display-text';
+  body.textContent=value;
+  row.appendChild(heading);
+  row.appendChild(body);
+  return row;
 }
-function decorate(){styles();decorateNewCustomer();flushPending();removeFrontPageNotes();}
+function noteAnchor(detail){
+  return detail.querySelector('.badges')||detail.querySelector('.d-type')||detail.querySelector('.d-name')||detail.firstElementChild;
+}
+async function displayFrontPageNotes(){
+  var old=document.getElementById('customerNotesCard');
+  if(!window.state||!window.sb||state.view!=='detail'||!state.selectedUnit){if(old)old.remove();return;}
+  var uid=unitId();
+  var detail=document.querySelector('.detail');
+  if(!uid||!detail){if(old)old.remove();return;}
+  var key=String(state.selectedUnit);
+  if(old&&old.dataset.noteKey===key)return;
+  if(detail.dataset.customerNotesLoading===key)return;
+  detail.dataset.customerNotesLoading=key;
+  try{
+    var result=await sb.from('sales').select('remarks,partial_booking_note').eq('unit_id',uid).order('id',{ascending:false}).limit(1);
+    if(result.error)throw result.error;
+    if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
+    var sale=(result.data||[])[0]||{};
+    var special=text(sale.remarks).trim();
+    var partial=text(sale.partial_booking_note).trim();
+    old=document.getElementById('customerNotesCard');
+    if(old)old.remove();
+    if(!special&&!partial)return;
+    var card=document.createElement('section');
+    card.id='customerNotesCard';
+    card.dataset.noteKey=key;
+    if(special)card.appendChild(noteRow('Special Note',special));
+    if(partial)card.appendChild(noteRow('Partial Booking Note',partial));
+    var anchor=noteAnchor(detail);
+    if(anchor&&anchor.parentNode)anchor.insertAdjacentElement('afterend',card);else detail.appendChild(card);
+  }catch(e){
+    console.warn('Could not load customer notes',e);
+  }finally{
+    if(detail&&detail.dataset.customerNotesLoading===key)delete detail.dataset.customerNotesLoading;
+  }
+}
+function decorate(){styles();decorateNewCustomer();flushPending();displayFrontPageNotes();}
 function install(){
   if(!window.state||!window.sb){setTimeout(install,60);return;}
   document.addEventListener('click',function(e){
