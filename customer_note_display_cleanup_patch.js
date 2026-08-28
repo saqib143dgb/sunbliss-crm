@@ -32,25 +32,25 @@ function hideLowerDuplicateRows(){
     }
   }
 }
-function hideLegacyRemarksNotice(special){
-  if(!special||!window.state||state.view!=='detail')return;
+function hideLegacyRemarksNotices(){
+  if(!window.state||state.view!=='detail')return;
   var detail=document.querySelector('.detail');
   if(!detail)return;
-  var wanted=norm(special);
   var notices=detail.querySelectorAll('.notice');
   for(var i=0;i<notices.length;i++){
     var notice=notices[i];
-    if(notice.closest('#customerNotesCard,#customerNotesHistoryPanel,#saleComplianceEditPanel'))continue;
+    if(notice.closest('#customerNotesCard,#customerNotesHistoryPanel,#saleComplianceEditPanel,#customerEditPanel,#unitCancellationPanel'))continue;
     var subs=notice.querySelectorAll('.notice-sub');
-    var matched=false;
+    var changed=false;
     for(var j=0;j<subs.length;j++){
-      if(norm(subs[j].textContent)===wanted){
-        subs[j].style.display='none';
-        subs[j].dataset.customerLegacyRemarkHidden='1';
-        matched=true;
-      }
+      var subText=norm(subs[j].textContent);
+      if(!subText)continue;
+      if(subText.indexOf('latest update:')===0)continue;
+      subs[j].style.display='none';
+      subs[j].dataset.customerLegacyRemarkHidden='1';
+      changed=true;
     }
-    if(!matched)continue;
+    if(!changed)continue;
     var parts=notice.querySelectorAll('.notice-title,.notice-body,.notice-sub');
     var hasVisibleContent=false;
     for(var k=0;k<parts.length;k++){
@@ -138,7 +138,7 @@ async function ensureDedicatedNotice(){
   try{
     var data=await getData(uid);
     if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
-    hideLegacyRemarksNotice(data.special);
+    hideLegacyRemarksNotices();
     var existing=document.getElementById('customerNotesCard');
     if(existing&&detail.contains(existing))return;
     var showSpecial=!!data.special&&!data.specialCompleted;
@@ -160,6 +160,7 @@ async function ensureDedicatedNotice(){
 }
 function refresh(){
   hideLowerDuplicateRows();
+  hideLegacyRemarksNotices();
   ensureDedicatedNotice();
 }
 function install(){
