@@ -316,8 +316,6 @@
   function refresh(){
     renameDetailActions();
     cleanSaleEditor();
-    var frontNotes=document.getElementById('customerNotesCard');
-    if (frontNotes) frontNotes.remove();
   }
 
   function install(){
