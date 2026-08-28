@@ -38,9 +38,8 @@
       var remaining=round2(due-settled);
       if(remaining<=1)return;
 
-      // Once a real payment variance is represented by Carry Forward, the shortage
-      // no longer remains the primary installment action. Action Required advances
-      // to the next contractual installment while Carry Forward keeps the variance.
+      // A shortage of AED 5,000 or less stays visible only in Carry Forward.
+      // Action Required advances to the next contractual installment.
       if(stage.carryForwardManaged===true)return;
 
       if(!next){next={stage:stage,remaining:remaining};return}
@@ -57,17 +56,24 @@
     if(!c||!Array.isArray(c.stages))return;
 
     var events=Array.isArray(c.carryForwardEvents)?c.carryForwardEvents:[];
-    var eventSchedules={};
+    var eventScheduleSeen={};
+    var eventScheduleCarry={};
     var ledgerCarry=0;
     events.forEach(function(e){
-      ledgerCarry+=Number(e.amount)||0;
-      if(e.scheduleId!==null&&e.scheduleId!==undefined&&text(e.scheduleId)!=='')eventSchedules[text(e.scheduleId)]=true;
+      var eventAmount=Number(e.amount)||0;
+      ledgerCarry+=eventAmount;
+      if(e.scheduleId!==null&&e.scheduleId!==undefined&&text(e.scheduleId)!==''){
+        var sid=text(e.scheduleId);
+        eventScheduleSeen[sid]=true;
+        eventScheduleCarry[sid]=round2((eventScheduleCarry[sid]||0)+eventAmount);
+      }
     });
 
     var legacyCarry=0;
     c.stages.forEach(function(stage){
       var sid=stageId(stage);
-      var hasLedgerEvent=!!eventSchedules[sid];
+      var hasLedgerEvent=!!eventScheduleSeen[sid];
+      var ledgerVariance=round2(eventScheduleCarry[sid]||0);
       var due=stage.due===null||stage.due===undefined?null:Number(stage.due);
       var cash=amount(stage,'cashPaid','paid');
       var credit=Number(stage.creditNoteTotal)||0;
@@ -83,8 +89,10 @@
         if(Math.abs(legacyVariance)<=0.01)legacyVariance=0;
       }
 
+      var stageVariance=hasLedgerEvent?ledgerVariance:legacyVariance;
       stage.legacyCarryPosition=legacyVariance;
-      stage.carryForwardManaged=hasLedgerEvent||legacyVariance!==0;
+      stage.carryForwardPosition=stageVariance;
+      stage.carryForwardManaged=stageVariance < -0.01 && Math.abs(stageVariance) <= 5000;
       legacyCarry+=legacyVariance;
     });
 
