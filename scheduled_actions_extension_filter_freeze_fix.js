@@ -3,68 +3,64 @@
 if(window.__sunblissScheduledExtensionFilterFreezeFix)return;
 window.__sunblissScheduledExtensionFilterFreezeFix=true;
 
-var extensionViewActive=false;
-var renderQueued=false;
-
-function renderExtensionView(){
-  renderQueued=false;
-  if(!extensionViewActive)return;
-  var select=document.getElementById('scheduledOverviewFilter');
-  if(!select)return;
-  select.value='extensions';
-  if(window.PaymentExtensionsCore&&typeof window.PaymentExtensionsCore.render==='function'){
-    window.PaymentExtensionsCore.render();
-  }
-}
-
-function queueRender(){
-  if(renderQueued)return;
-  renderQueued=true;
-  window.requestAnimationFrame(function(){
-    window.requestAnimationFrame(renderExtensionView);
-  });
-}
-
 /*
-  The original Scheduled Actions filter owns an onchange handler that only knows
-  Today/Tomorrow/Overdue/Upcoming/Completed. When the extension patch adds the
-  Extensions option, allowing that original handler to run first makes it render
-  every pending task, while the extension renderer immediately replaces the same
-  list. On iOS this competing redraw can cascade through the existing observers
-  and make the page appear frozen.
+  Root cause of the iPhone freeze:
+  PaymentExtensionsCore observes #app for child-list changes and re-renders after
+  those changes. In the Extensions view, its own render path can write the exact
+  same list/state text back into the DOM. Some browser serializations make the
+  incoming HTML string differ from element.innerHTML even when the rendered DOM
+  is identical, so that write creates another mutation, which triggers another
+  render, and the cycle repeats.
 
-  Intercept only the Extensions selection before the legacy handler sees it and
-  hand that view to PaymentExtensionsCore as the single renderer. Other filter
-  values continue through the original Scheduled Actions code unchanged.
+  Do not add another observer or another renderer here. Instead, make the two
+  self-triggering writes idempotent. Real changes still go through normally.
 */
-document.addEventListener('change',function(event){
-  var target=event&&event.target;
-  if(!target||target.id!=='scheduledOverviewFilter')return;
-  if(target.value==='extensions'){
-    extensionViewActive=true;
-    event.stopImmediatePropagation();
-    queueRender();
-    return;
-  }
-  extensionViewActive=false;
-},true);
 
-/* If the Overview is legitimately rebuilt while Extensions is still selected,
-   restore the extension-only view once, without continuously redrawing it. */
-var app=document.getElementById('app');
-if(app&&window.MutationObserver){
-  var observer=new MutationObserver(function(mutations){
-    if(!extensionViewActive)return;
-    var replaced=false;
-    for(var i=0;i<mutations.length;i++){
-      if(mutations[i].addedNodes&&mutations[i].addedNodes.length){replaced=true;break;}
+function installOverviewHtmlGuard(){
+  if(!window.HTMLDivElement||!window.Element)return;
+  var proto=window.HTMLDivElement.prototype;
+  if(proto.__sunblissExtInnerHtmlGuard)return;
+  var nativeDesc=Object.getOwnPropertyDescriptor(window.Element.prototype,'innerHTML');
+  if(!nativeDesc||typeof nativeDesc.get!=='function'||typeof nativeDesc.set!=='function')return;
+
+  Object.defineProperty(proto,'innerHTML',{
+    configurable:true,
+    enumerable:nativeDesc.enumerable,
+    get:function(){return nativeDesc.get.call(this);},
+    set:function(value){
+      if(this&&this.id==='scheduledOverviewList'){
+        var next=value==null?'':String(value);
+        var probe=document.createElement('div');
+        nativeDesc.set.call(probe,next);
+        var normalized=nativeDesc.get.call(probe);
+        if(nativeDesc.get.call(this)===normalized)return;
+      }
+      nativeDesc.set.call(this,value);
     }
-    if(replaced)queueRender();
   });
-  observer.observe(app,{childList:true,subtree:true});
+  proto.__sunblissExtInnerHtmlGuard=true;
 }
 
-window.addEventListener('pageshow',function(){
-  extensionViewActive=false;
-});
+function installExtensionStateTextGuard(){
+  if(!window.HTMLSpanElement||!window.Node)return;
+  var proto=window.HTMLSpanElement.prototype;
+  if(proto.__sunblissExtTextGuard)return;
+  var nativeDesc=Object.getOwnPropertyDescriptor(window.Node.prototype,'textContent');
+  if(!nativeDesc||typeof nativeDesc.get!=='function'||typeof nativeDesc.set!=='function')return;
+
+  Object.defineProperty(proto,'textContent',{
+    configurable:true,
+    enumerable:nativeDesc.enumerable,
+    get:function(){return nativeDesc.get.call(this);},
+    set:function(value){
+      var next=value==null?'':String(value);
+      if(this&&this.classList&&this.classList.contains('scheduled-task-state')&&this.classList.contains('ext')&&nativeDesc.get.call(this)===next)return;
+      nativeDesc.set.call(this,value);
+    }
+  });
+  proto.__sunblissExtTextGuard=true;
+}
+
+installOverviewHtmlGuard();
+installExtensionStateTextGuard();
 })();
