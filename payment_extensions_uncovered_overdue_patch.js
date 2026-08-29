@@ -18,6 +18,16 @@ async function sync(){if(busy)return busy;busy=(async function(){var C=window.Pa
 function decorate(){document.querySelectorAll('[data-task-id]').forEach(function(n){var id=String(n.getAttribute('data-task-id')||'');if(!meta[id])return;n.classList.add('scheduled-auto');n.setAttribute('data-auto-kind','overdue_follow_up');var title=n.querySelector('.scheduled-task-title,.scheduled-overview-title');if(title&&!title.querySelector('.scheduled-auto-badge')){var b=document.createElement('span');b.className='scheduled-auto-badge';b.textContent='Automatic';title.appendChild(b)}n.querySelectorAll('.scheduled-task-actions,.scheduled-mark-done,.scheduled-edit,.scheduled-overview-done').forEach(function(x){x.remove()})})}
 function overrideAction(groups,info){if(!window.state||state.view!=='detail')return;var c=current();if(!c)return;var rows=groups[String(c.sno)]||[];if(!rows.length)return;var card=document.getElementById('actionRequiredCard');if(!card)return;var sum=Math.round(rows.reduce(function(a,x){return a+x.n},0)*100)/100,stages=rows.map(function(x){return tx(x.r.stage_name)}).join(' + '),msg=money(sum)+' is genuinely overdue for '+stages+'.',detail='These obligations are not covered by the active extension. Other approved extension items remain protected until '+date(info.latest[c.sno])+'.';card.removeAttribute('data-tone');card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status">Overdue</span></div><p class="action-required-message">'+msg+'</p><p class="action-required-detail">'+detail+'</p>'}
 function later(ms){clearTimeout(timer);timer=setTimeout(sync,ms==null?450:ms)}
-function install(){if(!window.PaymentExtensionsCore||!window.state||!window.sb||typeof window.loadFromSupabase!=='function'){setTimeout(install,80);return}var ld=window.loadFromSupabase;window.loadFromSupabase=async function(){var o=await ld.apply(this,arguments);await sync();return o};var rd=window.renderDetail;if(typeof rd==='function')window.renderDetail=function(){var o=rd.apply(this,arguments);later(120);return o};var ro=window.renderOverview;if(typeof ro==='function')window.renderOverview=function(){var o=ro.apply(this,arguments);later(120);return o};var app=document.getElementById('app');if(app&&window.MutationObserver)new MutationObserver(function(){decorate();later(650)}).observe(app,{childList:true,subtree:true});window.addEventListener('pageshow',function(){later(100)});later(60)}
+function install(){
+  if(!window.PaymentExtensionsCore||!window.state||!window.sb||typeof window.loadFromSupabase!=='function'){setTimeout(install,80);return}
+  var ld=window.loadFromSupabase;
+  window.loadFromSupabase=async function(){var o=await ld.apply(this,arguments);await sync();return o};
+  var rd=window.renderDetail;
+  if(typeof rd==='function')window.renderDetail=function(){var o=rd.apply(this,arguments);later(120);return o};
+  var ro=window.renderOverview;
+  if(typeof ro==='function')window.renderOverview=function(){var o=ro.apply(this,arguments);later(120);return o};
+  window.addEventListener('pageshow',function(){decorate();later(100)});
+  later(60);
+}
 install();
 })();
