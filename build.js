@@ -89,6 +89,7 @@ const LOCAL_PATCH_FILES = [
   'active_note_front_page_patch.js',
   'detail_status_flash_fix_patch.js',
   'overview_cleanup_patch.js',
+  'scheduled_actions_patch.js',
   'full_page_action_workflow_patch.js'
 ];
 
