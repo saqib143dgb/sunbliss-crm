@@ -92,6 +92,8 @@ const LOCAL_PATCH_FILES = [
   'scheduled_actions_patch.js',
   'scheduled_actions_overview_style_patch.js',
   'automatic_payment_actions_patch.js',
+  'payment_extensions_core_patch.js',
+  'payment_extensions_ui_patch.js',
   'scheduled_actions_full_page_guard.js',
   'full_page_action_workflow_patch.js'
 ];
