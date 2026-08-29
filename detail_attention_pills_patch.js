@@ -43,10 +43,10 @@ function candidateList(detail){
   var action=document.getElementById('actionRequiredCard');
   if(action&&detail.contains(action))out.push({kind:'action',label:'Action Required',node:action,priority:0});
 
-  var scheduled=document.getElementById('scheduledActionsDetail');
-  if(scheduled&&detail.contains(scheduled)){
-    var count=scheduled.querySelectorAll('.scheduled-task-card').length;
-    out.push({kind:'scheduled',label:'Scheduled Action'+(count>1?' · '+count:''),node:scheduled,priority:1});
+  var scheduledAction=document.getElementById('scheduledActionsDetail');
+  if(scheduledAction&&detail.contains(scheduledAction)){
+    var count=scheduledAction.querySelectorAll('.scheduled-task-card').length;
+    out.push({kind:'scheduled',label:'Scheduled Action'+(count>1?' · '+count:''),node:scheduledAction,priority:1});
   }
 
   var note=document.getElementById('activeCustomerNoteCard');
@@ -144,6 +144,20 @@ function queue(){
   requestAnimationFrame(render);
 }
 
+function relevantNode(node){
+  if(!node||node.nodeType!==1)return false;
+  if(node.matches&&node.matches('.detail,#actionRequiredCard,#activeCustomerNoteCard,#customerNotesCard,#scheduledActionsDetail'))return true;
+  return !!(node.querySelector&&node.querySelector('.detail,#actionRequiredCard,#activeCustomerNoteCard,#customerNotesCard,#scheduledActionsDetail'));
+}
+function relevantMutations(mutations){
+  for(var i=0;i<mutations.length;i++){
+    var m=mutations[i];
+    for(var j=0;j<m.addedNodes.length;j++)if(relevantNode(m.addedNodes[j]))return true;
+    for(var k=0;k<m.removedNodes.length;k++)if(relevantNode(m.removedNodes[k]))return true;
+  }
+  return false;
+}
+
 document.addEventListener('click',function(e){
   var b=e.target&&e.target.closest?e.target.closest('#detailAttentionPills .detail-attention-pill'):null;
   if(!b)return;
@@ -156,11 +170,11 @@ document.addEventListener('click',function(e){
 function install(){
   styles();
   var root=document.getElementById('app')||document.body;
-  if(window.MutationObserver)new MutationObserver(function(){if(!selfMutating)render()}).observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
+  if(window.MutationObserver)new MutationObserver(function(mutations){if(!selfMutating&&relevantMutations(mutations))queue()}).observe(root,{childList:true,subtree:true});
   var rd=window.renderDetail;
-  if(typeof rd==='function')window.renderDetail=function(){var o=rd.apply(this,arguments);render();return o};
-  window.addEventListener('pageshow',render);
-  render();
+  if(typeof rd==='function')window.renderDetail=function(){var o=rd.apply(this,arguments);queue();return o};
+  window.addEventListener('pageshow',queue);
+  queue();
 }
 install();
 })();
