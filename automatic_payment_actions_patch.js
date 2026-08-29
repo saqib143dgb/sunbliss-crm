@@ -60,10 +60,14 @@
     return Object.keys(seen).map(Number);
   }
   function keyFor(kind,scheduleId,installmentDue){return kind+'|schedule:'+scheduleId+'|due:'+installmentDue;}
+  function overdueKey(unitId,rows){
+    var ids=rows.map(function(x){return Number(x.row.id);}).sort(function(a,b){return a-b;});
+    return 'overdue_follow_up|unit:'+unitId+'|schedules:'+ids.join(',');
+  }
   function kindLabel(kind,remaining){
     if(kind==='demand_letter')return'Send Demand Letter';
     if(kind==='gentle_reminder')return'Send Gentle Reminder';
-    return'Urgent Follow-up — '+money(remaining)+' outstanding';
+    return'Urgent Follow-up — '+money(remaining)+' overdue';
   }
   function kindPriority(kind){return kind==='overdue_follow_up'?'High':(kind==='gentle_reminder'?'High':'Medium');}
   function taskDueDate(kind,installmentDue){
@@ -73,6 +77,12 @@
   }
   function taskNote(row,remaining){
     return text(row.stage_name)+' · '+money(remaining)+' outstanding · installment due '+dateText(row.due_date)+'.';
+  }
+  function overdueNote(rows,total){
+    rows=rows.slice().sort(function(a,b){return text(a.row.due_date).localeCompare(text(b.row.due_date));});
+    if(rows.length===1)return taskNote(rows[0].row,total);
+    var stages=rows.map(function(x){return text(x.row.stage_name);}).join(' + ');
+    return rows.length+' installments overdue · '+money(total)+' total outstanding · '+stages+' · oldest due '+dateText(rows[0].row.due_date)+'.';
   }
 
   function ensureStyles(){
@@ -144,6 +154,7 @@
     var autoRows=tasks.filter(function(t){return t.source==='automatic';});
     var byKey={};autoRows.forEach(function(t){if(t.auto_key)byKey[t.auto_key]=t;});
     var phaseBySchedule={};
+    var overdueByUnit={};
     var desired=[];
 
     schedules.forEach(function(row){
@@ -156,7 +167,10 @@
       if(!phase.paid){
         if(delta===10)phase.desiredKind='demand_letter';
         else if(delta===2)phase.desiredKind='gentle_reminder';
-        else if(delta<0&&!phase.manualBlock)phase.desiredKind='overdue_follow_up';
+        else if(delta<0){
+          var key=String(row.unit_id);
+          (overdueByUnit[key]=overdueByUnit[key]||[]).push({row:row,remaining:remaining});
+        }
       }
       if(phase.desiredKind){
         phase.desiredKey=keyFor(phase.desiredKind,row.id,installmentDue);
@@ -167,17 +181,35 @@
       phaseBySchedule[sid]=phase;
     });
 
+    var overdueExpected={};
+    Object.keys(overdueByUnit).forEach(function(unitKey){
+      var rows=overdueByUnit[unitKey];
+      if(!rows.length||manualBlock[unitKey])return;
+      rows.sort(function(a,b){return text(a.row.due_date).localeCompare(text(b.row.due_date));});
+      var total=Math.round(rows.reduce(function(sum,x){return sum+x.remaining;},0)*100)/100;
+      var key=overdueKey(unitKey,rows);
+      overdueExpected[unitKey]=key;
+      desired.push({
+        unit_id:Number(unitKey),action_label:kindLabel('overdue_follow_up',total),due_date:isoDate(rows[0].row.due_date),priority:'High',note:overdueNote(rows,total),status:'pending',owner_id:user.id,source:'automatic',auto_kind:'overdue_follow_up',auto_key:key,schedule_id:null,updated_at:new Date().toISOString()
+      });
+    });
+
     var cancel=[];
     autoRows.forEach(function(t){
       if(t.status!=='pending')return;
+      if(!activeUnits[String(t.unit_id)]){cancel.push(t.id);return;}
+      if(t.auto_kind==='overdue_follow_up'){
+        var expected=overdueExpected[String(t.unit_id)];
+        if(!expected||t.auto_key!==expected)cancel.push(t.id);
+        return;
+      }
       var sid=t.schedule_id==null?'':String(t.schedule_id),phase=phaseBySchedule[sid];
-      if(!phase||!activeUnits[String(t.unit_id)]){cancel.push(t.id);return;}
+      if(!phase){cancel.push(t.id);return;}
       var currentKey=keyFor(t.auto_kind,phase.row.id,isoDate(phase.row.due_date));
       if(t.auto_key!==currentKey){cancel.push(t.id);return;}
       if(phase.paid){cancel.push(t.id);return;}
       if(phase.delta===2&&t.auto_kind==='demand_letter'){cancel.push(t.id);return;}
-      if(phase.delta<0&&t.auto_kind!=='overdue_follow_up'){cancel.push(t.id);return;}
-      if(t.auto_kind==='overdue_follow_up'&&(phase.delta>=0||phase.manualBlock)){cancel.push(t.id);return;}
+      if(phase.delta<0&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder')){cancel.push(t.id);return;}
     });
 
     var changed=await cancelIds(cancel);
