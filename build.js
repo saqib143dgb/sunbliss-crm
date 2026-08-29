@@ -96,6 +96,7 @@ const LOCAL_PATCH_FILES = [
   'payment_extensions_ui_patch.js',
   'payment_extensions_uncovered_overdue_patch.js',
   'scheduled_actions_extension_filter_freeze_fix.js',
+  'detail_attention_pills_patch.js',
   'scheduled_actions_full_page_guard.js',
   'full_page_action_workflow_patch.js'
 ];
