@@ -11,15 +11,18 @@
       'border:1px solid rgba(255,255,255,.62)!important;',
       'border-radius:999px!important;',
       'background:rgba(246,241,228,.50)!important;',
-      'box-shadow:0 7px 22px rgba(15,26,38,.16),inset 0 1px 0 rgba(255,255,255,.52)!important;',
-      '-webkit-box-shadow:0 7px 22px rgba(15,26,38,.16),inset 0 1px 0 rgba(255,255,255,.52)!important;',
-      '-webkit-backdrop-filter:blur(22px) saturate(1.16)!important;',
-      'backdrop-filter:blur(22px) saturate(1.16)!important;',
+      'box-shadow:none!important;',
+      '-webkit-box-shadow:none!important;',
       'filter:none!important;',
       '-webkit-filter:none!important;',
+      '-webkit-backdrop-filter:blur(22px) saturate(1.16)!important;',
+      'backdrop-filter:blur(22px) saturate(1.16)!important;',
     '}',
-    'body>.tabs .dock-add{box-shadow:none!important;-webkit-box-shadow:none!important;}',
+    'body>.tabs::before,body>.tabs::after{box-shadow:none!important;-webkit-box-shadow:none!important;filter:none!important;-webkit-filter:none!important;}',
+    'body>.tabs .dock-add{box-shadow:none!important;-webkit-box-shadow:none!important;filter:none!important;-webkit-filter:none!important;}',
+    'body>.tabs .tab{filter:none!important;-webkit-filter:none!important;text-shadow:none!important;}',
     'body>.tabs .tab[aria-pressed="true"]{box-shadow:none!important;-webkit-box-shadow:none!important;}',
+    'body>.tabs .tab[aria-pressed="true"]::after{box-shadow:none!important;-webkit-box-shadow:none!important;}',
     '@media(max-width:420px){body>.tabs{bottom:calc(8px + env(safe-area-inset-bottom))!important;width:calc(100vw - 16px)!important;}}'
   ].join('');
   document.head.appendChild(style);
