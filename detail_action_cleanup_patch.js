@@ -9,9 +9,10 @@
     var label=normalizeLabel(node && (node.textContent || node.getAttribute && (node.getAttribute('aria-label')||node.getAttribute('title'))));
     var id=normalizeLabel(node && node.id).replace(/[^a-z0-9]/g,'');
     if(label==='email reminder') return true;
+    if(label==='email crm' || label.indexOf('email crm')!==-1) return true;
     if(label.indexOf('print reminder letter')!==-1 || label.indexOf('reminder letter')!==-1) return true;
     if(label.indexOf('print late charges')!==-1 || label.indexOf('late charges')!==-1 || label.indexOf('late charge')!==-1) return true;
-    return id.indexOf('printreminder')!==-1 || id.indexOf('reminderletter')!==-1 || id.indexOf('printlate')!==-1 || id.indexOf('latecharge')!==-1;
+    return id.indexOf('emailcrm')!==-1 || id.indexOf('printreminder')!==-1 || id.indexOf('reminderletter')!==-1 || id.indexOf('printlate')!==-1 || id.indexOf('latecharge')!==-1;
   }
 
   function removeDeprecatedDetailActions(){
