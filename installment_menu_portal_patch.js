@@ -4,35 +4,14 @@
   window.__sunblissInstallmentMenuPortalInstalled = true;
 
   function text(value){ return value === null || value === undefined ? '' : String(value); }
-  function safe(value){
-    if (typeof window.esc === 'function') return window.esc(text(value));
-    return text(value).replace(/[&<>"']/g,function(ch){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
-    });
-  }
-  function money(value){
-    return typeof window.fmtAED==='function'
-      ? window.fmtAED(Number(value)||0)
-      : 'AED '+(Number(value)||0).toLocaleString('en-US',{maximumFractionDigits:2});
-  }
-  function dateLabel(value){
-    if (!value) return 'No fixed date';
-    var d=new Date(String(value)+'T00:00:00');
-    if (isNaN(d.getTime())) return text(value);
-    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  }
-  function selectedCustomer(){
-    if (!window.state || !state.selectedUnit || !Array.isArray(state.dues)) return null;
-    return state.dues.find(function(c){
-      return c && (String(c.unit||'')+'::'+String(c.sno||''))===String(state.selectedUnit);
-    }) || null;
-  }
+  function safe(value){if(typeof window.esc==='function')return window.esc(text(value));return text(value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
+  function money(value){return typeof window.fmtAED==='function'?window.fmtAED(Number(value)||0):'AED '+(Number(value)||0).toLocaleString('en-US',{maximumFractionDigits:2});}
+  function dateLabel(value){if(!value)return 'No fixed date';var d=new Date(String(value)+'T00:00:00');return isNaN(d.getTime())?text(value):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+  function selectedCustomer(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(String(c.unit||'')+'::'+String(c.sno||''))===String(state.selectedUnit);})||null;}
 
   function ensureDeleteStyles(){
-    if (document.getElementById('sunblissInstallmentDeleteStyles')) return;
-    var style=document.createElement('style');
-    style.id='sunblissInstallmentDeleteStyles';
-    style.textContent=[
+    if(document.getElementById('sunblissInstallmentDeleteStyles'))return;
+    var style=document.createElement('style');style.id='sunblissInstallmentDeleteStyles';style.textContent=[
       '.installment-menu-pop .installment-delete-action{color:#b42318}',
       '.installment-menu-pop .installment-delete-action:hover,.installment-menu-pop .installment-delete-action:focus-visible{background:rgba(180,35,24,.08);color:#8f1b12}',
       '#installmentDeleteOverlay{position:fixed;inset:0;z-index:3600;background:rgba(15,26,38,.66);display:flex;align-items:flex-end;justify-content:center;padding:18px 12px calc(18px + env(safe-area-inset-bottom));overflow:auto}',
@@ -42,177 +21,27 @@
       '#installmentDeleteDialog textarea{display:block;width:100%;min-height:80px;margin-top:5px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:8px;font:500 16px/1.35 Inter,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box;resize:vertical}',
       '.installment-delete-warning{padding:11px 12px;margin:0 0 13px;border:1px solid rgba(180,35,24,.25);border-radius:10px;background:rgba(180,35,24,.07);font-size:11.5px;line-height:1.5;color:#8f1b12}',
       '.installment-delete-meta{display:grid;grid-template-columns:1fr auto;gap:7px 14px;padding:11px 12px;margin:0 0 13px;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper-dim);font-size:12px}',
-      '.installment-delete-meta span{color:var(--muted)}',
-      '.installment-delete-meta strong{text-align:right;font-family:IBM Plex Mono,monospace}',
-      '.installment-delete-actions{display:flex;gap:8px;margin-top:14px}',
-      '.installment-delete-actions button{flex:1;justify-content:center;margin:0}',
-      '.installment-delete-confirm{border:1px solid #b42318;background:#b42318;color:#fff;border-radius:9px;padding:10px 12px;font:700 12px/1.2 Inter,sans-serif;cursor:pointer}',
-      '.installment-delete-confirm:disabled{opacity:.55;cursor:not-allowed}',
-      '@media(min-width:641px){#installmentDeleteOverlay{align-items:center}}',
-      '@media(max-width:480px){.installment-delete-actions{flex-direction:column}.installment-delete-actions button{width:100%}}'
-    ].join('');
-    document.head.appendChild(style);
+      '.installment-delete-meta span{color:var(--muted)}','.installment-delete-meta strong{text-align:right;font-family:IBM Plex Mono,monospace}',
+      '.installment-delete-actions{display:flex;gap:8px;margin-top:14px}.installment-delete-actions button{flex:1;justify-content:center;margin:0}',
+      '.installment-delete-confirm{border:1px solid #b42318;background:#b42318;color:#fff;border-radius:9px;padding:10px 12px;font:700 12px/1.2 Inter,sans-serif;cursor:pointer}.installment-delete-confirm:disabled{opacity:.55;cursor:not-allowed}',
+      '@media(min-width:641px){#installmentDeleteOverlay{align-items:center}}','@media(max-width:480px){.installment-delete-actions{flex-direction:column}.installment-delete-actions button{width:100%}}'
+    ].join('');document.head.appendChild(style);
   }
+  function positionMenu(menu,button){if(!menu||!button)return;var rect=button.getBoundingClientRect();menu.style.position='fixed';menu.style.zIndex='3000';menu.style.right='auto';menu.style.top='0';menu.style.left='0';var width=menu.offsetWidth||150,height=menu.offsetHeight||44,left=Math.max(8,Math.min(window.innerWidth-width-8,rect.right-width)),top=rect.bottom+5;if(top+height>window.innerHeight-8)top=Math.max(8,rect.top-height-5);menu.style.left=left+'px';menu.style.top=top+'px';}
+  function stageForCard(card){var c=selectedCustomer();if(!c||!Array.isArray(c.stages)||!card)return null;var cards=Array.prototype.slice.call(document.querySelectorAll('.ledger-scroll .stage-card')),index=cards.indexOf(card);if(index<0||!c.stages[index])return null;return {customer:c,stage:c.stages[index]};}
+  async function loadStageRow(stage){if(!stage||!stage.id)return null;var result=await sb.from('payment_schedule').select('id,unit_id,customer_id,stage_name,due_amount,due_date,paid_amount,paid_date,status,remarks').eq('id',stage.id).single();if(result.error)throw result.error;return result.data;}
+  function attachDeleteAction(menu,card){if(!menu||!card||menu.querySelector('.installment-delete-action'))return;var pair=stageForCard(card);if(!pair||!pair.stage||!pair.stage.id)return;var del=document.createElement('button');del.type='button';del.className='installment-delete-action';del.textContent='Delete installment';del.addEventListener('click',function(ev){ev.preventDefault();ev.stopPropagation();menu.remove();openDeleteDialog(pair.customer,pair.stage);});menu.appendChild(del);}
+  async function openDeleteDialog(c,stage){ensureDeleteStyles();var existing=document.getElementById('installmentDeleteOverlay');if(existing)existing.remove();var overlay=document.createElement('div');overlay.id='installmentDeleteOverlay';overlay.innerHTML='<div id="installmentDeleteDialog" role="dialog" aria-modal="true"><h3>Delete installment</h3><p class="installment-delete-sub">Checking '+safe(stage.label)+'…</p></div>';document.body.appendChild(overlay);overlay.addEventListener('click',function(ev){if(ev.target===overlay)overlay.remove();});try{renderDeleteDialog(c,await loadStageRow(stage),overlay);}catch(err){var dialog=document.getElementById('installmentDeleteDialog');if(!dialog)return;dialog.innerHTML='<h3>Delete installment</h3><p class="brand-error">'+safe(err&&err.message?err.message:'Could not load installment details.')+'</p><button class="btn-paper" id="idClose">Close</button>';var close=document.getElementById('idClose');if(close)close.onclick=function(){overlay.remove();};}}
+  function renderDeleteDialog(c,row,overlay){var dialog=document.getElementById('installmentDeleteDialog');if(!dialog||!row)return;var hasPayment=(Number(row.paid_amount)||0)!==0||!!row.paid_date;dialog.innerHTML='<h3>Delete installment</h3><p class="installment-delete-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+'</p><p class="brand-error" id="idError" style="display:none"></p><div class="installment-delete-meta"><span>Installment</span><strong>'+safe(row.stage_name)+'</strong><span>Due amount</span><strong>'+safe(money(row.due_amount))+'</strong><span>Due date</span><strong>'+safe(dateLabel(row.due_date))+'</strong><span>Paid amount</span><strong>'+safe(money(row.paid_amount))+'</strong></div><div class="installment-delete-warning">Deletion is blocked if the installment has any paid amount, paid date, linked or matching payment transaction, credit note, or carry-forward. A full copy of the deleted row and your reason will be saved in the audit log.</div>'+(hasPayment?'<div class="installment-delete-warning"><b>This installment already has payment activity and cannot be deleted.</b></div>':'')+'<label class="brand-field">Reason for deletion<textarea id="idReason" placeholder="Example: Duplicate installment added in error"></textarea></label><div class="installment-delete-actions"><button class="installment-delete-confirm" type="button" id="idDelete"'+(hasPayment?' disabled':'')+'>Delete installment</button><button class="btn-paper" type="button" id="idCancel">Cancel</button></div>';document.getElementById('idCancel').onclick=function(){overlay.remove();};if(!hasPayment)document.getElementById('idDelete').onclick=function(){deleteInstallment(c,row,overlay);};}
+  async function deleteInstallment(c,row,overlay){var reason=text(document.getElementById('idReason').value).trim(),err=document.getElementById('idError'),button=document.getElementById('idDelete');function fail(message){err.textContent=message;err.style.display='block';}if(reason.length<5){fail('Enter a short reason for deleting this installment.');return;}if(!window.confirm('Delete '+row.stage_name+' ('+money(row.due_amount)+') from unit '+c.unit+'?\n\nThis removes the schedule row, but the full deleted record will remain in the audit log.'))return;button.disabled=true;button.textContent='Deleting…';err.style.display='none';try{var rpc=await sb.rpc('crm_delete_installment',{p_schedule_id:row.id,p_unit_id:c.sno,p_reason:reason});if(rpc.error)throw rpc.error;var key=state.selectedUnit,from=state.detailFrom||'list';overlay.remove();await loadFromSupabase();state.selectedUnit=key;state.detailFrom=from;state.view='detail';if(typeof window.renderMain==='function')window.renderMain();else if(typeof window.renderDetail==='function')window.renderDetail();}catch(ex){fail(ex&&ex.message?ex.message:'Could not delete that installment.');button.disabled=false;button.textContent='Delete installment';}}
+  function portalMenus(){ensureDeleteStyles();document.querySelectorAll('.stage-card .installment-menu-pop').forEach(function(menu){var card=menu.closest('.stage-card'),button=card&&card.querySelector('.installment-menu-btn');if(!button)return;attachDeleteAction(menu,card);document.body.appendChild(menu);positionMenu(menu,button);});}
+  function closeMenus(){document.querySelectorAll('body > .installment-menu-pop').forEach(function(menu){menu.remove();});}
 
-  function positionMenu(menu,button){
-    if (!menu || !button) return;
-    var rect=button.getBoundingClientRect();
-    menu.style.position='fixed';
-    menu.style.zIndex='3000';
-    menu.style.right='auto';
-    menu.style.top='0';
-    menu.style.left='0';
-    var width=menu.offsetWidth || 150;
-    var height=menu.offsetHeight || 44;
-    var left=Math.max(8,Math.min(window.innerWidth-width-8,rect.right-width));
-    var top=rect.bottom+5;
-    if (top+height>window.innerHeight-8) top=Math.max(8,rect.top-height-5);
-    menu.style.left=left+'px';
-    menu.style.top=top+'px';
-  }
-
-  function stageForCard(card){
-    var c=selectedCustomer();
-    if (!c || !Array.isArray(c.stages) || !card) return null;
-    var cards=Array.prototype.slice.call(document.querySelectorAll('.ledger-scroll .stage-card'));
-    var index=cards.indexOf(card);
-    if (index<0 || !c.stages[index]) return null;
-    return {customer:c,stage:c.stages[index]};
-  }
-
-  async function loadStageRow(stage){
-    if (!stage || !stage.id) return null;
-    var result=await sb.from('payment_schedule')
-      .select('id,unit_id,customer_id,stage_name,due_amount,due_date,paid_amount,paid_date,status,remarks')
-      .eq('id',stage.id)
-      .single();
-    if (result.error) throw result.error;
-    return result.data;
-  }
-
-  function attachDeleteAction(menu,card){
-    if (!menu || !card || menu.querySelector('.installment-delete-action')) return;
-    var pair=stageForCard(card);
-    if (!pair || !pair.stage || !pair.stage.id) return;
-
-    var del=document.createElement('button');
-    del.type='button';
-    del.className='installment-delete-action';
-    del.textContent='Delete installment';
-    del.addEventListener('click',function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
-      menu.remove();
-      openDeleteDialog(pair.customer,pair.stage);
-    });
-    menu.appendChild(del);
-  }
-
-  async function openDeleteDialog(c,stage){
-    ensureDeleteStyles();
-    var existing=document.getElementById('installmentDeleteOverlay');
-    if (existing) existing.remove();
-
-    var overlay=document.createElement('div');
-    overlay.id='installmentDeleteOverlay';
-    overlay.innerHTML='<div id="installmentDeleteDialog" role="dialog" aria-modal="true"><h3>Delete installment</h3><p class="installment-delete-sub">Checking '+safe(stage.label)+'…</p></div>';
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click',function(ev){ if (ev.target===overlay) overlay.remove(); });
-
-    try{
-      var row=await loadStageRow(stage);
-      renderDeleteDialog(c,row,overlay);
-    }catch(err){
-      var dialog=document.getElementById('installmentDeleteDialog');
-      if (!dialog) return;
-      dialog.innerHTML='<h3>Delete installment</h3><p class="brand-error">'+safe(err&&err.message?err.message:'Could not load installment details.')+'</p><button class="btn-paper" id="idClose">Close</button>';
-      var close=document.getElementById('idClose');
-      if (close) close.onclick=function(){ overlay.remove(); };
-    }
-  }
-
-  function renderDeleteDialog(c,row,overlay){
-    var dialog=document.getElementById('installmentDeleteDialog');
-    if (!dialog || !row) return;
-    var hasPayment=(Number(row.paid_amount)||0)!==0 || !!row.paid_date;
-
-    dialog.innerHTML=
-      '<h3>Delete installment</h3>'+
-      '<p class="installment-delete-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+'</p>'+
-      '<p class="brand-error" id="idError" style="display:none"></p>'+
-      '<div class="installment-delete-meta">'+
-        '<span>Installment</span><strong>'+safe(row.stage_name)+'</strong>'+
-        '<span>Due amount</span><strong>'+safe(money(row.due_amount))+'</strong>'+
-        '<span>Due date</span><strong>'+safe(dateLabel(row.due_date))+'</strong>'+
-        '<span>Paid amount</span><strong>'+safe(money(row.paid_amount))+'</strong>'+
-      '</div>'+
-      '<div class="installment-delete-warning">Deletion is blocked if the installment has any paid amount, paid date, linked or matching payment transaction, credit note, or carry-forward. A full copy of the deleted row and your reason will be saved in the audit log.</div>'+
-      (hasPayment?'<div class="installment-delete-warning"><b>This installment already has payment activity and cannot be deleted.</b></div>':'')+
-      '<label class="brand-field">Reason for deletion<textarea id="idReason" placeholder="Example: Duplicate installment added in error"></textarea></label>'+
-      '<div class="installment-delete-actions">'+
-        '<button class="installment-delete-confirm" type="button" id="idDelete"'+(hasPayment?' disabled':'')+'>Delete installment</button>'+
-        '<button class="btn-paper" type="button" id="idCancel">Cancel</button>'+
-      '</div>';
-
-    document.getElementById('idCancel').onclick=function(){ overlay.remove(); };
-    if (!hasPayment) document.getElementById('idDelete').onclick=function(){ deleteInstallment(c,row,overlay); };
-  }
-
-  async function deleteInstallment(c,row,overlay){
-    var reason=text(document.getElementById('idReason').value).trim();
-    var err=document.getElementById('idError');
-    var button=document.getElementById('idDelete');
-    function fail(message){ err.textContent=message; err.style.display='block'; }
-
-    if (reason.length<5){ fail('Enter a short reason for deleting this installment.'); return; }
-    if (!window.confirm('Delete '+row.stage_name+' ('+money(row.due_amount)+') from unit '+c.unit+'?\n\nThis removes the schedule row, but the full deleted record will remain in the audit log.')) return;
-
-    button.disabled=true;
-    button.textContent='Deleting…';
-    err.style.display='none';
-
-    try{
-      var rpc=await sb.rpc('crm_delete_installment',{
-        p_schedule_id:row.id,
-        p_unit_id:c.sno,
-        p_reason:reason
-      });
-      if (rpc.error) throw rpc.error;
-
-      var key=state.selectedUnit, from=state.detailFrom || 'list';
-      overlay.remove();
-      await loadFromSupabase();
-      state.selectedUnit=key;
-      state.detailFrom=from;
-      state.view='detail';
-      if (typeof window.renderMain==='function') window.renderMain();
-      else if (typeof window.renderDetail==='function') window.renderDetail();
-    }catch(ex){
-      fail(ex&&ex.message?ex.message:'Could not delete that installment.');
-      button.disabled=false;
-      button.textContent='Delete installment';
-    }
-  }
-
-  function portalMenus(){
-    ensureDeleteStyles();
-    document.querySelectorAll('.stage-card .installment-menu-pop').forEach(function(menu){
-      var card=menu.closest('.stage-card');
-      var button=card && card.querySelector('.installment-menu-btn');
-      if (!button) return;
-      attachDeleteAction(menu,card);
-      document.body.appendChild(menu);
-      positionMenu(menu,button);
-    });
-  }
-
-  function closeMenus(){
-    document.querySelectorAll('body > .installment-menu-pop').forEach(function(menu){ menu.remove(); });
-  }
-
-  var observer=new MutationObserver(portalMenus);
-  observer.observe(document.body,{childList:true,subtree:true});
-  window.addEventListener('resize',closeMenus);
-  window.addEventListener('scroll',closeMenus,true);
-  portalMenus();
+  /* The portal is needed only after the installment menu button is pressed. Watching
+     every mutation in document.body caused needless CRM-wide observer traffic. */
+  document.addEventListener('click',function(e){
+    if(e.target&&e.target.closest&&e.target.closest('.installment-menu-btn'))setTimeout(portalMenus,0);
+  },true);
+  window.addEventListener('resize',closeMenus);window.addEventListener('scroll',closeMenus,true);
+  ensureDeleteStyles();
 })();
