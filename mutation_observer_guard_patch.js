@@ -9,81 +9,81 @@ if(typeof NativeMutationObserver!=='function')return;
 /*
   CRM-wide MutationObserver safety layer.
 
-  The CRM is built from many independent UI patches. Historically several of those
-  patches observed #app/document and then changed the DOM inside their callbacks.
-  Safari can deliver the resulting mutation chain as a tight microtask loop, causing
-  the UI to appear frozen. This wrapper keeps native observation semantics, but
-  coalesces delivery onto the browser paint queue and adds a small adaptive backoff
-  when one observer is being retriggered continuously.
-
-  It does NOT suppress records or disconnect observers. All records are delivered to
-  the original callback, just in a controlled batch instead of recursively in the
-  same mutation microtask cascade.
+  All observers created after this script share ONE browser-frame queue. This prevents
+  independent CRM patches from all executing expensive mutation callbacks in the same
+  microtask cascade. Records are preserved and delivered in batches; only callback
+  timing is controlled.
 */
+var queue=[];
+var queueSet=typeof Set==='function'?new Set():null;
+var framePending=false;
+var MAX_CALLBACKS_PER_FRAME=12;
+var FRAME_BUDGET_MS=7;
+
+function now(){return window.performance&&performance.now?performance.now():Date.now();}
+function hasJob(job){return queueSet?queueSet.has(job):queue.indexOf(job)!==-1;}
+function addJob(job){if(hasJob(job))return;if(queueSet)queueSet.add(job);queue.push(job);scheduleFrame();}
+function removeJob(job){if(queueSet)queueSet.delete(job);}
+function scheduleFrame(){
+  if(framePending)return;
+  framePending=true;
+  if(typeof window.requestAnimationFrame==='function')window.requestAnimationFrame(drain);
+  else window.setTimeout(drain,16);
+}
+function drain(){
+  framePending=false;
+  var started=now(),count=0;
+  while(queue.length&&count<MAX_CALLBACKS_PER_FRAME&&now()-started<FRAME_BUDGET_MS){
+    var job=queue.shift();removeJob(job);count++;
+    try{job();}catch(err){window.setTimeout(function(){throw err;},0);}
+  }
+  if(queue.length)scheduleFrame();
+}
+
 function SafeMutationObserver(callback){
   if(typeof callback!=='function')throw new TypeError("Failed to construct 'MutationObserver': callback is not a function");
 
-  var queued=false;
-  var running=false;
   var pending=[];
-  var timer=0;
-  var burstWindowStart=0;
-  var burstRuns=0;
-  var lastRunAt=0;
+  var running=false;
+  var queued=false;
   var nativeObserver;
+  var burstStart=0;
+  var burstRuns=0;
+  var cooldownTimer=0;
 
-  function schedule(){
+  function enqueue(){
     if(queued)return;
     queued=true;
-    var now=(window.performance&&performance.now)?performance.now():Date.now();
-    if(!burstWindowStart||now-burstWindowStart>1000){burstWindowStart=now;burstRuns=0;}
+    var t=now();
+    if(!burstStart||t-burstStart>1000){burstStart=t;burstRuns=0;}
 
-    /* Normal observers run at most once per paint. If an observer is continuously
-       self-triggering, progressively slow only that observer instead of blocking the
-       main thread or affecting unrelated observers. */
-    var delay=0;
-    if(burstRuns>=20)delay=120;
-    else if(burstRuns>=10)delay=48;
-
-    function enqueueFrame(){
-      if(typeof window.requestAnimationFrame==='function'){
-        window.requestAnimationFrame(flush);
-      }else{
-        timer=window.setTimeout(flush,16);
-      }
-    }
-    if(delay)timer=window.setTimeout(enqueueFrame,delay);else enqueueFrame();
+    /* A continuously self-triggering observer is slowed independently. Normal UI
+       observers never hit these thresholds. */
+    var delay=burstRuns>=24?160:burstRuns>=12?64:0;
+    if(delay){
+      if(cooldownTimer)return;
+      cooldownTimer=window.setTimeout(function(){cooldownTimer=0;addJob(flush);},delay);
+    }else addJob(flush);
   }
 
   function flush(){
     queued=false;
-    timer=0;
-    if(running||!pending.length){if(pending.length)schedule();return;}
+    if(running||!pending.length){if(pending.length)enqueue();return;}
     var records=pending.splice(0,pending.length);
     running=true;
-    var now=(window.performance&&performance.now)?performance.now():Date.now();
-    if(!burstWindowStart||now-burstWindowStart>1000){burstWindowStart=now;burstRuns=0;}
+    var t=now();
+    if(!burstStart||t-burstStart>1000){burstStart=t;burstRuns=0;}
     burstRuns++;
-    lastRunAt=now;
-    try{
-      callback(records,nativeObserver);
-    }catch(err){
-      window.setTimeout(function(){throw err;},0);
-    }finally{
-      running=false;
-    }
-    if(pending.length)schedule();
+    try{callback(records,nativeObserver);}finally{running=false;}
+    if(pending.length)enqueue();
   }
 
   nativeObserver=new NativeMutationObserver(function(records){
     if(records&&records.length){
       for(var i=0;i<records.length;i++)pending.push(records[i]);
-      /* Avoid unbounded memory growth during a pathological mutation storm. Native
-         takeRecords still remains available; the latest records are the most useful
-         for decorator-style observers used in this CRM. */
       if(pending.length>2000)pending.splice(0,pending.length-2000);
     }
-    schedule();
+    enqueue();
   });
 
   return nativeObserver;
@@ -94,5 +94,6 @@ try{Object.setPrototypeOf(SafeMutationObserver,NativeMutationObserver);}catch(e)
 try{Object.defineProperty(SafeMutationObserver,'name',{value:'MutationObserver'});}catch(e){}
 
 window.__sunblissNativeMutationObserver=NativeMutationObserver;
+window.__sunblissMutationObserverQueueInfo=function(){return {pendingObservers:queue.length,framePending:framePending,maxCallbacksPerFrame:MAX_CALLBACKS_PER_FRAME,frameBudgetMs:FRAME_BUDGET_MS};};
 window.MutationObserver=SafeMutationObserver;
 })();
