@@ -4,39 +4,15 @@
   window.__sunblissFullPageActionWorkflowInstalled = true;
 
   var inlineSelectors = [
-    '#customerEditPanel',
-    '#unitEditPanel',
-    '#saleComplianceEditPanel',
-    '#unitCancellationPanel',
-    '#transactionEditPanel',
-    '#creditNoteEditPanel',
-    '#inlineComplianceEditor',
-    '#customerNotesManagementPanel',
-    '.record-payment-panel'
+    '#customerEditPanel','#unitEditPanel','#saleComplianceEditPanel','#unitCancellationPanel','#transactionEditPanel','#creditNoteEditPanel','#inlineComplianceEditor','#customerNotesManagementPanel','.record-payment-panel'
   ];
-
-  var overlaySelectors = [
-    '#auditLogOverlay',
-    '#installmentEditOverlay',
-    '#installmentDeleteOverlay',
-    '#paymentDetailOverlay',
-    '#cancelledUnitEditModal'
-  ];
-
-  var dialogSelectors = [
-    '#auditLogDialog',
-    '#installmentEditDialog',
-    '#installmentDeleteDialog',
-    '#paymentDetailDialog',
-    '.cancelled-edit-card'
-  ];
+  var overlaySelectors = ['#auditLogOverlay','#installmentEditOverlay','#installmentDeleteOverlay','#paymentDetailOverlay','#cancelledUnitEditModal'];
+  var dialogSelectors = ['#auditLogDialog','#installmentEditDialog','#installmentDeleteDialog','#paymentDetailDialog','.cancelled-edit-card'];
   var watchedSelector=inlineSelectors.concat(overlaySelectors,dialogSelectors).join(',');
 
   function ensureStyles(){
     if (document.getElementById('sunblissFullPageActionWorkflowStyles')) return;
-    var style = document.createElement('style');
-    style.id = 'sunblissFullPageActionWorkflowStyles';
-    style.textContent = [
+    var style=document.createElement('style');style.id='sunblissFullPageActionWorkflowStyles';style.textContent=[
       '@keyframes crmActionPageReveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
       'body.crm-full-page-action-open{overflow:hidden!important;overscroll-behavior:none!important}',
       'body.crm-full-page-action-open .detail-top-actions-sticky{visibility:hidden!important;pointer-events:none!important}',
@@ -66,105 +42,36 @@
       '#cancelledUnitEditModal.crm-full-page-overlay .cancelled-edit-head{position:sticky!important;top:calc(-18px - env(safe-area-inset-top))!important;z-index:8!important;margin:calc(-18px - env(safe-area-inset-top)) -16px 14px!important;padding:calc(16px + env(safe-area-inset-top)) 16px 13px!important;background:var(--paper,#F6F1E4)!important;border-bottom:1px solid var(--paper-line,#DCD2B6)!important}',
       '@media(prefers-reduced-motion:reduce){.crm-action-page-ready{animation:none!important}}',
       '@media(max-width:520px){.crm-full-page-inline,.crm-full-page-dialog{padding-left:14px!important;padding-right:14px!important}.crm-full-page-inline>.section-label:first-child{margin-left:-14px!important;margin-right:-14px!important;padding-left:14px!important;padding-right:14px!important}.crm-full-page-inline .brand-editor-actions,#installmentEditDialog.crm-full-page-dialog .installment-edit-actions,#installmentDeleteDialog.crm-full-page-dialog .installment-delete-actions,#paymentDetailDialog.crm-full-page-dialog .payment-detail-actions,.cancelled-edit-card.crm-full-page-dialog .cancelled-edit-footer{margin-left:-14px!important;margin-right:-14px!important;padding-left:14px!important;padding-right:14px!important}.crm-full-page-inline .brand-editor-actions,.installment-edit-actions,.installment-delete-actions,.payment-detail-actions,.cancelled-edit-footer{flex-direction:column!important}.crm-full-page-inline .brand-editor-actions button,.installment-edit-actions button,.installment-delete-actions button,.payment-detail-actions button,.cancelled-edit-footer button{width:100%!important}#customerNotesManagementPanel.crm-full-page-inline>button.btn-paper:last-child{width:calc(100% + 28px)!important;margin-left:-14px!important;margin-right:-14px!important}#customerNotesManagementPanel.crm-full-page-inline .notes-editor-actions{grid-template-columns:1fr!important;margin-left:-26px!important;margin-right:-26px!important}}'
-    ].join('');
-    document.head.appendChild(style);
+    ].join('');document.head.appendChild(style);
   }
 
-  function normalizedText(node){return node ? String(node.textContent || '').replace(/\s+/g,' ').trim().toLowerCase() : '';}
-  function isInitialInlineLoading(panel){
-    if (!panel) return false;
-    var text = normalizedText(panel);
-    if (text.indexOf('loading ') === -1 && text.indexOf('loading…') === -1 && text.indexOf('loading...') === -1) return false;
-    var interactive = panel.querySelector('input,select,textarea,button');
-    return !interactive && panel.children.length <= 4;
-  }
-  function isOverlayLoading(overlay){
-    if (!overlay) return false;
-    if (overlay.id === 'installmentEditOverlay'){
-      var sub = overlay.querySelector('.installment-edit-sub');
-      return !!(sub && normalizedText(sub).indexOf('loading installment') === 0);
-    }
-    if (overlay.id === 'auditLogOverlay'){
-      var body = overlay.querySelector('#auditLogBody');
-      return !!(body && normalizedText(body).indexOf('loading audit') === 0);
-    }
-    return false;
-  }
-  function setReadyState(node,waiting){
-    if (!node) return;
-    if (waiting){
-      if (!node.classList.contains('crm-action-awaiting-ready')) node.classList.add('crm-action-awaiting-ready');
-      node.classList.remove('crm-action-page-ready');
-      return;
-    }
-    var wasWaiting = node.classList.contains('crm-action-awaiting-ready');
-    node.classList.remove('crm-action-awaiting-ready');
-    if (wasWaiting && !node.classList.contains('crm-action-page-ready')){
-      node.classList.add('crm-action-page-ready');
-      window.setTimeout(function(){if (node && node.classList) node.classList.remove('crm-action-page-ready');},180);
-    }
-  }
-  function markInlinePanels(){
-    inlineSelectors.forEach(function(selector){
-      document.querySelectorAll(selector).forEach(function(panel){
-        panel.classList.add('crm-full-page-inline');
-        if (!panel.hasAttribute('role')) panel.setAttribute('role','dialog');
-        panel.setAttribute('aria-modal','true');
-        setReadyState(panel,isInitialInlineLoading(panel));
-      });
-    });
-  }
-  function markOverlays(){
-    overlaySelectors.forEach(function(selector){
-      document.querySelectorAll(selector).forEach(function(overlay){
-        overlay.classList.add('crm-full-page-overlay');
-        setReadyState(overlay,isOverlayLoading(overlay));
-      });
-    });
-    dialogSelectors.forEach(function(selector){document.querySelectorAll(selector).forEach(function(dialog){dialog.classList.add('crm-full-page-dialog');});});
-  }
-  function hasOpenActionPage(){
-    var selectors = inlineSelectors.concat(overlaySelectors);
-    for (var i=0;i<selectors.length;i++){
-      var nodes=document.querySelectorAll(selectors[i]);
-      for (var j=0;j<nodes.length;j++){
-        var node=nodes[j];
-        if (!node.isConnected) continue;
-        if (window.getComputedStyle(node).display!=='none') return true;
-      }
-    }
-    return false;
-  }
-  function refresh(){
-    ensureStyles();
-    markInlinePanels();
-    markOverlays();
-    document.body.classList.toggle('crm-full-page-action-open',hasOpenActionPage());
-  }
+  function normalizedText(node){return node?String(node.textContent||'').replace(/\s+/g,' ').trim().toLowerCase():'';}
+  function isInitialInlineLoading(panel){if(!panel)return false;var text=normalizedText(panel);if(text.indexOf('loading ')===-1&&text.indexOf('loading…')===-1&&text.indexOf('loading...')===-1)return false;var interactive=panel.querySelector('input,select,textarea,button');return !interactive&&panel.children.length<=4;}
+  function isOverlayLoading(overlay){if(!overlay)return false;if(overlay.id==='installmentEditOverlay'){var sub=overlay.querySelector('.installment-edit-sub');return !!(sub&&normalizedText(sub).indexOf('loading installment')===0);}if(overlay.id==='auditLogOverlay'){var body=overlay.querySelector('#auditLogBody');return !!(body&&normalizedText(body).indexOf('loading audit')===0);}return false;}
+  function setReadyState(node,waiting){if(!node)return;if(waiting){if(!node.classList.contains('crm-action-awaiting-ready'))node.classList.add('crm-action-awaiting-ready');node.classList.remove('crm-action-page-ready');return;}var wasWaiting=node.classList.contains('crm-action-awaiting-ready');node.classList.remove('crm-action-awaiting-ready');if(wasWaiting&&!node.classList.contains('crm-action-page-ready')){node.classList.add('crm-action-page-ready');window.setTimeout(function(){if(node&&node.classList)node.classList.remove('crm-action-page-ready');},180);}}
+  function markInlinePanels(){inlineSelectors.forEach(function(selector){document.querySelectorAll(selector).forEach(function(panel){panel.classList.add('crm-full-page-inline');if(!panel.hasAttribute('role'))panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');setReadyState(panel,isInitialInlineLoading(panel));});});}
+  function markOverlays(){overlaySelectors.forEach(function(selector){document.querySelectorAll(selector).forEach(function(overlay){overlay.classList.add('crm-full-page-overlay');setReadyState(overlay,isOverlayLoading(overlay));});});dialogSelectors.forEach(function(selector){document.querySelectorAll(selector).forEach(function(dialog){dialog.classList.add('crm-full-page-dialog');});});}
+  function hasOpenActionPage(){var selectors=inlineSelectors.concat(overlaySelectors);for(var i=0;i<selectors.length;i++){var nodes=document.querySelectorAll(selectors[i]);for(var j=0;j<nodes.length;j++){var node=nodes[j];if(!node.isConnected)continue;if(window.getComputedStyle(node).display!=='none')return true;}}return false;}
+  function refresh(){ensureStyles();markInlinePanels();markOverlays();document.body.classList.toggle('crm-full-page-action-open',hasOpenActionPage());}
 
   var scheduled=false;
-  function schedule(){
-    if (scheduled) return;
-    scheduled=true;
-    requestAnimationFrame(function(){scheduled=false;refresh();});
-  }
-  function isInsideWatched(node){return !!(node&&node.nodeType===1&&node.closest&&node.closest(watchedSelector));}
+  function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(function(){scheduled=false;refresh();});}
   function containsWatched(node){return !!(node&&node.nodeType===1&&((node.matches&&node.matches(watchedSelector))||(node.querySelector&&node.querySelector(watchedSelector))));}
   function relevantMutations(mutations){
     for(var i=0;i<mutations.length;i++){
       var m=mutations[i];
-      if(isInsideWatched(m.target))return true;
-      if(m.type==='childList'){
-        for(var j=0;j<m.addedNodes.length;j++)if(containsWatched(m.addedNodes[j]))return true;
-        for(var k=0;k<m.removedNodes.length;k++)if(containsWatched(m.removedNodes[k]))return true;
-      }
+      if(m.type!=='childList')continue;
+      if(m.target&&m.target.nodeType===1&&m.target.closest&&m.target.closest(watchedSelector))return true;
+      for(var j=0;j<m.addedNodes.length;j++)if(containsWatched(m.addedNodes[j]))return true;
+      for(var k=0;k<m.removedNodes.length;k++)if(containsWatched(m.removedNodes[k]))return true;
     }
     return false;
   }
 
-  ensureStyles();
-  refresh();
-  new MutationObserver(function(mutations){if(relevantMutations(mutations))schedule();}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden']});
-  window.addEventListener('pageshow',schedule);
-  window.addEventListener('popstate',schedule);
+  ensureStyles();refresh();
+  /* Important: observe structure only. This patch itself changes classes on watched
+     panels, so observing class/style/hidden attributes created a feedback loop. */
+  new MutationObserver(function(mutations){if(relevantMutations(mutations))schedule();}).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('click',function(){setTimeout(schedule,0);},true);
+  window.addEventListener('pageshow',schedule);window.addEventListener('popstate',schedule);
 })();
