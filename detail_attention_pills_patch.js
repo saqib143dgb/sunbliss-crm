@@ -51,13 +51,14 @@ function render(){
   if(bar.dataset.signature!==signature){bar.dataset.signature=signature;host.innerHTML=items.map(function(i){return '<button type="button" class="detail-attention-pill" role="tab" data-kind="'+i.kind+'" aria-selected="'+(i.kind===selected?'true':'false')+'">'+i.label+'</button>'}).join('')}else Array.prototype.slice.call(host.querySelectorAll('.detail-attention-pill')).forEach(function(b){b.setAttribute('aria-selected',b.dataset.kind===selected?'true':'false')})
 }
 function queue(delay){
-  if(refreshTimer)clearTimeout(refreshTimer);
-  refreshTimer=setTimeout(function(){if(scheduled)return;scheduled=true;requestAnimationFrame(render)},delay||0)
+  if(scheduled||refreshTimer)return;
+  if(delay){refreshTimer=setTimeout(function(){refreshTimer=null;if(scheduled)return;scheduled=true;requestAnimationFrame(render)},delay);return}
+  scheduled=true;requestAnimationFrame(render)
 }
-document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('#detailAttentionPills .detail-attention-pill'):null;if(b){e.preventDefault();var key=unitKey();if(key){selectedByUnit[key]=b.dataset.kind;render();return}}if(e.target&&e.target.closest&&e.target.closest('#notesSaveBtn,#scSave,#extSave,.scheduled-mark-done,.scheduled-edit'))queue(80)},true);
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('#detailAttentionPills .detail-attention-pill'):null;if(b){e.preventDefault();var key=unitKey();if(key){selectedByUnit[key]=b.dataset.kind;render();return}}if(e.target&&e.target.closest&&e.target.closest('#notesSaveBtn,#scSave,#extSave,.scheduled-mark-done,.scheduled-edit'))queue(60)},true);
 function install(){
-  styles();var rd=window.renderDetail;if(typeof rd==='function'&&!rd.__sunblissAttentionStable){var original=rd;window.renderDetail=function(){var o=original.apply(this,arguments);queue(0);queue(90);return o};window.renderDetail.__sunblissAttentionStable=true}
-  window.addEventListener('pageshow',function(){queue(0);queue(100)});queue(0);queue(100)
+  styles();var rd=window.renderDetail;if(typeof rd==='function'&&!rd.__sunblissAttentionStable){var original=rd;window.renderDetail=function(){var o=original.apply(this,arguments);queue(0);return o};window.renderDetail.__sunblissAttentionStable=true}
+  window.addEventListener('pageshow',function(){queue(0)});queue(0)
 }
 install();
 })();
