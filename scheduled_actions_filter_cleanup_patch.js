@@ -1,7 +1,9 @@
 (function(){
   'use strict';
 
-  var ALLOWED={today:true,overdue:true};
+  /* Keep the intentionally simplified Scheduled Actions filter set, but never
+     remove the Extensions option added by the payment-extension workflow. */
+  var ALLOWED={today:true,overdue:true,extensions:true};
 
   function clean(){
     var select=document.getElementById('scheduledOverviewFilter');
