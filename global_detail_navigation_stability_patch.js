@@ -169,6 +169,9 @@
 
   function navigationTarget(event){
     if (!event.target || !event.target.closest) return null;
+    /* Extension rows own their navigation completely. Never let this global
+       interceptor participate in the same tap. */
+    if (event.target.closest('[data-ext-unit],#paymentExtensionPanel,.ext-panel')) return null;
     var target=event.target.closest('[data-unit][data-sno]');
     if (!target) return null;
     if (target.closest('#sunblissCancelledArchivePage,[data-cancelled-id],.cancelled-archive-page')) return null;
