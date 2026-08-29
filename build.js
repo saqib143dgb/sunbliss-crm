@@ -102,7 +102,8 @@ const LOCAL_PATCH_FILES = [
   'extension_navigation_root_fix.js',
   'detail_attention_pills_patch.js',
   'scheduled_actions_full_page_guard.js',
-  'full_page_action_workflow_patch.js'
+  'full_page_action_workflow_patch.js',
+  'effective_action_required_patch.js'
 ];
 
 function requireFile(filePath, label) {
