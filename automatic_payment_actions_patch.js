@@ -75,14 +75,20 @@
     if(kind==='gentle_reminder')return addDaysIso(installmentDue,-2);
     return installmentDue;
   }
-  function taskNote(row,remaining){
-    return text(row.stage_name)+' · '+money(remaining)+' outstanding · installment due '+dateText(row.due_date)+'.';
+  function taskNote(row,remaining,creditApplied){
+    var parts=[text(row.stage_name),money(remaining)+' outstanding'];
+    if(creditApplied>0)parts.push(money(creditApplied)+' credit note applied');
+    parts.push('installment due '+dateText(row.due_date)+'.');
+    return parts.join(' · ');
   }
   function overdueNote(rows,total){
     rows=rows.slice().sort(function(a,b){return text(a.row.due_date).localeCompare(text(b.row.due_date));});
-    if(rows.length===1)return taskNote(rows[0].row,total);
+    if(rows.length===1)return taskNote(rows[0].row,total,rows[0].creditApplied||0);
     var stages=rows.map(function(x){return text(x.row.stage_name);}).join(' + ');
-    return rows.length+' installments overdue · '+money(total)+' total outstanding · '+stages+' · oldest due '+dateText(rows[0].row.due_date)+'.';
+    var creditTotal=Math.round(rows.reduce(function(sum,x){return sum+(Number(x.creditApplied)||0);},0)*100)/100;
+    var note=rows.length+' installments overdue · '+money(total)+' total outstanding';
+    if(creditTotal>0)note+=' after '+money(creditTotal)+' linked credit notes';
+    return note+' · '+stages+' · oldest due '+dateText(rows[0].row.due_date)+'.';
   }
 
   function ensureStyles(){
@@ -141,12 +147,21 @@
 
     var pair=await Promise.all([
       sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,paid_amount,status').in('unit_id',units),
-      sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,created_at,updated_at')
+      sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,created_at,updated_at'),
+      sb.from('credit_notes').select('payment_schedule_id,unit_id,amount').in('unit_id',units)
     ]);
     if(pair[0].error)throw pair[0].error;
     if(pair[1].error)throw pair[1].error;
+    if(pair[2].error)throw pair[2].error;
 
-    var schedules=pair[0].data||[],tasks=pair[1].data||[];
+    var schedules=pair[0].data||[],tasks=pair[1].data||[],credits=pair[2].data||[];
+    var creditBySchedule={};
+    credits.forEach(function(cn){
+      if(cn.payment_schedule_id==null)return;
+      var key=String(cn.payment_schedule_id);
+      creditBySchedule[key]=Math.round(((creditBySchedule[key]||0)+(Number(cn.amount)||0))*100)/100;
+    });
+
     var managed=carryManagedIds(),activeUnits={};units.forEach(function(id){activeUnits[String(id)]=true;});
     var manualBlock={};
     tasks.forEach(function(t){if(isPaymentRelatedManual(t))manualBlock[String(t.unit_id)]=true;});
@@ -160,22 +175,25 @@
     schedules.forEach(function(row){
       var sid=String(row.id);
       if(!isPaymentStage(row)||managed[sid])return;
-      var due=Number(row.due_amount)||0,paid=Number(row.paid_amount)||0,remaining=Math.round(Math.max(0,due-paid)*100)/100;
+      var due=Number(row.due_amount)||0;
+      var paid=Number(row.paid_amount)||0;
+      var creditApplied=Number(creditBySchedule[sid])||0;
+      var remaining=Math.round(Math.max(0,due-paid-creditApplied)*100)/100;
       var installmentDue=isoDate(row.due_date),delta=daysUntil(installmentDue);
       if(!installmentDue||delta===null)return;
-      var phase={row:row,remaining:remaining,delta:delta,paid:remaining<=1,manualBlock:!!manualBlock[String(row.unit_id)],desiredKind:null,desiredKey:null};
+      var phase={row:row,remaining:remaining,creditApplied:creditApplied,delta:delta,paid:remaining<=1,manualBlock:!!manualBlock[String(row.unit_id)],desiredKind:null,desiredKey:null};
       if(!phase.paid){
         if(delta===10)phase.desiredKind='demand_letter';
         else if(delta===2)phase.desiredKind='gentle_reminder';
         else if(delta<0){
           var key=String(row.unit_id);
-          (overdueByUnit[key]=overdueByUnit[key]||[]).push({row:row,remaining:remaining});
+          (overdueByUnit[key]=overdueByUnit[key]||[]).push({row:row,remaining:remaining,creditApplied:creditApplied});
         }
       }
       if(phase.desiredKind){
         phase.desiredKey=keyFor(phase.desiredKind,row.id,installmentDue);
         desired.push({
-          unit_id:Number(row.unit_id),action_label:kindLabel(phase.desiredKind,remaining),due_date:taskDueDate(phase.desiredKind,installmentDue),priority:kindPriority(phase.desiredKind),note:taskNote(row,remaining),status:'pending',owner_id:user.id,source:'automatic',auto_kind:phase.desiredKind,auto_key:phase.desiredKey,schedule_id:Number(row.id),updated_at:new Date().toISOString()
+          unit_id:Number(row.unit_id),action_label:kindLabel(phase.desiredKind,remaining),due_date:taskDueDate(phase.desiredKind,installmentDue),priority:kindPriority(phase.desiredKind),note:taskNote(row,remaining,creditApplied),status:'pending',owner_id:user.id,source:'automatic',auto_kind:phase.desiredKind,auto_key:phase.desiredKey,schedule_id:Number(row.id),updated_at:new Date().toISOString()
         });
       }
       phaseBySchedule[sid]=phase;
