@@ -274,8 +274,7 @@
     var ro=window.renderOverview;window.renderOverview=function(){var out=ro.apply(this,arguments);scheduleSync(80);decorate();return out;};
     var rd=window.renderDetail;window.renderDetail=function(){var out=rd.apply(this,arguments);scheduleSync(80);decorate();return out;};
     var load=window.loadFromSupabase;window.loadFromSupabase=async function(){var out=await load.apply(this,arguments);await sync(true);return out;};
-    var app=document.getElementById('app');
-    if(app&&window.MutationObserver)new MutationObserver(function(){decorate();scheduleSync(350);}).observe(app,{childList:true,subtree:true});
+    window.addEventListener('pageshow',function(){decorate();scheduleSync(120);});
     sync(true);
   }
 
