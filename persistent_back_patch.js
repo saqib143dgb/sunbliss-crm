@@ -22,86 +22,66 @@
   ].join('');
   document.head.appendChild(style);
 
-  function isBackText(value){
-    return /^(?:\u2190|\u2039|<)?\s*Back\b/i.test(String(value || '').replace(/\s+/g,' ').trim());
-  }
-
+  function isBackText(value){return /^(?:\u2190|\u2039|<)?\s*Back\b/i.test(String(value || '').replace(/\s+/g,' ').trim());}
   function collectInlineBacks(){
-    var found = [];
+    var found=[];
     document.querySelectorAll('button,a').forEach(function(el){
-      if (!el || el.id === 'sunblissPersistentBack') return;
-      var explicit = el.id === 'btnBack' || (el.classList && el.classList.contains('back'));
-      if (!explicit && !isBackText(el.textContent)) return;
+      if(!el||el.id==='sunblissPersistentBack')return;
+      var explicit=el.id==='btnBack'||(el.classList&&el.classList.contains('back'));
+      if(!explicit&&!isBackText(el.textContent))return;
       el.classList.add('sunbliss-inline-back-source');
       el.setAttribute('aria-hidden','true');
-      el.tabIndex = -1;
+      el.tabIndex=-1;
       found.push(el);
     });
     return found;
   }
-
   function preferredBackSource(sources){
-    var modalSources = sources.filter(function(el){
-      return !!(el.closest && el.closest('[aria-modal="true"],[role="dialog"],#monthlySalesOverlay'));
-    });
-    if (modalSources.length) return modalSources[modalSources.length - 1];
-    for (var i=0;i<sources.length;i++) if (sources[i].id === 'btnBack') return sources[i];
-    return sources.length ? sources[sources.length - 1] : null;
+    var modalSources=sources.filter(function(el){return !!(el.closest&&el.closest('[aria-modal="true"],[role="dialog"],#monthlySalesOverlay'));});
+    if(modalSources.length)return modalSources[modalSources.length-1];
+    for(var i=0;i<sources.length;i++)if(sources[i].id==='btnBack')return sources[i];
+    return sources.length?sources[sources.length-1]:null;
   }
-
   function ensureButton(){
-    var button = document.getElementById('sunblissPersistentBack');
-    if (button) return button;
-    button = document.createElement('button');
-    button.type = 'button';
-    button.id = 'sunblissPersistentBack';
-    button.textContent = 'Back';
-    button.setAttribute('aria-label','Back to previous CRM screen');
-    button.setAttribute('title','Back');
+    var button=document.getElementById('sunblissPersistentBack');
+    if(button)return button;
+    button=document.createElement('button');button.type='button';button.id='sunblissPersistentBack';button.textContent='Back';button.setAttribute('aria-label','Back to previous CRM screen');button.setAttribute('title','Back');
     button.addEventListener('click',function(){
-      var sources = collectInlineBacks();
-      var existing = preferredBackSource(sources);
-      if (existing && existing.isConnected){
-        existing.click();
-        return;
-      }
-      if (!window.state) return;
-      if (state.view === 'detail'){
-        state.view = state.detailFrom || 'list';
-        state.selectedUnit = null;
-        if (typeof window.renderMain === 'function') window.renderMain();
-        if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
+      var sources=collectInlineBacks(),existing=preferredBackSource(sources);
+      if(existing&&existing.isConnected){existing.click();return;}
+      if(!window.state)return;
+      if(state.view==='detail'){
+        state.view=state.detailFrom||'list';state.selectedUnit=null;
+        if(typeof window.renderMain==='function')window.renderMain();
+        if(typeof window.scrollTo==='function')window.scrollTo(0,0);
       }
     });
-    document.body.appendChild(button);
-    return button;
+    document.body.appendChild(button);return button;
   }
-
   function closeDockSearch(){
-    if (!window.__sunblissDockSearchOpen) return;
-    window.__sunblissDockSearchOpen = false;
-    var panel = document.getElementById('sunblissDockSearchPanel');
-    if (panel) panel.classList.remove('is-open');
-    var input = document.getElementById('dockPersistentSearchInput');
-    if (input && document.activeElement === input) input.blur();
+    if(!window.__sunblissDockSearchOpen)return;
+    window.__sunblissDockSearchOpen=false;
+    var panel=document.getElementById('sunblissDockSearchPanel');if(panel)panel.classList.remove('is-open');
+    var input=document.getElementById('dockPersistentSearchInput');if(input&&document.activeElement===input)input.blur();
   }
-
   function sync(){
-    var button = ensureButton();
-    var sources = collectInlineBacks();
-    var detailVisible = !!(window.state && state.view === 'detail' && document.querySelector('.detail'));
-    var shouldShow = detailVisible || sources.length > 0;
-    button.classList.toggle('is-visible',shouldShow);
-    button.setAttribute('aria-hidden',shouldShow ? 'false' : 'true');
-    button.tabIndex = shouldShow ? 0 : -1;
-    if (document.body) document.body.classList.toggle('sunbliss-back-dock-mode',shouldShow);
-    if (shouldShow) closeDockSearch();
+    var button=ensureButton(),sources=collectInlineBacks();
+    var detailVisible=!!(window.state&&state.view==='detail'&&document.querySelector('.detail'));
+    var shouldShow=detailVisible||sources.length>0;
+    button.classList.toggle('is-visible',shouldShow);button.setAttribute('aria-hidden',shouldShow?'false':'true');button.tabIndex=shouldShow?0:-1;
+    if(document.body)document.body.classList.toggle('sunbliss-back-dock-mode',shouldShow);
+    if(shouldShow)closeDockSearch();
+  }
+  var queued=false;
+  function queueSync(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;sync();});}
+  function wrap(name){
+    var original=window[name];if(typeof original!=='function'||original.__sunblissPersistentBackWrapped)return;
+    function wrapped(){var result=original.apply(this,arguments);queueSync();return result;}
+    wrapped.__sunblissPersistentBackWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;
   }
 
-  var observer = new MutationObserver(sync);
-  observer.observe(document.documentElement,{childList:true,subtree:true});
-  window.addEventListener('pageshow',sync);
-  window.addEventListener('popstate',sync);
-  window.addEventListener('resize',sync);
+  wrap('render');wrap('renderMain');wrap('renderDetail');wrap('renderOverview');wrap('renderList');
+  document.addEventListener('click',function(){setTimeout(queueSync,0);},true);
+  window.addEventListener('pageshow',queueSync);window.addEventListener('popstate',queueSync);window.addEventListener('resize',queueSync);
   sync();
 })();
