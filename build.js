@@ -42,7 +42,6 @@ const LOCAL_PATCH_FILES = [
   'furnishing_refresh_patch.js',
   'installment_edit_patch.js',
   'installment_menu_portal_patch.js',
-  'audit_log_patch.js',
   'detail_render_stability_patch.js',
   'unit_editor_patch.js',
   'payment_detail_patch.js',
@@ -151,7 +150,7 @@ function main() {
   let html = fs.readFileSync(indexPath, 'utf8');
 
   html = html.replace(/<script\s+async\s+data-explicit-opt-in=[\s\S]*?<\/script>\s*$/i, '');
-  html = html.replace(/<script[^>]+src=["'](?:professional_header_patch\.js|fresh_reference_header_patch\.js|fresh_reference_header_mobile_match_patch\.js|combined_brand_header_patch\.js)["'][^>]*><\/script>\s*/gi, '');
+  html = html.replace(/<script[^>]+src=["'](?:professional_header_patch\.js|fresh_reference_header_patch\.js|fresh_reference_header_mobile_match_patch\.js|combined_brand_header_patch\.js|audit_log_patch\.js)["'][^>]*><\/script>\s*/gi, '');
 
   /* The observer guard must run before the frozen base scripts and all local patches.
      Put it immediately after <head> so every subsequently-created MutationObserver
