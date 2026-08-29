@@ -8,7 +8,7 @@
     'body>.tabs{',
       'bottom:calc(10px + env(safe-area-inset-bottom))!important;',
       'width:min(600px,calc(100vw - 20px))!important;',
-      'border:1px solid rgba(255,255,255,.62)!important;',
+      'border:1px solid rgba(15,26,38,.58)!important;',
       'border-radius:999px!important;',
       'background:rgba(246,241,228,.82)!important;',
       'box-shadow:none!important;',
