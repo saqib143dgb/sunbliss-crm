@@ -5,21 +5,25 @@
     return String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
   }
 
+  function isRemovedAction(node){
+    var label=normalizeLabel(node && (node.textContent || node.getAttribute && (node.getAttribute('aria-label')||node.getAttribute('title'))));
+    var id=normalizeLabel(node && node.id).replace(/[^a-z0-9]/g,'');
+    if(label==='email reminder') return true;
+    if(label.indexOf('print reminder letter')!==-1 || label.indexOf('reminder letter')!==-1) return true;
+    if(label.indexOf('print late charges')!==-1 || label.indexOf('late charges')!==-1 || label.indexOf('late charge')!==-1) return true;
+    return id.indexOf('printreminder')!==-1 || id.indexOf('reminderletter')!==-1 || id.indexOf('printlate')!==-1 || id.indexOf('latecharge')!==-1;
+  }
+
   function removeDeprecatedDetailActions(){
     if (!window.state || state.view !== 'detail') return;
 
-    // Remove the welcome-letter action entirely. Removing the node also
-    // discards the button-specific click handler attached by the base app.
     var welcome = document.getElementById('btnPrintWelcomeLetter');
     if (welcome) welcome.remove();
 
-    // Remove only the customer-facing Email reminder action. Keep WhatsApp,
-    // formal overdue notices, and CRM escalation emails unchanged.
-    document.querySelectorAll('.detail a.btn-paper').forEach(function(link){
-      if (normalizeLabel(link.textContent) === 'email reminder') link.remove();
+    document.querySelectorAll('.detail a,.detail button').forEach(function(node){
+      if(isRemovedAction(node)) node.remove();
     });
 
-    // Do not leave empty action rows behind after removing a button.
     document.querySelectorAll('.detail .reminder-actions').forEach(function(group){
       if (!group.querySelector('a,button')) group.remove();
     });
