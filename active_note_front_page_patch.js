@@ -109,9 +109,9 @@ function schedule(force){
   requestAnimationFrame(function(){scheduled=false;refresh(false);});
 }
 function install(){
-  if(!window.state||!window.sb){setTimeout(install,80);return;}
-  var root=document.getElementById('app')||document.body;
-  new MutationObserver(function(){schedule(false);}).observe(root,{childList:true,subtree:true});
+  if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,80);return;}
+  var rd=window.renderDetail;
+  window.renderDetail=function(){var out=rd.apply(this,arguments);schedule(false);return out;};
   document.addEventListener('click',function(e){
     if(!e.target||!e.target.closest)return;
     if(e.target.closest('#notesSaveBtn,#scSave')){
@@ -119,6 +119,7 @@ function install(){
       setTimeout(function(){schedule(true);},250);
     }
   },true);
+  window.addEventListener('pageshow',function(){schedule(false);});
   schedule(true);
 }
 install();
