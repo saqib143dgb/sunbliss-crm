@@ -36,8 +36,11 @@
     var style = document.createElement('style');
     style.id = 'sunblissFullPageActionWorkflowStyles';
     style.textContent = [
+      '@keyframes crmActionPageReveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
       'body.crm-full-page-action-open{overflow:hidden!important;overscroll-behavior:none!important}',
       'body.crm-full-page-action-open .detail-top-actions-sticky{visibility:hidden!important;pointer-events:none!important}',
+      '.crm-action-awaiting-ready{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:none!important;animation:none!important}',
+      '.crm-action-page-ready{animation:crmActionPageReveal .14s ease-out both}',
 
       '.crm-full-page-inline{position:fixed!important;inset:0!important;z-index:12000!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;margin:0!important;padding:calc(18px + env(safe-area-inset-top)) 16px calc(26px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--paper,#F6F1E4)!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;box-sizing:border-box!important;scroll-padding-bottom:110px!important}',
       '.crm-full-page-inline>.section-label:first-child{position:sticky!important;top:calc(-18px - env(safe-area-inset-top))!important;z-index:8!important;margin:calc(-18px - env(safe-area-inset-top)) -16px 12px!important;padding:calc(17px + env(safe-area-inset-top)) 16px 13px!important;background:var(--paper,#F6F1E4)!important;border-bottom:1px solid var(--paper-line,#DCD2B6)!important;font-size:11px!important}',
@@ -67,9 +70,54 @@
       '#cancelledUnitEditModal.crm-full-page-overlay .cancelled-edit-card{border-radius:0!important}',
       '#cancelledUnitEditModal.crm-full-page-overlay .cancelled-edit-head{position:sticky!important;top:calc(-18px - env(safe-area-inset-top))!important;z-index:8!important;margin:calc(-18px - env(safe-area-inset-top)) -16px 14px!important;padding:calc(16px + env(safe-area-inset-top)) 16px 13px!important;background:var(--paper,#F6F1E4)!important;border-bottom:1px solid var(--paper-line,#DCD2B6)!important}',
 
+      '@media(prefers-reduced-motion:reduce){.crm-action-page-ready{animation:none!important}}',
       '@media(max-width:520px){.crm-full-page-inline,.crm-full-page-dialog{padding-left:14px!important;padding-right:14px!important}.crm-full-page-inline>.section-label:first-child{margin-left:-14px!important;margin-right:-14px!important;padding-left:14px!important;padding-right:14px!important}.crm-full-page-inline .brand-editor-actions,#installmentEditDialog.crm-full-page-dialog .installment-edit-actions,#installmentDeleteDialog.crm-full-page-dialog .installment-delete-actions,#paymentDetailDialog.crm-full-page-dialog .payment-detail-actions,.cancelled-edit-card.crm-full-page-dialog .cancelled-edit-footer{margin-left:-14px!important;margin-right:-14px!important;padding-left:14px!important;padding-right:14px!important}.crm-full-page-inline .brand-editor-actions,.installment-edit-actions,.installment-delete-actions,.payment-detail-actions,.cancelled-edit-footer{flex-direction:column!important}.crm-full-page-inline .brand-editor-actions button,.installment-edit-actions button,.installment-delete-actions button,.payment-detail-actions button,.cancelled-edit-footer button{width:100%!important}#customerNotesManagementPanel.crm-full-page-inline>button.btn-paper:last-child{width:calc(100% + 28px)!important;margin-left:-14px!important;margin-right:-14px!important}#customerNotesManagementPanel.crm-full-page-inline .notes-editor-actions{grid-template-columns:1fr!important;margin-left:-26px!important;margin-right:-26px!important}}'
     ].join('');
     document.head.appendChild(style);
+  }
+
+  function normalizedText(node){
+    return node ? String(node.textContent || '').replace(/\s+/g,' ').trim().toLowerCase() : '';
+  }
+
+  function isInitialInlineLoading(panel){
+    if (!panel) return false;
+    var text = normalizedText(panel);
+    if (text.indexOf('loading ') === -1 && text.indexOf('loading…') === -1 && text.indexOf('loading...') === -1) return false;
+    var interactive = panel.querySelector('input,select,textarea,button');
+    if (interactive) return false;
+    if (panel.children.length <= 4) return true;
+    return false;
+  }
+
+  function isOverlayLoading(overlay){
+    if (!overlay) return false;
+    if (overlay.id === 'installmentEditOverlay'){
+      var sub = overlay.querySelector('.installment-edit-sub');
+      return !!(sub && normalizedText(sub).indexOf('loading installment') === 0);
+    }
+    if (overlay.id === 'auditLogOverlay'){
+      var body = overlay.querySelector('#auditLogBody');
+      return !!(body && normalizedText(body).indexOf('loading audit') === 0);
+    }
+    return false;
+  }
+
+  function setReadyState(node,waiting){
+    if (!node) return;
+    if (waiting){
+      if (!node.classList.contains('crm-action-awaiting-ready')) node.classList.add('crm-action-awaiting-ready');
+      node.classList.remove('crm-action-page-ready');
+      return;
+    }
+    var wasWaiting = node.classList.contains('crm-action-awaiting-ready');
+    node.classList.remove('crm-action-awaiting-ready');
+    if (wasWaiting && !node.classList.contains('crm-action-page-ready')){
+      node.classList.add('crm-action-page-ready');
+      window.setTimeout(function(){
+        if (node && node.classList) node.classList.remove('crm-action-page-ready');
+      },180);
+    }
   }
 
   function markInlinePanels(){
@@ -78,6 +126,7 @@
         panel.classList.add('crm-full-page-inline');
         if (!panel.hasAttribute('role')) panel.setAttribute('role','dialog');
         panel.setAttribute('aria-modal','true');
+        setReadyState(panel,isInitialInlineLoading(panel));
       });
     });
   }
@@ -86,6 +135,7 @@
     overlaySelectors.forEach(function(selector){
       document.querySelectorAll(selector).forEach(function(overlay){
         overlay.classList.add('crm-full-page-overlay');
+        setReadyState(overlay,isOverlayLoading(overlay));
       });
     });
     dialogSelectors.forEach(function(selector){
@@ -103,7 +153,7 @@
         var node=nodes[j];
         if (!node.isConnected) continue;
         var cs=window.getComputedStyle(node);
-        if (cs.display!=='none' && cs.visibility!=='hidden') return true;
+        if (cs.display!=='none') return true;
       }
     }
     return false;
@@ -128,7 +178,7 @@
 
   ensureStyles();
   refresh();
-  new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
+  new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['style','class','hidden']});
   window.addEventListener('pageshow',schedule);
   window.addEventListener('popstate',schedule);
 })();
