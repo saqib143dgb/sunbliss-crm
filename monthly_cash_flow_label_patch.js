@@ -10,8 +10,8 @@ function refresh(){
   if(!overview)return;
   var nodes=overview.querySelectorAll('.section-label,.stat-sub,p,div,span');
   for(var i=0;i<nodes.length;i++){
-    var el=nodes[i],t=norm(el.textContent);
-    if(t==='Cash Flow by Month')el.textContent='Monthly Cash Flow';
+    var el=nodes[i],t=norm(el.textContent),lower=t.toLowerCase();
+    if(lower==='cash flow by month')el.textContent='MONTHLY CASH FLOW';
     if(t===legacy&&!el.querySelector('*'))el.remove();
   }
 }
