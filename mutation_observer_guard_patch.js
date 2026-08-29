@@ -50,6 +50,7 @@ function SafeMutationObserver(callback){
   var burstStart=0;
   var burstRuns=0;
   var cooldownTimer=0;
+  var broad=false;
 
   function enqueue(){
     if(queued)return;
@@ -57,9 +58,17 @@ function SafeMutationObserver(callback){
     var t=now();
     if(!burstStart||t-burstStart>1000){burstStart=t;burstRuns=0;}
 
-    /* A continuously self-triggering observer is slowed independently. Normal UI
-       observers never hit these thresholds. */
-    var delay=burstRuns>=24?160:burstRuns>=12?64:0;
+    /* Broad whole-app observers are decorator-style helpers in this CRM and do not
+       need high-frequency delivery. Give them stricter backoff during mutation storms. */
+    var delay=0;
+    if(broad){
+      if(burstRuns>=12)delay=220;
+      else if(burstRuns>=6)delay=90;
+      else if(burstRuns>=3)delay=32;
+    }else{
+      if(burstRuns>=24)delay=160;
+      else if(burstRuns>=12)delay=64;
+    }
     if(delay){
       if(cooldownTimer)return;
       cooldownTimer=window.setTimeout(function(){cooldownTimer=0;addJob(flush);},delay);
@@ -85,6 +94,14 @@ function SafeMutationObserver(callback){
     }
     enqueue();
   });
+
+  /* Track only this observer's target without touching the browser prototype. */
+  var nativeObserve=nativeObserver.observe.bind(nativeObserver);
+  nativeObserver.observe=function(target,options){
+    var app=document.getElementById('app');
+    broad=!!(options&&options.subtree&&(target===document.documentElement||target===document.body||target===app));
+    return nativeObserve(target,options);
+  };
 
   return nativeObserver;
 }
