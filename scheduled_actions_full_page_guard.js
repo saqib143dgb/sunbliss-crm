@@ -16,7 +16,19 @@
   ].join('');
   document.head.appendChild(style);
 
-  function refresh(){document.body.classList.toggle('scheduled-action-open',!!document.getElementById('scheduledActionPanel'));}
-  new MutationObserver(function(){requestAnimationFrame(refresh);}).observe(document.documentElement,{childList:true,subtree:true});
+  var queued=false;
+  function refresh(){queued=false;document.body.classList.toggle('scheduled-action-open',!!document.getElementById('scheduledActionPanel'));}
+  function queue(){if(queued)return;queued=true;requestAnimationFrame(refresh);}
+  function relevant(node){
+    if(!node||node.nodeType!==1)return false;
+    if(node.id==='scheduledActionPanel')return true;
+    return !!(node.querySelector&&node.querySelector('#scheduledActionPanel'));
+  }
+  if(window.MutationObserver)new MutationObserver(function(mutations){
+    for(var i=0;i<mutations.length;i++){
+      for(var j=0;j<mutations[i].addedNodes.length;j++)if(relevant(mutations[i].addedNodes[j])){queue();return;}
+      for(var k=0;k<mutations[i].removedNodes.length;k++)if(relevant(mutations[i].removedNodes[k])){queue();return;}
+    }
+  }).observe(document.documentElement,{childList:true,subtree:true});
   refresh();
 })();
