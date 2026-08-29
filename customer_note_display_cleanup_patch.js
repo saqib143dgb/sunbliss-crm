@@ -5,6 +5,7 @@ window.__sunblissCustomerNoteDisplayCleanupInstalled=true;
 
 var loadingKey='';
 var cache={};
+var queued=false;
 
 function text(v){return v==null?'':String(v);}
 function norm(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
@@ -46,7 +47,7 @@ function hideLegacyRemarksNotices(){
       var subText=norm(subs[j].textContent);
       if(!subText)continue;
       if(subText.indexOf('latest update:')===0)continue;
-      subs[j].style.display='none';
+      if(subs[j].style.display!=='none')subs[j].style.display='none';
       subs[j].dataset.customerLegacyRemarkHidden='1';
       changed=true;
     }
@@ -59,7 +60,7 @@ function hideLegacyRemarksNotices(){
         break;
       }
     }
-    if(!hasVisibleContent){
+    if(!hasVisibleContent&&notice.style.display!=='none'){
       notice.style.display='none';
       notice.dataset.customerLegacyRemarkHidden='1';
     }
@@ -159,23 +160,31 @@ async function ensureDedicatedNotice(){
   }
 }
 function refresh(){
+  queued=false;
   hideLowerDuplicateRows();
   hideLegacyRemarksNotices();
   ensureDedicatedNotice();
 }
+function schedule(){
+  if(queued)return;
+  queued=true;
+  requestAnimationFrame(refresh);
+}
 function install(){
-  if(!window.state||!window.sb){setTimeout(install,80);return;}
-  var root=document.getElementById('app')||document.body;
-  new MutationObserver(function(){requestAnimationFrame(refresh);}).observe(root,{childList:true,subtree:true});
+  if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,80);return;}
+  var rd=window.renderDetail;
+  window.renderDetail=function(){var out=rd.apply(this,arguments);schedule();return out;};
   document.addEventListener('click',function(e){
     if(e.target&&e.target.closest&&e.target.closest('#scSave')){
       var uid=unitId();
       if(uid)delete cache[String(uid)];
       var detail=document.querySelector('.detail');
       if(detail)delete detail.dataset.customerNotesLoading;
+      setTimeout(schedule,180);
     }
   },true);
-  refresh();
+  window.addEventListener('pageshow',schedule);
+  schedule();
 }
 install();
 })();
