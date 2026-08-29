@@ -32,7 +32,6 @@
     el.classList.add('is-syncing');
     el.setAttribute('aria-busy','true');
     if(label)label.textContent='Syncing…';
-
     try{
       if(typeof window.loadFromSupabase!=='function')throw new Error('CRM sync is unavailable.');
       await window.loadFromSupabase();
@@ -41,42 +40,19 @@
       else if(label)label.textContent='Synced just now';
       requestAnimationFrame(makeInteractive);
     }catch(err){
-      el.classList.remove('is-syncing');
-      el.removeAttribute('aria-busy');
-      if(label)label.textContent='Sync failed';
-      setTimeout(function(){
-        if(label&&document.body.contains(label))label.textContent=oldText;
-      },1400);
-      return;
+      el.classList.remove('is-syncing');el.removeAttribute('aria-busy');if(label)label.textContent='Sync failed';
+      setTimeout(function(){if(label&&document.body.contains(label))label.textContent=oldText;},1400);return;
     }
-
-    el.classList.remove('is-syncing');
-    el.removeAttribute('aria-busy');
+    el.classList.remove('is-syncing');el.removeAttribute('aria-busy');
   }
 
-  document.addEventListener('click',function(e){
-    var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;
-    if(!el)return;
-    e.preventDefault();
-    runSync(el);
-  });
+  document.addEventListener('click',function(e){var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;if(!el)return;e.preventDefault();runSync(el);});
+  document.addEventListener('keydown',function(e){if(e.key!=='Enter'&&e.key!==' ')return;var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;if(!el)return;e.preventDefault();runSync(el);});
 
-  document.addEventListener('keydown',function(e){
-    if(e.key!=='Enter'&&e.key!==' ')return;
-    var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;
-    if(!el)return;
-    e.preventDefault();
-    runSync(el);
-  });
-
-  if(window.MutationObserver){
-    var queued=false;
-    new MutationObserver(function(){
-      if(queued)return;
-      queued=true;
-      requestAnimationFrame(function(){queued=false;makeInteractive();});
-    }).observe(document.documentElement,{childList:true,subtree:true});
-  }
-
-  makeInteractive();
+  var queued=false;
+  function queue(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;makeInteractive();});}
+  function wrap(name){var original=window[name];if(typeof original!=='function'||original.__sunblissHeaderSyncWrapped)return;function wrapped(){var result=original.apply(this,arguments);queue();return result;}wrapped.__sunblissHeaderSyncWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;}
+  wrap('render');wrap('renderMain');wrap('renderOverview');wrap('renderDetail');
+  window.addEventListener('pageshow',queue);
+  queue();
 })();
