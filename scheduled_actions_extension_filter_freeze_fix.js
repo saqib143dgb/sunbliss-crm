@@ -88,7 +88,29 @@ function installFilterExitGuard(){
   },true);
 }
 
+/*
+  PaymentExtensionsCore refreshes the extension UI whenever the background CRM
+  renderer runs. The original UI refresh redraws the full payment-extension panel
+  when it is open, which can remove the Add Extension form (and replace Close/Add
+  buttons) immediately after a tap. Keep the open panel stable. The panel's own
+  open/save/cancel flows already reload and redraw explicitly when needed.
+*/
+function installPaymentExtensionPanelStability(){
+  if(!window.PaymentExtensionsUI||typeof window.PaymentExtensionsUI.refresh!=='function'){
+    setTimeout(installPaymentExtensionPanelStability,80);
+    return;
+  }
+  if(window.PaymentExtensionsUI.__stableOpenPanel)return;
+  var originalRefresh=window.PaymentExtensionsUI.refresh;
+  window.PaymentExtensionsUI.refresh=function(){
+    if(document.getElementById('paymentExtensionPanel'))return;
+    return originalRefresh.apply(this,arguments);
+  };
+  window.PaymentExtensionsUI.__stableOpenPanel=true;
+}
+
 installOverviewHtmlGuard();
 installExtensionStateTextGuard();
 installFilterExitGuard();
+installPaymentExtensionPanelStability();
 })();
