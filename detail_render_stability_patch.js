@@ -67,41 +67,10 @@
     window.goToDetail = guardedGoToDetail;
   }
 
-  function suppressRedundantUiTextMutations(){
-    try {
-      var descriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
-      if (!descriptor || !descriptor.get || !descriptor.set) return;
-      var nativeGet = descriptor.get;
-      var nativeSet = descriptor.set;
-      var stableLeafSelector = [
-        '.detail .d-type',
-        '.detail .badges .badge',
-        '.detail .money-label',
-        '.detail .money-value',
-        '.detail .stage-row > span',
-        '#paymentDetailDialog .payment-detail-row-meta > span',
-        '#installmentEditDialog #ieStatus'
-      ].join(',');
-
-      function stableSet(value){
-        var next = value === null || value === undefined ? '' : String(value);
-        var isTarget = this && this.nodeType === 1 && this.matches && this.matches(stableLeafSelector);
-        if (isTarget && nativeGet.call(this) === next) return;
-        return nativeSet.call(this, value);
-      }
-
-      Object.defineProperty(Node.prototype, 'textContent', {
-        configurable: descriptor.configurable,
-        enumerable: descriptor.enumerable,
-        get: nativeGet,
-        set: stableSet
-      });
-    } catch (err) {
-      console.warn('Could not install CRM redundant-text mutation guard', err);
-    }
-  }
-
-  suppressRedundantUiTextMutations();
+  /*
+    Do not override Node.prototype.textContent here. Native DOM properties are left
+    untouched so every CRM module uses the browser's normal, predictable setters.
+  */
   wrapRenderer('renderMain', false);
   wrapRenderer('renderDetail', true);
   wrapGoToDetail();
