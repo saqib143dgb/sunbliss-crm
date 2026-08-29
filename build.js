@@ -103,7 +103,8 @@ const LOCAL_PATCH_FILES = [
   'detail_attention_pills_patch.js',
   'scheduled_actions_full_page_guard.js',
   'full_page_action_workflow_patch.js',
-  'effective_action_required_patch.js'
+  'effective_action_required_patch.js',
+  'scheduled_actions_filter_cleanup_patch.js'
 ];
 
 function requireFile(filePath, label) {
