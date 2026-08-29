@@ -10,6 +10,9 @@ const LOCAL_STATIC_FILES = [];
 const LOCAL_REPLACEMENT_FILES = {
   'chunk_11.js': 'auth_core_replacement.js'
 };
+const PRELOAD_PATCH_FILES = [
+  'mutation_observer_guard_patch.js'
+];
 const LOCAL_PATCH_FILES = [
   'feature_patch.js',
   'detail_menu_patch.js',
@@ -140,7 +143,7 @@ function main() {
     fs.copyFileSync(source, target);
   }
 
-  for (const file of LOCAL_PATCH_FILES) {
+  for (const file of [...PRELOAD_PATCH_FILES, ...LOCAL_PATCH_FILES]) {
     copyRequired(path.join(ROOT, file), path.join(OUT, file), `Local patch ${file}`);
   }
 
@@ -149,6 +152,15 @@ function main() {
 
   html = html.replace(/<script\s+async\s+data-explicit-opt-in=[\s\S]*?<\/script>\s*$/i, '');
   html = html.replace(/<script[^>]+src=["'](?:professional_header_patch\.js|fresh_reference_header_patch\.js|fresh_reference_header_mobile_match_patch\.js|combined_brand_header_patch\.js)["'][^>]*><\/script>\s*/gi, '');
+
+  /* The observer guard must run before the frozen base scripts and all local patches.
+     Put it immediately after <head> so every subsequently-created MutationObserver
+     uses the guarded scheduler. */
+  for (const patch of PRELOAD_PATCH_FILES) {
+    html = html.replace(new RegExp(`<script[^>]+src=["']${patch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["'][^>]*><\\/script>\\s*`, 'gi'), '');
+    html = html.replace(/<head([^>]*)>/i, `<head$1>\n<script src="${patch}"></script>`);
+  }
+
   for (const patch of LOCAL_PATCH_FILES) {
     if (!html.includes(patch)) {
       html = html.replace('</body>', `<script src="${patch}"></script>\n</body>`);
