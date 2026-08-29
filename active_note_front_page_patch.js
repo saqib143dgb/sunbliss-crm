@@ -8,7 +8,6 @@ var scheduled=false;
 var loadingKey='';
 
 function text(v){return v==null?'':String(v);}
-function norm(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
 function unitId(){
   if(!window.state||!state.selectedUnit)return null;
   var p=String(state.selectedUnit).split('::');
@@ -27,22 +26,6 @@ function styles(){
   ].join('');
   document.head.appendChild(s);
 }
-function hideDuplicateSpecial(){
-  var legacy=document.getElementById('customerNotesCard');
-  if(!legacy)return;
-  var rows=legacy.querySelectorAll('.customer-note-display-row');
-  var visible=false;
-  for(var i=0;i<rows.length;i++){
-    var label=rows[i].querySelector('.customer-note-display-label');
-    if(label&&norm(label.textContent).indexOf('special note')===0){
-      rows[i].style.display='none';
-      rows[i].dataset.activeNoteDuplicateHidden='1';
-    }else if(rows[i].style.display!=='none'){
-      visible=true;
-    }
-  }
-  if(!visible)legacy.style.display='none';
-}
 function place(card,detail){
   var action=document.getElementById('actionRequiredCard');
   if(action&&action.parentNode===detail){
@@ -59,7 +42,6 @@ function place(card,detail){
 function show(note,key){
   var detail=document.querySelector('.detail');
   if(!detail)return;
-  hideDuplicateSpecial();
   var card=document.getElementById('activeCustomerNoteCard');
   if(!note){if(card)card.remove();return;}
   if(!card){
@@ -75,10 +57,10 @@ function show(note,key){
 async function fetchNote(uid,force){
   var k=String(uid),hit=cache[k];
   if(!force&&hit&&Date.now()-hit.at<2500)return hit.note;
-  var r=await sb.from('sales').select('remarks,updated_at').eq('unit_id',uid).order('id',{ascending:false}).limit(1);
+  var r=await sb.from('sales').select('customer_note,updated_at').eq('unit_id',uid).order('id',{ascending:false}).limit(1);
   if(r.error)throw r.error;
   var row=(r.data||[])[0]||{};
-  var note=text(row.remarks).trim();
+  var note=text(row.customer_note).trim();
   cache[k]={at:Date.now(),note:note,updatedAt:row.updated_at||null};
   return note;
 }
@@ -114,7 +96,7 @@ function install(){
   window.renderDetail=function(){var out=rd.apply(this,arguments);schedule(false);return out;};
   document.addEventListener('click',function(e){
     if(!e.target||!e.target.closest)return;
-    if(e.target.closest('#notesSaveBtn,#scSave')){
+    if(e.target.closest('#notesSaveBtn')){
       var uid=unitId();if(uid)delete cache[String(uid)];
       setTimeout(function(){schedule(true);},250);
     }
