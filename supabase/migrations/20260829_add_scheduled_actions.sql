@@ -44,5 +44,8 @@ using ((select auth.uid()) = owner_id)
 with check ((select auth.uid()) = owner_id);
 
 revoke all on table public.scheduled_actions from anon;
+revoke all on table public.scheduled_actions from authenticated;
 grant select, insert, update on table public.scheduled_actions to authenticated;
+
+revoke all on sequence public.scheduled_actions_id_seq from authenticated;
 grant usage, select on sequence public.scheduled_actions_id_seq to authenticated;
