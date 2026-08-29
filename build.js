@@ -90,6 +90,7 @@ const LOCAL_PATCH_FILES = [
   'detail_status_flash_fix_patch.js',
   'overview_cleanup_patch.js',
   'scheduled_actions_patch.js',
+  'scheduled_actions_overview_style_patch.js',
   'scheduled_actions_full_page_guard.js',
   'full_page_action_workflow_patch.js'
 ];
