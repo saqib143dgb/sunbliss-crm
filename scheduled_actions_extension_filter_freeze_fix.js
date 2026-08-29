@@ -4,17 +4,11 @@ if(window.__sunblissScheduledExtensionFilterFreezeFix)return;
 window.__sunblissScheduledExtensionFilterFreezeFix=true;
 
 /*
-  Root cause of the iPhone freeze:
-  PaymentExtensionsCore observes #app for child-list changes and re-renders after
-  those changes. In the Extensions view, its own render path can write the exact
-  same list/state text back into the DOM. Some browser serializations make the
-  incoming HTML string differ from element.innerHTML even when the rendered DOM
-  is identical, so that write creates another mutation, which triggers another
-  render, and the cycle repeats.
-
-  Do not add another observer or another renderer here. Instead, make the two
-  self-triggering writes idempotent. Real changes still go through normally.
+  Keep Extensions stable on iPhone without allowing the extension module to trap
+  the Scheduled Actions dropdown on Extensions.
 */
+
+var userNonExtensionFilter=null;
 
 function installOverviewHtmlGuard(){
   if(!window.HTMLDivElement||!window.Element)return;
@@ -61,6 +55,40 @@ function installExtensionStateTextGuard(){
   proto.__sunblissExtTextGuard=true;
 }
 
+function installFilterExitGuard(){
+  if(!window.HTMLSelectElement)return;
+  var proto=window.HTMLSelectElement.prototype;
+  if(proto.__sunblissExtValueGuard)return;
+  var nativeDesc=Object.getOwnPropertyDescriptor(proto,'value');
+  if(!nativeDesc||typeof nativeDesc.get!=='function'||typeof nativeDesc.set!=='function')return;
+
+  Object.defineProperty(proto,'value',{
+    configurable:true,
+    enumerable:nativeDesc.enumerable,
+    get:function(){return nativeDesc.get.call(this);},
+    set:function(value){
+      var next=value==null?'':String(value);
+      if(this&&this.id==='scheduledOverviewFilter'&&userNonExtensionFilter&&next==='extensions'){
+        return;
+      }
+      nativeDesc.set.call(this,value);
+    }
+  });
+  proto.__sunblissExtValueGuard=true;
+
+  document.addEventListener('change',function(event){
+    var select=event&&event.target;
+    if(!select||select.id!=='scheduledOverviewFilter')return;
+    var chosen=nativeDesc.get.call(select);
+    if(chosen==='extensions'){
+      userNonExtensionFilter=null;
+    }else if(chosen){
+      userNonExtensionFilter=chosen;
+    }
+  },true);
+}
+
 installOverviewHtmlGuard();
 installExtensionStateTextGuard();
+installFilterExitGuard();
 })();
