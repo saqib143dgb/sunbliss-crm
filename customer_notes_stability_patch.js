@@ -13,9 +13,20 @@ function lockStableCard(){
   detail.dataset.customerNotesLoading=key;
 }
 
+function containsNotesCard(node){
+  if(!node||node.nodeType!==1)return false;
+  if(node.id==='customerNotesCard')return true;
+  return !!(node.querySelector&&node.querySelector('#customerNotesCard'));
+}
 function install(){
   var root=document.getElementById('app')||document.body;
-  new MutationObserver(function(){lockStableCard();}).observe(root,{childList:true,subtree:true});
+  if(window.MutationObserver)new MutationObserver(function(mutations){
+    for(var i=0;i<mutations.length;i++){
+      for(var j=0;j<mutations[i].addedNodes.length;j++){
+        if(containsNotesCard(mutations[i].addedNodes[j])){lockStableCard();return;}
+      }
+    }
+  }).observe(root,{childList:true,subtree:true});
   requestAnimationFrame(lockStableCard);
 }
 
