@@ -88,7 +88,8 @@ const LOCAL_PATCH_FILES = [
   'stage_integrity_and_carry_display_patch.js',
   'active_note_front_page_patch.js',
   'detail_status_flash_fix_patch.js',
-  'overview_cleanup_patch.js'
+  'overview_cleanup_patch.js',
+  'full_page_action_workflow_patch.js'
 ];
 
 function requireFile(filePath, label) {
