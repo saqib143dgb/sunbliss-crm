@@ -16,17 +16,16 @@ function styles(){
   var s=document.createElement('style');
   s.id='detailAttentionPillsStyles';
   s.textContent=[
-    '#detailAttentionPills{margin:0 0 10px;overflow:hidden}',
-    '.detail-attention-pills-scroll{display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:1px 1px 2px}',
-    '.detail-attention-pills-scroll::-webkit-scrollbar{display:none}',
-    '.detail-attention-pill{flex:0 0 auto;min-height:31px;margin:0!important;padding:6px 10px;border:1px solid var(--paper-line,#DCD2B6);border-radius:999px;background:var(--paper-dim,#EFE8D6);color:var(--muted,#6F706D);font:700 9.5px/1.2 IBM Plex Mono,monospace;letter-spacing:.02em;white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '#detailAttentionPills{width:100%;margin:0 0 10px;overflow:hidden;box-sizing:border-box}',
+    '.detail-attention-pills-scroll{display:flex;width:100%;gap:7px;overflow:visible;padding:1px 0 2px;box-sizing:border-box}',
+    '.detail-attention-pill{flex:1 1 0;min-width:0;min-height:31px;margin:0!important;padding:6px 7px;border:1px solid var(--paper-line,#DCD2B6);border-radius:999px;background:var(--paper-dim,#EFE8D6);color:var(--muted,#6F706D);font:700 9.5px/1.2 IBM Plex Mono,monospace;letter-spacing:.01em;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box}',
     '.detail-attention-pill[aria-selected="true"]{background:var(--ink,#0F1A26);border-color:var(--ink,#0F1A26);color:var(--paper,#F6F1E4)}',
     '.detail-attention-pill[data-kind="action"][aria-selected="true"]{background:var(--rust,#AE3B2B);border-color:var(--rust,#AE3B2B)}',
     '.detail-attention-pill[data-kind="scheduled"][aria-selected="true"]{background:var(--slate,#45566B);border-color:var(--slate,#45566B)}',
     '.detail-attention-pill[data-kind="note"][aria-selected="true"],.detail-attention-pill[data-kind="special"][aria-selected="true"],.detail-attention-pill[data-kind="partial"][aria-selected="true"]{background:var(--amber,#9C5A12);border-color:var(--amber,#9C5A12)}',
     '.detail-attention-managed.detail-attention-hidden{display:none!important}',
     '#actionRequiredCard.detail-attention-managed,#activeCustomerNoteCard.detail-attention-managed,#customerNotesCard.detail-attention-managed,#scheduledActionsDetail.detail-attention-managed{margin-top:0!important;margin-bottom:14px!important}',
-    '@media(max-width:520px){#detailAttentionPills{margin-bottom:9px}.detail-attention-pill{min-height:30px;padding:6px 9px;font-size:9px}}'
+    '@media(max-width:520px){#detailAttentionPills{margin-bottom:9px}.detail-attention-pills-scroll{gap:6px}.detail-attention-pill{min-height:32px;padding:6px 5px;font-size:8.7px;line-height:1.15}}'
   ].join('');
   document.head.appendChild(s);
 }
