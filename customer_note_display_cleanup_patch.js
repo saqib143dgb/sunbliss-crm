@@ -14,6 +14,10 @@ function unitId(){
   var p=String(state.selectedUnit).split('::');
   return p.length>1&&Number(p[1])?Number(p[1]):null;
 }
+function signalReady(detail,key){
+  if(detail&&detail.dataset.customerNotesLoading===key)delete detail.dataset.customerNotesLoading;
+  try{document.dispatchEvent(new CustomEvent('sunbliss:customer-notes-ready',{detail:{key:key}}));}catch(e){}
+}
 function isLowerNoteLabel(label){
   var n=norm(label);
   return n==='remarks'||n==='remark'||n==='special note'||n==='customer note'||n==='note'||n==='notes';
@@ -136,6 +140,7 @@ async function ensureDedicatedNotice(){
   var key=String(state.selectedUnit);
   if(loadingKey===key)return;
   loadingKey=key;
+  detail.dataset.customerNotesLoading=key;
   try{
     var data=await getData(uid);
     if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
@@ -157,6 +162,7 @@ async function ensureDedicatedNotice(){
     console.warn('Could not restore dedicated customer note notice',e);
   }finally{
     if(loadingKey===key)loadingKey='';
+    signalReady(detail,key);
   }
 }
 function refresh(){
