@@ -1,5 +1,6 @@
 (function(){
 'use strict';
+// Keep effective-payment updates on the single core Action Required presentation renderer.
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
 var cache={},loading={},preloading=null,timer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV3';
