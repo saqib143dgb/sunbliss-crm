@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},timer=null,observer=null,rendering=false,CACHE_TTL=120000;
+var cache={},loading={},preloading=null,timer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV3';
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
@@ -12,64 +12,33 @@ function date(v){var d=day(v);return d?d.toLocaleDateString('en-GB',{day:'2-digi
 function money(v){var n=Math.max(0,Number(v)||0);return typeof window.fmtAED==='function'?window.fmtAED(n):'AED '+n.toLocaleString('en-AE',{maximumFractionDigits:2})}
 function safe(v){return typeof window.esc==='function'?window.esc(text(v)):text(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function current(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit)})||null}
+function unitIds(){var seen={},ids=[];(window.state&&Array.isArray(state.dues)?state.dues:[]).forEach(function(c){var id=Number(c&&c.sno);if(id>0&&!seen[id]){seen[id]=1;ids.push(id)}});return ids}
 function paymentStage(r){var n=norm(r&&r.stage_name);return !!n&&n.indexOf('dld')<0&&n.indexOf('admin fee')<0&&n.indexOf('booking')<0&&(n.indexOf('installment')>=0||n.indexOf('down payment')>=0||n.indexOf('final')>=0)}
 function carryManaged(c){var x={};(c&&c.stages||[]).forEach(function(s){if(s&&s.id&&s.carryForwardManaged===true)x[String(s.id)]=1});return x}
-function ensurePendingStyle(){if(document.getElementById('effectiveActionPendingStyle'))return;var s=document.createElement('style');s.id='effectiveActionPendingStyle';s.textContent='#actionRequiredCard[data-effective-pending="1"]{position:relative!important;overflow:hidden!important}#actionRequiredCard[data-effective-pending="1"] .action-required-status,#actionRequiredCard[data-effective-pending="1"] .action-required-message,#actionRequiredCard[data-effective-pending="1"] .action-required-detail{visibility:hidden!important}#actionRequiredCard[data-effective-pending="1"]::after{content:"Checking latest payment status…";position:absolute;left:14px;right:14px;top:55%;transform:translateY(-50%);font:600 12px/1.4 Inter,Arial,sans-serif;color:var(--muted,#6F706D);text-align:left;pointer-events:none}';document.head.appendChild(s)}
-function markPending(){var card=document.getElementById('actionRequiredCard');if(card)card.setAttribute('data-effective-pending','1')}
-function reveal(card){if(card)card.removeAttribute('data-effective-pending')}
 function fresh(uid){var hit=cache[String(uid)];return hit&&Date.now()-hit.at<CACHE_TTL?hit:null}
-async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Date.now()-hit.at<CACHE_TTL)return hit.data;if(loading[k])return loading[k];loading[k]=(async function(){var q=await Promise.all([
+function hydrate(){try{var raw=sessionStorage.getItem(STORE_KEY);if(!raw)return;var saved=JSON.parse(raw),now=Date.now();Object.keys(saved||{}).forEach(function(k){var h=saved[k];if(h&&h.data&&now-Number(h.at||0)<CACHE_TTL)cache[k]=h})}catch(e){}}
+function persist(){try{sessionStorage.setItem(STORE_KEY,JSON.stringify(cache))}catch(e){}}
+function assemble(rows,credits,extensions){var credit={},ext={};(credits||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var id=String(c.payment_schedule_id);credit[id]=Math.round(((credit[id]||0)+(Number(c.amount)||0))*100)/100});(extensions||[]).forEach(function(e){if(e.payment_schedule_id==null||!iso(e.extended_due_date))return;var id=String(e.payment_schedule_id),old=ext[id];if(!old||iso(e.extended_due_date)>iso(old.extended_due_date)||(iso(e.extended_due_date)===iso(old.extended_due_date)&&text(e.updated_at)>text(old.updated_at)))ext[id]=e});return{rows:rows||[],credit:credit,ext:ext}}
+async function preloadAll(force){if(!window.sb)return false;if(preloading&&!force)return preloading;var ids=unitIds();if(!ids.length)return false;var now=Date.now(),allFresh=!force&&ids.every(function(id){var h=cache[String(id)];return h&&now-h.at<CACHE_TTL});if(allFresh)return true;preloading=(async function(){var q=await Promise.all([
+ sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',ids),
+ sb.from('credit_notes').select('unit_id,payment_schedule_id,amount').in('unit_id',ids),
+ sb.from('payment_extensions').select('id,unit_id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').in('unit_id',ids).neq('status','cancelled')
+]);q.forEach(function(r){if(r.error)throw r.error});var rows={},credits={},exts={};(q[0].data||[]).forEach(function(r){var k=String(r.unit_id);(rows[k]||(rows[k]=[])).push(r)});(q[1].data||[]).forEach(function(r){var k=String(r.unit_id);(credits[k]||(credits[k]=[])).push(r)});(q[2].data||[]).forEach(function(r){var k=String(r.unit_id);(exts[k]||(exts[k]=[])).push(r)});var at=Date.now();ids.forEach(function(id){var k=String(id);cache[k]={at:at,data:assemble(rows[k]||[],credits[k]||[],exts[k]||[])}});persist();return true})().catch(function(e){console.warn('Could not preload effective payment actions',e);return false}).then(function(v){preloading=null;if(v&&window.state&&state.view==='detail')prepare();return v});return preloading}
+async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Date.now()-hit.at<CACHE_TTL)return hit.data;if(!force&&preloading){await preloading;hit=cache[k];if(hit&&Date.now()-hit.at<CACHE_TTL)return hit.data}if(loading[k])return loading[k];loading[k]=(async function(){var q=await Promise.all([
  sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',uid),
  sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',uid),
  sb.from('payment_extensions').select('id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').eq('unit_id',uid).neq('status','cancelled')
-]);q.forEach(function(r){if(r.error)throw r.error});var credit={},ext={};(q[1].data||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var id=String(c.payment_schedule_id);credit[id]=Math.round(((credit[id]||0)+(Number(c.amount)||0))*100)/100});(q[2].data||[]).forEach(function(e){if(e.payment_schedule_id==null||!iso(e.extended_due_date))return;var id=String(e.payment_schedule_id),old=ext[id];if(!old||iso(e.extended_due_date)>iso(old.extended_due_date)||(iso(e.extended_due_date)===iso(old.extended_due_date)&&text(e.updated_at)>text(old.updated_at)))ext[id]=e});var data={rows:q[0].data||[],credit:credit,ext:ext};cache[k]={at:Date.now(),data:data};delete loading[k];return data})().catch(function(e){delete loading[k];throw e});return loading[k]}
+]);q.forEach(function(r){if(r.error)throw r.error});var data=assemble(q[0].data||[],q[1].data||[],q[2].data||[]);cache[k]={at:Date.now(),data:data};persist();delete loading[k];return data})().catch(function(e){delete loading[k];throw e});return loading[k]}
 function effective(row,ext){var e=ext[String(row.id)];if(e&&iso(e.extended_due_date))return{date:iso(e.extended_due_date),kind:'extension',contractual:iso(row.due_date),revised:iso(row.revised_due_date)};var r=iso(row.revised_due_date);if(r)return{date:r,kind:'revised',contractual:iso(row.due_date),revised:r};var d=iso(row.due_date);return{date:d,kind:'contractual',contractual:d,revised:''}}
 function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.push('By '+date(x.e.contractual));if(x.e.revised&&x.e.revised!==x.e.contractual)p.push('Revised to '+date(x.e.revised));p.push('Extended to '+date(x.e.date));return p.join(' · ')}if(x.e.kind==='revised')return 'By '+date(x.e.contractual)+' · Revised to '+date(x.e.date);return 'By '+date(x.e.date)}
 function build(data,c){var managed=carryManaged(c),rows=[];data.rows.forEach(function(r){if(!paymentStage(r)||managed[String(r.id)])return;var remaining=Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-(data.credit[String(r.id)]||0))*100)/100;if(remaining<=1)return;var e=effective(r,data.ext);if(!e.date)return;rows.push({r:r,remaining:remaining,e:e})});rows.sort(function(a,b){return a.e.date.localeCompare(b.e.date)});if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule is fully paid.'};var td=today(),over=rows.filter(function(x){var d=day(x.e.date);return d&&d<td});if(over.length){var sum=Math.round(over.reduce(function(s,x){return s+x.remaining},0)*100)/100,oldest=over[0],days=Math.max(1,Math.floor((td-day(oldest.e.date))/86400000)),labels=over.map(function(x){return text(x.r.stage_name)});return{status:'Overdue',tone:'danger',message:over.length===1?money(sum)+' for '+labels[0]+' was due on '+date(oldest.e.date)+'. Follow up for payment now.':money(sum)+' total overdue for '+labels.join(' + ')+'. Follow up for payment now.',detail:(over.length>1?over.length+' installments overdue · ':'')+sourceLine(oldest)+' · '+days+' day'+(days===1?'':'s')+' overdue.'}}var next=rows[0],d=day(next.e.date),delta=Math.round((d-td)/86400000),kind=next.e.kind,status=kind==='extension'?'Extension Active':kind==='revised'?'Revised Schedule':delta===0?'Due today':delta<=7?'Due soon':'Upcoming',tone=delta===0?'danger':(kind==='extension'||kind==='revised'||delta<=7?'warn':'neutral'),msg;if(delta===0)msg=money(next.remaining)+' for '+text(next.r.stage_name)+' is due today.';else msg='Next installment is '+money(next.remaining)+' due on '+date(next.e.date)+'.';return{status:status,tone:tone,message:msg,detail:'Stage: '+text(next.r.stage_name)+' · '+sourceLine(next)+(delta>0?' · Due in '+delta+' day'+(delta===1?'':'s')+'.':'.')}}
-function visibleMatches(card,a){
- var status=card.querySelector('.action-required-status');
- var message=card.querySelector('.action-required-message');
- var detail=card.querySelector('.action-required-detail');
- return card.getAttribute('data-tone')===a.tone&&
-   !!status&&text(status.textContent)===text(a.status)&&
-   !!message&&text(message.textContent)===text(a.message)&&
-   text(detail&&detail.textContent)===text(a.detail);
-}
+function visibleMatches(card,a){var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail');return card.getAttribute('data-tone')===a.tone&&!!status&&text(status.textContent)===text(a.status)&&!!message&&text(message.textContent)===text(a.message)&&text(detail&&detail.textContent)===text(a.detail)}
 function setTextIfChanged(node,value){if(node&&text(node.textContent)!==text(value))node.textContent=text(value)}
-function apply(a,key){
- if(!window.state||state.view!=='detail'||text(state.selectedUnit)!==key)return;
- var card=document.getElementById('actionRequiredCard');if(!card)return;
- var sig=[a.status,a.tone,a.message,a.detail].join('|');
- if(card.dataset.effectiveActionSig===sig||visibleMatches(card,a)){card.dataset.effectiveActionSig=sig;reveal(card);return;}
- rendering=true;
- try{
-   card.dataset.effectiveActionSig=sig;
-   if(card.getAttribute('data-tone')!==a.tone)card.setAttribute('data-tone',a.tone);
-   var status=card.querySelector('.action-required-status');
-   var message=card.querySelector('.action-required-message');
-   var detail=card.querySelector('.action-required-detail');
-   if(status&&message){
-     setTextIfChanged(status,a.status);
-     setTextIfChanged(message,a.message);
-     if(a.detail){
-       if(!detail){detail=document.createElement('p');detail.className='action-required-detail';card.appendChild(detail);}
-       setTextIfChanged(detail,a.detail);
-     }else if(detail){detail.remove();}
-   }else{
-     card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status">'+safe(a.status)+'</span></div><p class="action-required-message">'+safe(a.message)+'</p>'+(a.detail?'<p class="action-required-detail">'+safe(a.detail)+'</p>':'');
-   }
- }finally{rendering=false;reveal(card);}
-}
-function prepare(){
- if(!window.state||state.view!=='detail')return false;
- var c=current();if(!c||!Number(c.sno))return false;
- var hit=fresh(Number(c.sno));
- if(hit){apply(build(hit.data,c),text(state.selectedUnit));return true;}
- markPending();
- return false;
-}
-async function render(force){if(!window.state||!window.sb||state.view!=='detail')return;var c=current();if(!c||!Number(c.sno))return;var key=text(state.selectedUnit);try{var data=await load(Number(c.sno),!!force);if(text(state.selectedUnit)!==key||state.view!=='detail')return;apply(build(data,c),key)}catch(e){reveal(document.getElementById('actionRequiredCard'));console.warn('Effective Action Required could not load',e)}}
-function schedule(force,ms){clearTimeout(timer);if(ms===0){render(!!force);return;}timer=setTimeout(function(){render(!!force)},ms==null?30:ms)}
-function install(){if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,60);return}ensurePendingStyle();var rd=window.renderDetail;window.renderDetail=function(){var x=rd.apply(this,arguments);if(!prepare())schedule(false,0);return x};document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#extSave,#ieSave,#scSave,#extCancel')){markPending();schedule(true,220)}},true);observer=new MutationObserver(function(m){if(rendering||!window.state||state.view!=='detail')return;for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&(t.id==='actionRequiredCard'||(t.closest&&t.closest('#actionRequiredCard')))){schedule(false,0);break}}});observer.observe(document.body,{subtree:true,childList:true,characterData:true});window.addEventListener('pageshow',function(){schedule(false,40)});schedule(true,0)}
+function apply(a,key){if(!window.state||state.view!=='detail'||text(state.selectedUnit)!==key)return;var card=document.getElementById('actionRequiredCard');if(!card)return;var sig=[a.status,a.tone,a.message,a.detail].join('|');if(card.dataset.effectiveActionSig===sig||visibleMatches(card,a)){card.dataset.effectiveActionSig=sig;return}rendering=true;try{card.dataset.effectiveActionSig=sig;if(card.getAttribute('data-tone')!==a.tone)card.setAttribute('data-tone',a.tone);var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail');if(status&&message){setTextIfChanged(status,a.status);setTextIfChanged(message,a.message);if(a.detail){if(!detail){detail=document.createElement('p');detail.className='action-required-detail';card.appendChild(detail)}setTextIfChanged(detail,a.detail)}else if(detail){detail.remove()}}else{card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status">'+safe(a.status)+'</span></div><p class="action-required-message">'+safe(a.message)+'</p>'+(a.detail?'<p class="action-required-detail">'+safe(a.detail)+'</p>':'')}}finally{rendering=false}}
+function prepare(){if(!window.state||state.view!=='detail')return false;var c=current();if(!c||!Number(c.sno))return false;var hit=fresh(Number(c.sno));if(hit){apply(build(hit.data,c),text(state.selectedUnit));return true}return false}
+async function render(force){if(!window.state||!window.sb||state.view!=='detail')return;var c=current();if(!c||!Number(c.sno))return;var key=text(state.selectedUnit);try{var data=await load(Number(c.sno),!!force);if(text(state.selectedUnit)!==key||state.view!=='detail')return;apply(build(data,c),key)}catch(e){console.warn('Effective Action Required could not load',e)}}
+function schedule(force,ms){clearTimeout(timer);if(ms===0){render(!!force);return}timer=setTimeout(function(){render(!!force)},ms==null?30:ms)}
+function invalidateCurrent(){var c=current();if(c&&Number(c.sno)){delete cache[String(Number(c.sno))];persist()}}
+function install(){if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,60);return}hydrate();preloadAll(false);var rd=window.renderDetail;window.renderDetail=function(){var x=rd.apply(this,arguments);if(!prepare())schedule(false,0);return x};document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#extSave,#ieSave,#scSave,#extCancel')){invalidateCurrent();schedule(true,220)}},true);observer=new MutationObserver(function(m){if(rendering||!window.state||state.view!=='detail')return;for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&(t.id==='actionRequiredCard'||(t.closest&&t.closest('#actionRequiredCard')))){schedule(false,0);break}}});observer.observe(document.body,{subtree:true,childList:true,characterData:true});window.addEventListener('pageshow',function(){preloadAll(false);schedule(false,40)});if(state.view==='detail'&&!prepare())schedule(false,0)}
 install();
 })();
