@@ -5,6 +5,7 @@
   window.__sunblissScheduledFilterCleanupInstalled=true;
 
   var ALLOWED={today:true,overdue:true,extensions:true};
+  var ORDER=['today','overdue','extensions'];
 
   function extensionCount(){
     var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
@@ -21,7 +22,8 @@
       option.value='extensions';
       select.appendChild(option);
     }
-    option.textContent='Extensions · '+extensionCount();
+    var label='Extensions · '+extensionCount();
+    if(option.textContent!==label)option.textContent=label;
   }
 
   function clean(){
@@ -34,11 +36,14 @@
       if(!ALLOWED[option.value])option.remove();
     });
 
-    var order=['today','overdue','extensions'];
-    order.forEach(function(value){
-      var option=select.querySelector('option[value="'+value+'"]');
-      if(option)select.appendChild(option);
-    });
+    var current=Array.from(select.options).map(function(option){return option.value;});
+    var desired=ORDER.filter(function(value){return !!select.querySelector('option[value="'+value+'"]');});
+    if(current.join('|')!==desired.join('|')){
+      desired.forEach(function(value){
+        var option=select.querySelector('option[value="'+value+'"]');
+        if(option)select.appendChild(option);
+      });
+    }
 
     if(!ALLOWED[select.value])select.value='today';
   }
@@ -59,11 +64,15 @@
     }
   }
 
+  var queued=false;
   function queueClean(){
     clean();
-    if(window.requestAnimationFrame)requestAnimationFrame(clean);
-    setTimeout(clean,80);
-    setTimeout(clean,260);
+    if(queued)return;
+    queued=true;
+    var run=function(){queued=false;clean();};
+    if(typeof window.queueMicrotask==='function')window.queueMicrotask(run);
+    else if(typeof Promise==='function')Promise.resolve().then(run);
+    else setTimeout(run,0);
   }
 
   function install(){
