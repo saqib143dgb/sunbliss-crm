@@ -38,7 +38,7 @@
       if(window.state)window.state.syncedAt=new Date().toISOString();
       if(typeof window.render==='function')window.render();
       else if(label)label.textContent='Synced just now';
-      requestAnimationFrame(makeInteractive);
+      makeInteractive();
     }catch(err){
       el.classList.remove('is-syncing');el.removeAttribute('aria-busy');if(label)label.textContent='Sync failed';
       setTimeout(function(){if(label&&document.body.contains(label))label.textContent=oldText;},1400);return;
@@ -49,10 +49,15 @@
   document.addEventListener('click',function(e){var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;if(!el)return;e.preventDefault();runSync(el);});
   document.addEventListener('keydown',function(e){if(e.key!=='Enter'&&e.key!==' ')return;var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;if(!el)return;e.preventDefault();runSync(el);});
 
-  var queued=false;
-  function queue(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;makeInteractive();});}
-  function wrap(name){var original=window[name];if(typeof original!=='function'||original.__sunblissHeaderSyncWrapped)return;function wrapped(){var result=original.apply(this,arguments);queue();return result;}wrapped.__sunblissHeaderSyncWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;}
-  wrap('render');wrap('renderMain');wrap('renderOverview');wrap('renderDetail');
-  window.addEventListener('pageshow',queue);
-  queue();
+  function wrap(name){
+    var original=window[name];
+    if(typeof original!=='function'||original.__sunblissHeaderSyncWrapped)return;
+    function wrapped(){var result=original.apply(this,arguments);makeInteractive();return result;}
+    wrapped.__sunblissHeaderSyncWrapped=true;
+    wrapped.__sunblissOriginal=original;
+    window[name]=wrapped;
+  }
+  ['render','renderMain','renderOverview','renderList','renderInsights','renderDetail'].forEach(wrap);
+  window.addEventListener('pageshow',makeInteractive);
+  makeInteractive();
 })();
