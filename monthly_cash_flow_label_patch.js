@@ -15,9 +15,7 @@ function refresh(){
     if(t===legacy&&!el.querySelector('*'))el.remove();
   }
 }
-var queued=false;
-function queue(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;refresh();});}
-function wrap(name){var original=window[name];if(typeof original!=='function'||original.__sunblissCashFlowLabelWrapped)return;function wrapped(){var out=original.apply(this,arguments);queue();return out;}wrapped.__sunblissCashFlowLabelWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;}
-function install(){wrap('renderOverview');wrap('renderMain');window.addEventListener('pageshow',queue);queue();}
+function wrap(name){var original=window[name];if(typeof original!=='function'||original.__sunblissCashFlowLabelWrapped)return;function wrapped(){var out=original.apply(this,arguments);refresh();return out;}wrapped.__sunblissCashFlowLabelWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;}
+function install(){wrap('renderOverview');wrap('renderMain');window.addEventListener('pageshow',refresh);refresh();}
 install();
 })();

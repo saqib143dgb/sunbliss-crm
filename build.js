@@ -27,6 +27,7 @@ function main(){
   html=html.replace(/<script\s+async\s+data-explicit-opt-in=[\s\S]*?<\/script>\s*$/i,'');
   html=html.replace(/<script[^>]+src=["'](?:professional_header_patch\.js|fresh_reference_header_patch\.js|fresh_reference_header_mobile_match_patch\.js|combined_brand_header_patch\.js|audit_log_patch\.js|automatic_payment_actions_patch\.js|bottom_nav_normalize_patch\.js)["'][^>]*><\/script>\s*/gi,'');
   for(const patch of PRELOAD_PATCH_FILES){html=html.replace(new RegExp(`<script[^>]+src=["']${patch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["'][^>]*><\\/script>\\s*`,'gi'),'');html=html.replace(/<head([^>]*)>/i,`<head$1>\n<script src="${patch}"></script>`);}
+  html=html.replace(/<head([^>]*)>/i,'<head$1>\n<style id="sunblissCriticalPaintStyle">.tabs{visibility:hidden!important}body>.tabs[data-sunbliss-dock-ready="1"]{visibility:visible!important}.topbar{visibility:hidden!important}.topbar.sunbliss-professional-header{visibility:visible!important}</style>');
   for(const patch of LOCAL_PATCH_FILES)if(!html.includes(patch))html=html.replace('</body>',`<script src="${patch}"></script>\n</body>`);
   fs.writeFileSync(indexPath,html);console.log(`Built self-contained CRM into ${OUT} using only repository files`);
 }
