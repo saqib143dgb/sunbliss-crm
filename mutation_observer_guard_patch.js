@@ -9,62 +9,82 @@ if(typeof NativeMutationObserver!=='function')return;
 /*
   CRM-wide MutationObserver safety layer.
 
-  Keep observer callbacks coalesced, but deliver them in a microtask so DOM decorators
-  settle before the browser paints. The previous frame/cooldown queue could postpone
-  broad observers for tens or hundreds of milliseconds, which made enhancements appear
-  after the base UI and looked like flicker on mobile Safari.
+  All observers created after this script share ONE browser-frame queue. This prevents
+  independent CRM patches from all executing expensive mutation callbacks in the same
+  microtask cascade. Records are preserved and delivered in batches; only callback
+  timing is controlled.
 */
 var queue=[];
 var queueSet=typeof Set==='function'?new Set():null;
-var drainPending=false;
+var framePending=false;
+var MAX_CALLBACKS_PER_FRAME=12;
+var FRAME_BUDGET_MS=7;
 
+function now(){return window.performance&&performance.now?performance.now():Date.now();}
 function hasJob(job){return queueSet?queueSet.has(job):queue.indexOf(job)!==-1;}
-function addJob(job){
-  if(hasJob(job))return;
-  if(queueSet)queueSet.add(job);
-  queue.push(job);
-  scheduleDrain();
-}
+function addJob(job){if(hasJob(job))return;if(queueSet)queueSet.add(job);queue.push(job);scheduleFrame();}
 function removeJob(job){if(queueSet)queueSet.delete(job);}
-function scheduleDrain(){
-  if(drainPending)return;
-  drainPending=true;
-  if(typeof window.queueMicrotask==='function')window.queueMicrotask(drain);
-  else if(typeof Promise==='function')Promise.resolve().then(drain);
-  else window.setTimeout(drain,0);
+function scheduleFrame(){
+  if(framePending)return;
+  framePending=true;
+  if(typeof window.requestAnimationFrame==='function')window.requestAnimationFrame(drain);
+  else window.setTimeout(drain,16);
 }
 function drain(){
-  drainPending=false;
-  if(!queue.length)return;
-  var jobs=queue.splice(0,queue.length);
-  for(var i=0;i<jobs.length;i++)removeJob(jobs[i]);
-  for(var j=0;j<jobs.length;j++){
-    try{jobs[j]();}catch(err){window.setTimeout(function(e){return function(){throw e;};}(err),0);}
+  framePending=false;
+  var started=now(),count=0;
+  while(queue.length&&count<MAX_CALLBACKS_PER_FRAME&&now()-started<FRAME_BUDGET_MS){
+    var job=queue.shift();removeJob(job);count++;
+    try{job();}catch(err){window.setTimeout(function(){throw err;},0);}
   }
-  if(queue.length)scheduleDrain();
+  if(queue.length)scheduleFrame();
 }
 
 function SafeMutationObserver(callback){
   if(typeof callback!=='function')throw new TypeError("Failed to construct 'MutationObserver': callback is not a function");
 
   var pending=[];
-  var queued=false;
   var running=false;
+  var queued=false;
   var nativeObserver;
+  var burstStart=0;
+  var burstRuns=0;
+  var cooldownTimer=0;
+  var broad=false;
+
+  function enqueue(){
+    if(queued)return;
+    queued=true;
+    var t=now();
+    if(!burstStart||t-burstStart>1000){burstStart=t;burstRuns=0;}
+
+    /* Broad whole-app observers are decorator-style helpers in this CRM and do not
+       need high-frequency delivery. Give them stricter backoff during mutation storms. */
+    var delay=0;
+    if(broad){
+      if(burstRuns>=12)delay=220;
+      else if(burstRuns>=6)delay=90;
+      else if(burstRuns>=3)delay=32;
+    }else{
+      if(burstRuns>=24)delay=160;
+      else if(burstRuns>=12)delay=64;
+    }
+    if(delay){
+      if(cooldownTimer)return;
+      cooldownTimer=window.setTimeout(function(){cooldownTimer=0;addJob(flush);},delay);
+    }else addJob(flush);
+  }
 
   function flush(){
     queued=false;
     if(running||!pending.length){if(pending.length)enqueue();return;}
     var records=pending.splice(0,pending.length);
     running=true;
+    var t=now();
+    if(!burstStart||t-burstStart>1000){burstStart=t;burstRuns=0;}
+    burstRuns++;
     try{callback(records,nativeObserver);}finally{running=false;}
     if(pending.length)enqueue();
-  }
-
-  function enqueue(){
-    if(queued)return;
-    queued=true;
-    addJob(flush);
   }
 
   nativeObserver=new NativeMutationObserver(function(records){
@@ -75,6 +95,14 @@ function SafeMutationObserver(callback){
     enqueue();
   });
 
+  /* Track only this observer's target without touching the browser prototype. */
+  var nativeObserve=nativeObserver.observe.bind(nativeObserver);
+  nativeObserver.observe=function(target,options){
+    var app=document.getElementById('app');
+    broad=!!(options&&options.subtree&&(target===document.documentElement||target===document.body||target===app));
+    return nativeObserve(target,options);
+  };
+
   return nativeObserver;
 }
 
@@ -83,8 +111,6 @@ try{Object.setPrototypeOf(SafeMutationObserver,NativeMutationObserver);}catch(e)
 try{Object.defineProperty(SafeMutationObserver,'name',{value:'MutationObserver'});}catch(e){}
 
 window.__sunblissNativeMutationObserver=NativeMutationObserver;
-window.__sunblissMutationObserverQueueInfo=function(){
-  return {pendingObservers:queue.length,drainPending:drainPending,mode:'microtask'};
-};
+window.__sunblissMutationObserverQueueInfo=function(){return {pendingObservers:queue.length,framePending:framePending,maxCallbacksPerFrame:MAX_CALLBACKS_PER_FRAME,frameBudgetMs:FRAME_BUDGET_MS};};
 window.MutationObserver=SafeMutationObserver;
 })();
