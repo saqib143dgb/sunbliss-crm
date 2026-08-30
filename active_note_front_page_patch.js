@@ -26,6 +26,10 @@ function styles(){
   ].join('');
   document.head.appendChild(s);
 }
+function signalReady(detail,key){
+  if(detail&&detail.dataset.activeNoteLoading===key)delete detail.dataset.activeNoteLoading;
+  try{document.dispatchEvent(new CustomEvent('sunbliss:active-note-ready',{detail:{key:key}}));}catch(e){}
+}
 function place(card,detail){
   var action=document.getElementById('actionRequiredCard');
   if(action&&action.parentNode===detail){
@@ -74,6 +78,7 @@ async function refresh(force){
   var key=String(state.selectedUnit);
   if(loadingKey===key&&!force)return;
   loadingKey=key;
+  detail.dataset.activeNoteLoading=key;
   try{
     var note=await fetchNote(uid,!!force);
     if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
@@ -82,6 +87,7 @@ async function refresh(force){
     console.warn('Could not load active customer note',e);
   }finally{
     if(loadingKey===key)loadingKey='';
+    signalReady(detail,key);
   }
 }
 function schedule(force){
