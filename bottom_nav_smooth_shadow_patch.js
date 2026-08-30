@@ -49,6 +49,7 @@
     if(tabs){
       tabs.style.removeProperty('--sunbliss-vv-dock-y');
       tabs.style.removeProperty('top');
+      tabs.setAttribute('data-sunbliss-dock-ready','1');
     }
   }
 
