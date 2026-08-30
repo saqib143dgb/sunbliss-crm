@@ -5,6 +5,7 @@ window.__sunblissDetailAttentionPillsInstalled=true;
 document.documentElement.classList.add('detail-attention-system');
 
 var selectedByUnit={};
+var revealedByUnit={};
 var scheduled=false;
 var refreshTimer=null;
 function tx(v){return v==null?'':String(v)}
@@ -51,14 +52,18 @@ function render(){
   items.forEach(function(i){i.node.classList.add('detail-attention-managed');i.node.dataset.attentionKind=i.kind;i.node.classList.toggle('detail-attention-hidden',i.kind!==selected);i.node.classList.toggle('detail-attention-selected',i.kind===selected)});
   var host=bar.querySelector('.detail-attention-pills-scroll'),signature=items.map(function(i){return i.kind+':'+i.label}).join('|')+'|selected:'+selected;
   if(bar.dataset.signature!==signature){bar.dataset.signature=signature;host.innerHTML=items.map(function(i){return '<button type="button" class="detail-attention-pill" role="tab" data-kind="'+i.kind+'" aria-selected="'+(i.kind===selected?'true':'false')+'">'+i.label+'</button>'}).join('')}else Array.prototype.slice.call(host.querySelectorAll('.detail-attention-pill')).forEach(function(b){b.setAttribute('aria-selected',b.dataset.kind===selected?'true':'false')});
-  if(notesPending(detail,key))bar.setAttribute('data-attention-pending','1');else bar.removeAttribute('data-attention-pending')
+  var pending=notesPending(detail,key);
+  if(!revealedByUnit[key]&&pending){bar.setAttribute('data-attention-pending','1')}else{
+    bar.removeAttribute('data-attention-pending');
+    if(!pending)revealedByUnit[key]=true;
+  }
 }
 function queue(delay){
   if(scheduled||refreshTimer)return;
   if(delay){refreshTimer=setTimeout(function(){refreshTimer=null;if(scheduled)return;scheduled=true;requestAnimationFrame(render)},delay);return}
   scheduled=true;requestAnimationFrame(render)
 }
-document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('#detailAttentionPills .detail-attention-pill'):null;if(b){e.preventDefault();var key=unitKey();if(key){selectedByUnit[key]=b.dataset.kind;render();return}}if(e.target&&e.target.closest&&e.target.closest('#notesSaveBtn,#scSave,#extSave,.scheduled-mark-done,.scheduled-edit'))queue(60)},true);
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('#detailAttentionPills .detail-attention-pill'):null;if(b){e.preventDefault();var key=unitKey();if(key){selectedByUnit[key]=b.dataset.kind;revealedByUnit[key]=true;render();return}}if(e.target&&e.target.closest&&e.target.closest('#notesSaveBtn,#scSave,#extSave,.scheduled-mark-done,.scheduled-edit'))queue(60)},true);
 document.addEventListener('sunbliss:customer-notes-ready',function(e){if(!window.state||state.view!=='detail')return;var key=e&&e.detail?tx(e.detail.key):'';if(!key||key===unitKey())render()});
 document.addEventListener('sunbliss:active-note-ready',function(e){if(!window.state||state.view!=='detail')return;var key=e&&e.detail?tx(e.detail.key):'';if(!key||key===unitKey())render()});
 function install(){
