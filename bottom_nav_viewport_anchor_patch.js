@@ -15,6 +15,37 @@
   ].join('');
   document.head.appendChild(style);
 
+  /*
+   * The frozen base wireTabs() adds another click listener to every .tab on
+   * every render. Because this dock is intentionally persistent, those
+   * listeners stack up and each tap eventually triggers many renderMain()
+   * calls. Wire only the freshly rendered dock inside #app. When that first
+   * dock is promoted to body, its single listener moves with it permanently.
+   */
+  if(typeof window.wireTabs==='function'&&!window.wireTabs.__sunblissPersistentDockSafe){
+    var safeWireTabs=function(){
+      var app=document.getElementById('app');
+      if(!app)return;
+      app.querySelectorAll('.tabs .tab[data-view]').forEach(function(button){
+        if(button.__sunblissTabNavigationBound)return;
+        button.__sunblissTabNavigationBound=true;
+        button.addEventListener('click',function(){
+          var view=button.getAttribute('data-view');
+          if(!view||!window.state)return;
+          if(state.view===view){
+            if(typeof window.scrollTo==='function')window.scrollTo(0,0);
+            return;
+          }
+          state.view=view;
+          if(typeof window.renderMain==='function')window.renderMain();
+          if(typeof window.scrollTo==='function')window.scrollTo(0,0);
+        });
+      });
+    };
+    safeWireTabs.__sunblissPersistentDockSafe=true;
+    window.wireTabs=safeWireTabs;
+  }
+
   function copyButtonState(source,target){
     if(!source||!target)return;
     var pressed=source.getAttribute('aria-pressed');
