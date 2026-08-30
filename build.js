@@ -15,6 +15,16 @@ const LOCAL_PATCH_FILES = [
 
 function requireFile(filePath,label){if(!fs.existsSync(filePath))throw new Error(`${label} is missing: ${path.relative(ROOT,filePath)}. Run "npm run vendor:base" only when intentionally refreshing the frozen base snapshot.`);}
 function copyRequired(source,target,label){requireFile(source,label);fs.copyFileSync(source,target);}
+function deploymentVersion(){
+  return String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.GITHUB_SHA||Date.now()).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,16);
+}
+function versionLocalScripts(html,version){
+  return html.replace(/<script([^>]*?)src=["']([^"']+\.js(?:\?[^"']*)?)["']([^>]*)>/gi,function(match,before,src,after){
+    if(/^(?:https?:)?\/\//i.test(src))return match;
+    var separator=src.indexOf('?')>=0?'&':'?';
+    return '<script'+before+'src="'+src+separator+'v='+version+'"'+after+'>';
+  });
+}
 function main(){
   requireFile(path.join(BASE,'manifest.json'),'Vendored base manifest');
   fs.rmSync(OUT,{recursive:true,force:true});fs.mkdirSync(OUT,{recursive:true});
@@ -28,6 +38,8 @@ function main(){
   html=html.replace(/<script[^>]+src=["'](?:professional_header_patch\.js|fresh_reference_header_patch\.js|fresh_reference_header_mobile_match_patch\.js|combined_brand_header_patch\.js|audit_log_patch\.js|automatic_payment_actions_patch\.js|bottom_nav_normalize_patch\.js)["'][^>]*><\/script>\s*/gi,'');
   for(const patch of PRELOAD_PATCH_FILES){html=html.replace(new RegExp(`<script[^>]+src=["']${patch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}["'][^>]*><\\/script>\\s*`,'gi'),'');html=html.replace(/<head([^>]*)>/i,`<head$1>\n<script src="${patch}"></script>`);}
   for(const patch of LOCAL_PATCH_FILES)if(!html.includes(patch))html=html.replace('</body>',`<script src="${patch}"></script>\n</body>`);
-  fs.writeFileSync(indexPath,html);console.log(`Built self-contained CRM into ${OUT} using only repository files`);
+  const version=deploymentVersion();
+  html=versionLocalScripts(html,version);
+  fs.writeFileSync(indexPath,html);console.log(`Built self-contained CRM into ${OUT} using only repository files (asset version ${version})`);
 }
 try{main();}catch(error){console.error(error);process.exit(1);}
