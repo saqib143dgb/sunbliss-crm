@@ -4,6 +4,13 @@ if(window.__sunblissActionRequiredMetaSync)return;
 window.__sunblissActionRequiredMetaSync=true;
 var observer=null,syncing=false;
 function text(v){return v==null?'':String(v)}
+function ensureHeadlineSize(){
+  if(document.getElementById('actionRequiredHeadlineSizeRefine'))return;
+  var style=document.createElement('style');
+  style.id='actionRequiredHeadlineSizeRefine';
+  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}}';
+  document.head.appendChild(style);
+}
 function parse(status,message,detail){
   status=text(status).trim();message=text(message).trim();detail=text(detail).trim();
   var stage='',by='',due='',m;
@@ -42,6 +49,7 @@ function attach(){
 }
 function install(){
   if(!window.state||typeof window.renderDetail!=='function'||typeof window.sunblissRenderActionRequiredCard!=='function'){setTimeout(install,60);return}
+  ensureHeadlineSize();
   var rd=window.renderDetail;if(!rd.__sunblissActionMetaSyncWrapped){window.renderDetail=function(){var out=rd.apply(this,arguments);attach();return out};window.renderDetail.__sunblissActionMetaSyncWrapped=true}
   if(state.view==='detail')attach();window.addEventListener('pageshow',attach);
 }
