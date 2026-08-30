@@ -58,11 +58,15 @@
     return selected?norm(selected.getAttribute('data-inventory-filter')):'all';
   }
   function isCancelled(unit){return norm(unit&&unit.status)==='cancelled';}
-  function availability(unit){return text(unit&&unit.availability_status)||'Sold';}
+  function availability(unit){
+    var value=text(unit&&unit.availability_status)||'Sold';
+    return norm(value)==='reserved'?'Sold':value;
+  }
   function matchesFilter(unit,filter){
     if(!unit)return false;
     if(filter==='all')return true;
     if(filter==='cancelled')return isCancelled(unit);
+    if(filter==='reserved')filter='sold';
     return norm(availability(unit))===filter;
   }
   function currentSearch(){
@@ -72,7 +76,7 @@
     return norm(value);
   }
   function inventorySearchText(unit){
-    return norm([unit.unit_no,unit.unit_type,unit.floor,unit.layout_type,unit.leg_no,unit.project_name,unit.availability_status].join(' '));
+    return norm([unit.unit_no,unit.unit_type,unit.floor,unit.layout_type,unit.leg_no,unit.project_name,availability(unit)].join(' '));
   }
   function matchesSearch(unit){var q=currentSearch();return !q||inventorySearchText(unit).indexOf(q)!==-1;}
 
@@ -89,6 +93,10 @@
   function badgeText(unit){
     if(isCancelled(unit)&&availability(unit)==='Available')return 'Available for Resale';
     return availability(unit);
+  }
+
+  function removeReservedOption(){
+    document.querySelectorAll('#main .inventory-status-chip[data-inventory-filter="reserved"]').forEach(function(chip){chip.remove();});
   }
 
   function physicalRow(unit){
@@ -144,6 +152,7 @@
     queued=false;
     if(!window.state||state.view!=='list')return;
     sanitizeSalesState();
+    removeReservedOption();
     var list=document.querySelector('#main .list');
     if(!list||!inventoryRows.length)return;
     var filter=activeFilter();
