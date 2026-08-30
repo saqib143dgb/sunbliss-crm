@@ -17,6 +17,8 @@
     var tabs=document.querySelector('#app .tabs')||document.querySelector('body>.tabs')||document.querySelector('.tabs');
     if(!tabs)return;
     if(tabs.parentNode!==document.body)document.body.appendChild(tabs);
+    if(window.__sunblissBottomNavSmoothShadowInstalled)tabs.setAttribute('data-sunbliss-dock-ready','1');
+    else tabs.removeAttribute('data-sunbliss-dock-ready');
   }
 
   function wrap(name){
