@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},timer=null,observer=null,rendering=false;
+var cache={},loading={},timer=null,observer=null,rendering=false,CACHE_TTL=120000;
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
@@ -14,7 +14,11 @@ function safe(v){return typeof window.esc==='function'?window.esc(text(v)):text(
 function current(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit)})||null}
 function paymentStage(r){var n=norm(r&&r.stage_name);return !!n&&n.indexOf('dld')<0&&n.indexOf('admin fee')<0&&n.indexOf('booking')<0&&(n.indexOf('installment')>=0||n.indexOf('down payment')>=0||n.indexOf('final')>=0)}
 function carryManaged(c){var x={};(c&&c.stages||[]).forEach(function(s){if(s&&s.id&&s.carryForwardManaged===true)x[String(s.id)]=1});return x}
-async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Date.now()-hit.at<5000)return hit.data;if(loading[k])return loading[k];loading[k]=(async function(){var q=await Promise.all([
+function ensurePendingStyle(){if(document.getElementById('effectiveActionPendingStyle'))return;var s=document.createElement('style');s.id='effectiveActionPendingStyle';s.textContent='#actionRequiredCard[data-effective-pending="1"]{visibility:hidden!important}';document.head.appendChild(s)}
+function markPending(){var card=document.getElementById('actionRequiredCard');if(card)card.setAttribute('data-effective-pending','1')}
+function reveal(card){if(card)card.removeAttribute('data-effective-pending')}
+function fresh(uid){var hit=cache[String(uid)];return hit&&Date.now()-hit.at<CACHE_TTL?hit:null}
+async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Date.now()-hit.at<CACHE_TTL)return hit.data;if(loading[k])return loading[k];loading[k]=(async function(){var q=await Promise.all([
  sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',uid),
  sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',uid),
  sb.from('payment_extensions').select('id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').eq('unit_id',uid).neq('status','cancelled')
@@ -36,7 +40,7 @@ function apply(a,key){
  if(!window.state||state.view!=='detail'||text(state.selectedUnit)!==key)return;
  var card=document.getElementById('actionRequiredCard');if(!card)return;
  var sig=[a.status,a.tone,a.message,a.detail].join('|');
- if(card.dataset.effectiveActionSig===sig||visibleMatches(card,a)){card.dataset.effectiveActionSig=sig;return;}
+ if(card.dataset.effectiveActionSig===sig||visibleMatches(card,a)){card.dataset.effectiveActionSig=sig;reveal(card);return;}
  rendering=true;
  try{
    card.dataset.effectiveActionSig=sig;
@@ -54,10 +58,18 @@ function apply(a,key){
    }else{
      card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status">'+safe(a.status)+'</span></div><p class="action-required-message">'+safe(a.message)+'</p>'+(a.detail?'<p class="action-required-detail">'+safe(a.detail)+'</p>':'');
    }
- }finally{rendering=false;}
+ }finally{rendering=false;reveal(card);}
 }
-async function render(force){if(!window.state||!window.sb||state.view!=='detail')return;var c=current();if(!c||!Number(c.sno))return;var key=text(state.selectedUnit);try{var data=await load(Number(c.sno),!!force);if(text(state.selectedUnit)!==key||state.view!=='detail')return;apply(build(data,c),key)}catch(e){console.warn('Effective Action Required could not load',e)}}
+function prepare(){
+ if(!window.state||state.view!=='detail')return false;
+ var c=current();if(!c||!Number(c.sno))return false;
+ var hit=fresh(Number(c.sno));
+ if(hit){apply(build(hit.data,c),text(state.selectedUnit));return true;}
+ markPending();
+ return false;
+}
+async function render(force){if(!window.state||!window.sb||state.view!=='detail')return;var c=current();if(!c||!Number(c.sno))return;var key=text(state.selectedUnit);try{var data=await load(Number(c.sno),!!force);if(text(state.selectedUnit)!==key||state.view!=='detail')return;apply(build(data,c),key)}catch(e){reveal(document.getElementById('actionRequiredCard'));console.warn('Effective Action Required could not load',e)}}
 function schedule(force,ms){clearTimeout(timer);if(ms===0){render(!!force);return;}timer=setTimeout(function(){render(!!force)},ms==null?30:ms)}
-function install(){if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,60);return}var rd=window.renderDetail;window.renderDetail=function(){var x=rd.apply(this,arguments);schedule(false,0);return x};document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#extSave,#ieSave,#scSave,#extCancel'))schedule(true,220)},true);observer=new MutationObserver(function(m){if(rendering||!window.state||state.view!=='detail')return;for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&(t.id==='actionRequiredCard'||(t.closest&&t.closest('#actionRequiredCard')))){schedule(false,0);break}}});observer.observe(document.body,{subtree:true,childList:true,characterData:true});window.addEventListener('pageshow',function(){schedule(false,40)});schedule(true,0)}
+function install(){if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,60);return}ensurePendingStyle();var rd=window.renderDetail;window.renderDetail=function(){var x=rd.apply(this,arguments);if(!prepare())schedule(false,0);return x};document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#extSave,#ieSave,#scSave,#extCancel')){markPending();schedule(true,220)}},true);observer=new MutationObserver(function(m){if(rendering||!window.state||state.view!=='detail')return;for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&(t.id==='actionRequiredCard'||(t.closest&&t.closest('#actionRequiredCard')))){schedule(false,0);break}}});observer.observe(document.body,{subtree:true,childList:true,characterData:true});window.addEventListener('pageshow',function(){schedule(false,40)});schedule(true,0)}
 install();
 })();
