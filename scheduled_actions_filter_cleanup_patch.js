@@ -5,6 +5,10 @@
   window.__sunblissScheduledFilterCleanupInstalled=true;
 
   var ALLOWED={today:true,overdue:true,extensions:true};
+  var LABELS={today:'Today',overdue:'Overdue',extensions:'Extensions'};
+  var observedList=null;
+  var listObserver=null;
+  var queued=false;
 
   function extensionCount(){
     var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
@@ -21,7 +25,31 @@
       option.value='extensions';
       select.appendChild(option);
     }
-    option.textContent='Extensions · '+extensionCount();
+    var label='Extensions · '+extensionCount();
+    if(option.textContent!==label)option.textContent=label;
+  }
+
+  function visibleListCount(){
+    var host=document.getElementById('scheduledOverviewList');
+    if(!host)return null;
+    var rows=Array.prototype.slice.call(host.children).filter(function(el){
+      if(!el||!el.classList||el.classList.contains('scheduled-empty'))return false;
+      return el.classList.contains('scheduled-overview-row')||el.hasAttribute('data-task-id');
+    });
+    if(rows.length)return rows.length;
+    if(host.querySelector('.scheduled-empty'))return 0;
+    return null;
+  }
+
+  function syncSelectedCount(){
+    var select=document.getElementById('scheduledOverviewFilter');
+    if(!select||!ALLOWED[select.value])return;
+    var count=visibleListCount();
+    if(count===null)return;
+    var option=select.querySelector('option[value="'+select.value+'"]');
+    if(!option)return;
+    var label=LABELS[select.value]+' · '+count;
+    if(option.textContent!==label)option.textContent=label;
   }
 
   function clean(){
@@ -30,17 +58,34 @@
 
     ensureExtensionOption(select);
 
-    Array.from(select.options).forEach(function(option){
+    Array.prototype.slice.call(select.options).forEach(function(option){
       if(!ALLOWED[option.value])option.remove();
     });
 
     var order=['today','overdue','extensions'];
-    order.forEach(function(value){
-      var option=select.querySelector('option[value="'+value+'"]');
-      if(option)select.appendChild(option);
-    });
+    var current=Array.prototype.map.call(select.options,function(o){return o.value;}).join('|');
+    if(current!==order.filter(function(v){return !!select.querySelector('option[value="'+v+'"]');}).join('|')){
+      order.forEach(function(value){
+        var option=select.querySelector('option[value="'+value+'"]');
+        if(option)select.appendChild(option);
+      });
+    }
 
     if(!ALLOWED[select.value])select.value='today';
+    syncSelectedCount();
+    observeList();
+  }
+
+  function observeList(){
+    var host=document.getElementById('scheduledOverviewList');
+    if(host===observedList)return;
+    if(listObserver)listObserver.disconnect();
+    observedList=host;
+    if(!host||!window.MutationObserver)return;
+    listObserver=new MutationObserver(function(){
+      queueClean();
+    });
+    listObserver.observe(host,{childList:true,subtree:false});
   }
 
   function refreshExtensionView(){
@@ -51,19 +96,21 @@
     if(typeof P.load==='function'){
       Promise.resolve(P.load(false)).then(function(){
         if(typeof P.render==='function')P.render();
-        clean();
+        queueClean();
       }).catch(function(){});
     }else if(typeof P.render==='function'){
       P.render();
-      clean();
+      queueClean();
     }
   }
 
   function queueClean(){
-    clean();
-    if(window.requestAnimationFrame)requestAnimationFrame(clean);
-    setTimeout(clean,80);
-    setTimeout(clean,260);
+    if(queued)return;
+    queued=true;
+    Promise.resolve().then(function(){
+      queued=false;
+      clean();
+    });
   }
 
   function install(){
@@ -86,7 +133,7 @@
 
     document.addEventListener('change',function(e){
       if(!e.target||e.target.id!=='scheduledOverviewFilter')return;
-      clean();
+      queueClean();
       refreshExtensionView();
     },true);
 
