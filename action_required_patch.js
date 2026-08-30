@@ -41,8 +41,6 @@
     if(!c||!Array.isArray(c.stages)) return rows;
     c.stages.forEach(function(stage){
       if(!stage) return;
-      // Small shortages (AED 5,000 or less) are managed only through Carry Forward.
-      // They must not reappear as overdue actions after the next installment is selected.
       if(stage.carryForwardManaged===true) return;
       var due=Number(stage.due);
       var paid=Number(stage.paid)||0;
@@ -128,7 +126,7 @@
         status:'Due today',
         tone:'danger',
         message:'Next installment is ' + amountText + ' due today.',
-        detail:stage ? 'Stage: ' + stage : ''
+        detail:(stage ? 'Stage: ' + stage + ' · ' : '') + 'By ' + dueText + '.'
       };
     }
 
@@ -137,7 +135,7 @@
         status:'Due soon',
         tone:'warn',
         message:'Next installment is ' + amountText + ' due on ' + dueText + '.',
-        detail:(stage ? 'Stage: ' + stage + ' · ' : '') + 'Due in ' + days + ' day' + (days === 1 ? '' : 's') + '.'
+        detail:(stage ? 'Stage: ' + stage + ' · ' : '') + 'By ' + dueText + ' · Due in ' + days + ' day' + (days === 1 ? '' : 's') + '.'
       };
     }
 
@@ -145,7 +143,7 @@
       status:'Upcoming',
       tone:'neutral',
       message:'Next installment is ' + amountText + ' due on ' + dueText + '.',
-      detail:(stage ? 'Stage: ' + stage + ' · ' : '') + 'Due in ' + days + ' days.'
+      detail:(stage ? 'Stage: ' + stage + ' · ' : '') + 'By ' + dueText + ' · Due in ' + days + ' days.'
     };
   }
 
