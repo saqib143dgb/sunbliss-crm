@@ -5,10 +5,12 @@
 
   function text(v){return v===null||v===undefined?'':String(v);}
   function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function isCeoPreview(){try{return new URLSearchParams(location.search).get('ceo-preview')==='1';}catch(_e){return false;}}
   function roleLabel(v){
     var s=text(v).trim().toLowerCase();
     if(s==='crm_officer')return 'CRM Officer';
     if(s==='manager')return 'Manager';
+    if(s==='ceo')return 'CEO & Managing Director';
     return s.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();})||'CRM Officer';
   }
   function syncTime(v){
@@ -71,8 +73,9 @@
 
   function markup(){
     var st=window.state||{};
-    var name=text(st.userName).trim()||'CRM User';
-    var role=roleLabel(st.userRole);
+    var preview=isCeoPreview()&&!!text(st.userRole).trim();
+    var name=preview?'Shah Alam':(text(st.userName).trim()||'CRM User');
+    var role=preview?'CEO & Managing Director':roleLabel(st.userRole);
     var synced=syncTime(st.syncedAt);
     return '<div class="sb-pro-top">'+
         '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub">REAL ESTATE DEVELOPERS LLC</div></div>'+
@@ -95,7 +98,7 @@
     if(!header)return;
     header.querySelectorAll('img').forEach(function(img){img.remove();});
     var st=window.state||{};
-    var sig=[st.userName||'',st.userRole||'',st.syncedAt||''].join('|');
+    var sig=[st.userName||'',st.userRole||'',st.syncedAt||'',isCeoPreview()?'ceo-preview':''].join('|');
     if(header.classList.contains('sunbliss-professional-header')&&header.dataset.textV2Sig===sig){bindSignout(header);return;}
     header.className='topbar sunbliss-professional-header';
     header.dataset.textV2Sig=sig;
