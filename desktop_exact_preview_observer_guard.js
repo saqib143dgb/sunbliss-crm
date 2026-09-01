@@ -2,13 +2,13 @@
 'use strict';
 /*
   Stable desktop shell.
-  This file intentionally loads immediately before desktop_executive_shell_preview_patch.js.
-  Setting the legacy sentinel prevents that older observer-driven shell from installing.
-  The old shell watched the full app subtree and repeatedly rebuilt the Overview, which
-  caused visible full-page flicker once the exact reference dashboard/header were added.
+  This file loads before the legacy desktop responsive/executive shells.
+  Their sentinels are set here so the old whole-app MutationObservers never install.
+  The exact reference dashboard and exact reference header still load afterwards.
 */
 if(window.__sunblissStableDesktopShellInstalled)return;
 window.__sunblissStableDesktopShellInstalled=true;
+window.__sunblissDesktopResponsiveCRMInstalled=true;
 window.__sunblissExactDesktopPreviewInstalled=true;
 
 var MQ='(min-width:1024px)',queued=false;
@@ -43,8 +43,7 @@ function styles(){
  .sb-ref-nav{padding:0;display:flex;flex-direction:column;gap:0}.sb-ref-nav button{position:relative;width:100%;height:51px;border:0;border-radius:0;background:transparent;color:var(--cream-text);display:flex;align-items:center;gap:15px;padding:0 28px;font:500 13px/1 Inter,sans-serif;text-align:left;cursor:pointer}.sb-ref-nav button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}.sb-ref-nav button:hover{background:rgba(237,230,214,.045)}.sb-ref-nav button.active{background:rgba(237,230,214,.10);color:var(--gold);font-weight:650}.sb-ref-nav button.active:before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--gold)}
  .sb-ref-nav .sb-ref-add{margin:17px 16px 0;width:calc(100% - 32px);height:44px;border:1px solid var(--gold);border-radius:10px;color:var(--gold);background:transparent;padding:0 17px}.sb-ref-nav .sb-ref-add:hover{background:rgba(198,151,46,.07)}
  .sb-ref-side-bottom{margin:0 17px 0;margin-top:auto;padding:26px 7px 28px;border-top:1px solid rgba(237,230,214,.12)}.sb-ref-project-card{display:grid;grid-template-columns:30px 1fr 28px;gap:9px;align-items:center;color:var(--cream-text);font:500 10px/1.35 Inter,sans-serif}.sb-ref-project-card>svg{width:26px;height:26px;fill:none;stroke:var(--gold);stroke-width:1.7}.sb-ref-project-card b{display:block;font-size:10px;margin-bottom:3px}.sb-ref-project-card em{font-style:normal;color:var(--cream-text-dim);font-size:9px}.sb-ref-project-card .arr{width:28px;height:28px;border:1px solid rgba(237,230,214,.18);border-radius:50%;display:grid;place-items:center;font-size:18px;color:var(--cream-text-dim)}
- /* Remove animation/transition flashes from the desktop dashboard surface only. */
- body.sunbliss-ref-desktop .overview,body.sunbliss-ref-desktop .overview *,body.sunbliss-ref-desktop .topbar.sunbliss-professional-header,body.sunbliss-ref-desktop #sbRefSidebar{animation:none!important}
+ body.sunbliss-ref-desktop .overview,body.sunbliss-ref-desktop .overview *,body.sunbliss-ref-desktop .topbar.sunbliss-professional-header,body.sunbliss-ref-desktop #sbRefSidebar{animation:none!important;transition:none!important}
 }
 `;document.head.appendChild(s)
 }
