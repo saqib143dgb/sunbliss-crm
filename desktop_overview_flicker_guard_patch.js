@@ -15,22 +15,39 @@ function ensureWordmarkTypography(){
   document.head.appendChild(style);
 }
 
+var DESKTOP_LOGO_ASSET='assets/purvanchal-p-desktop-previous.png';
+
+function lockSidebarLogoGeometry(img){
+  img.style.setProperty('width','61px','important');
+  img.style.setProperty('height','61px','important');
+  img.style.setProperty('min-width','61px','important');
+  img.style.setProperty('min-height','61px','important');
+  img.style.setProperty('max-width','61px','important');
+  img.style.setProperty('max-height','61px','important');
+  img.style.setProperty('aspect-ratio','1 / 1','important');
+  img.style.setProperty('object-fit','contain','important');
+  img.style.setProperty('object-position','center','important');
+  img.style.setProperty('display','block','important');
+  img.style.setProperty('flex','0 0 61px','important');
+  img.style.setProperty('margin','0 auto 1px','important');
+  img.style.setProperty('transform','none','important');
+}
+
 function ensureRealSidebarLogo(){
   if(!desktop())return;
   var brand=document.querySelector('#sbRefSidebar .sb-ref-brand');
   if(!brand)return;
   var current=brand.querySelector('.sb-stable-brand-logo');
-  if(current&&current.tagName&&current.tagName.toLowerCase()==='img'&&current.getAttribute('src')==='assets/purvanchal-p-dubai.png')return;
+  if(current&&current.tagName&&current.tagName.toLowerCase()==='img'&&current.getAttribute('src')===DESKTOP_LOGO_ASSET){
+    lockSidebarLogoGeometry(current);
+    return;
+  }
   var img=document.createElement('img');
   img.className='sb-stable-brand-logo';
-  img.src='assets/purvanchal-p-dubai.png';
+  img.src=DESKTOP_LOGO_ASSET;
   img.alt='Purvanchal logo';
   img.decoding='async';
-  img.style.width='61px';
-  img.style.height='61px';
-  img.style.objectFit='contain';
-  img.style.display='block';
-  img.style.margin='0 auto 1px';
+  lockSidebarLogoGeometry(img);
   if(current)current.replaceWith(img);else brand.insertBefore(img,brand.firstChild);
 }
 
