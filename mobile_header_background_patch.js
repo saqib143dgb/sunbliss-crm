@@ -78,7 +78,7 @@
         flex-direction:row!important;
         align-items:center!important;
         justify-content:flex-start!important;
-        gap:9px!important;
+        gap:3px!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-brand-logo-frame{
@@ -117,7 +117,8 @@
       .topbar.sunbliss-professional-header .sb-pro-brand-copy{
         display:flex!important;
         min-width:0!important;
-        max-width:calc(100% - 57px)!important;
+        width:max-content!important;
+        max-width:calc(100% - 51px)!important;
         flex-direction:column!important;
         justify-content:center!important;
       }
@@ -126,7 +127,7 @@
         display:block!important;
         margin:0!important;
         color:#e0aa4e!important;
-        font:700 18px/1.02 'Avenir Next',Avenir,'Helvetica Neue',Arial,sans-serif!important;
+        font:700 20px/1.02 'Avenir Next',Avenir,'Helvetica Neue',Arial,sans-serif!important;
         letter-spacing:.055em!important;
         font-kerning:normal!important;
         text-rendering:geometricPrecision!important;
@@ -136,13 +137,15 @@
 
       .topbar.sunbliss-professional-header .sb-pro-brand-sub{
         display:block!important;
-        width:max-content!important;
+        width:100%!important;
+        box-sizing:border-box!important;
         margin-top:4px!important;
         color:rgba(228,180,92,.92)!important;
         font:600 6px/1.25 Inter,system-ui,sans-serif!important;
         letter-spacing:.10em!important;
         white-space:nowrap!important;
-        text-align:left!important;
+        text-align:justify!important;
+        text-align-last:justify!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-signout{
@@ -321,7 +324,7 @@
         padding-right:13px!important;
       }
       .topbar.sunbliss-professional-header .sb-pro-brand-name{
-        font-size:17px!important;
+        font-size:19px!important;
       }
       .topbar.sunbliss-professional-header .sb-pro-project-sep{
         display:none!important;
