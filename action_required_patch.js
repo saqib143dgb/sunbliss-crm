@@ -5,7 +5,7 @@
     var text = value === null || value === undefined ? '' : String(value);
     if (typeof window.esc === 'function') return window.esc(text);
     return text.replace(/[&<>"']/g,function(ch){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch];
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
     });
   }
 
