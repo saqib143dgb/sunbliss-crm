@@ -142,10 +142,10 @@
         margin-top:4px!important;
         color:rgba(228,180,92,.92)!important;
         font:600 6px/1.25 Inter,system-ui,sans-serif!important;
-        letter-spacing:.10em!important;
+        letter-spacing:.30em!important;
         white-space:nowrap!important;
-        text-align:justify!important;
-        text-align-last:justify!important;
+        text-align:left!important;
+        text-align-last:auto!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-signout{
