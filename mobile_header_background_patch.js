@@ -9,8 +9,8 @@
         background-color:#071520!important;
         background-image:url('assets/sunbliss-mobile-header-background.webp')!important;
         background-repeat:no-repeat!important;
-        background-size:auto 90%!important;
-        background-position:right bottom!important;
+        background-size:auto 82%!important;
+        background-position:right 16px bottom!important;
       }
       .topbar.sunbliss-professional-header::before{
         content:''!important;
@@ -29,11 +29,11 @@
       .topbar.sunbliss-professional-header::after{z-index:2!important;}
       .topbar.sunbliss-professional-header .sb-pro-signout,
       .topbar.sunbliss-professional-header .sb-pro-sync{
-        background:rgba(4,14,23,.76)!important;
+        background:transparent!important;
         border-color:rgba(214,162,70,.68)!important;
-        box-shadow:0 4px 16px rgba(0,0,0,.24)!important;
-        -webkit-backdrop-filter:blur(5px);
-        backdrop-filter:blur(5px);
+        box-shadow:none!important;
+        -webkit-backdrop-filter:none!important;
+        backdrop-filter:none!important;
       }
       .topbar.sunbliss-professional-header .sb-pro-sync{color:rgba(255,250,240,.90)!important;}
       .topbar.sunbliss-professional-header .sb-pro-name,
