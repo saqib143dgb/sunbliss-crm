@@ -10,7 +10,7 @@
         background-image:url('assets/sunbliss-mobile-header-background.webp')!important;
         background-repeat:no-repeat!important;
         background-size:cover!important;
-        background-position:100% 50%!important;
+        background-position:left center!important;
       }
       .topbar.sunbliss-professional-header::before{
         content:''!important;
