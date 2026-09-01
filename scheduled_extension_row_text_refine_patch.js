@@ -7,10 +7,10 @@ if(!document.getElementById('scheduledExtensionRowTextRefineStyles')){
   var s=document.createElement('style');
   s.id='scheduledExtensionRowTextRefineStyles';
   s.textContent=[
-    '.extension-reference-card .extref-label{font-size:8.8px!important}',
-    '.extension-reference-card .extref-value{font-size:11.9px!important}',
-    '@media(max-width:520px){.extension-reference-card .extref-label{font-size:8.25px!important}.extension-reference-card .extref-value{font-size:11.2px!important}}',
-    '@media(max-width:370px){.extension-reference-card .extref-label{font-size:7.8px!important}.extension-reference-card .extref-value{font-size:10.3px!important}}'
+    '.extension-reference-card .extref-label{font-size:10.4px!important;line-height:1.18!important}',
+    '.extension-reference-card .extref-value{font-size:10.8px!important;line-height:1.18!important}',
+    '@media(max-width:520px){.extension-reference-card .extref-label{font-size:9.7px!important}.extension-reference-card .extref-value{font-size:10.1px!important}}',
+    '@media(max-width:370px){.extension-reference-card .extref-label{font-size:9.1px!important}.extension-reference-card .extref-value{font-size:9.5px!important}}'
   ].join('');
   document.head.appendChild(s);
 }
