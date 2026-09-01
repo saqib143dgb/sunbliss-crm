@@ -126,8 +126,10 @@
         display:block!important;
         margin:0!important;
         color:#e0aa4e!important;
-        font:500 18px/1 Georgia,'Times New Roman',serif!important;
-        letter-spacing:.035em!important;
+        font:700 18px/1.02 'Avenir Next',Avenir,'Helvetica Neue',Arial,sans-serif!important;
+        letter-spacing:.055em!important;
+        font-kerning:normal!important;
+        text-rendering:geometricPrecision!important;
         white-space:nowrap!important;
         text-shadow:0 2px 14px rgba(214,162,70,.18)!important;
       }
