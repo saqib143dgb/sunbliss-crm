@@ -54,21 +54,13 @@ function route(view){
   if(window.state&&typeof window.renderMain==='function'){state.view=view;renderMain();window.scrollTo(0,0)}
 }
 function dock(sel){var b=original(sel);if(b)b.click()}
-function goTasks(){
-  if(window.state&&state.view!=='overview'){route('overview');setTimeout(goTasks,90);return}
-  var visible=document.getElementById('sbV2Actions');
-  if(visible){visible.scrollIntoView({behavior:'smooth',block:'center'});return}
-  var legacy=document.getElementById('scheduledActionsOverview');
-  if(legacy)legacy.scrollIntoView({behavior:'smooth',block:'start'});
-}
 function ensureSidebar(){
   if(!desktop())return;
   var n=document.getElementById('sbRefSidebar');if(n)return;
   n=document.createElement('aside');n.id='sbRefSidebar';
-  n.innerHTML='<div class="sb-ref-brand">'+sunLogo()+'<strong>Sunbliss CRM</strong><small>Desktop Workspace</small></div><nav class="sb-ref-nav"><button data-route="overview">'+icon('overview')+'<span>Overview</span></button><button data-route="list">'+icon('units')+'<span>Units &amp; Customers</span></button><button data-route="insights">'+icon('insights')+'<span>Insights</span></button><button data-action="tasks">'+icon('tasks')+'<span>Scheduled Actions</span></button><button data-action="search">'+icon('search')+'<span>Search</span></button><button class="sb-ref-add" data-action="add">'+icon('add')+'<span>Add Customer</span></button></nav><div class="sb-ref-side-bottom"><div class="sb-ref-project-card">'+icon('project')+'<div><b>Sunbliss Residences</b><em>Real Estate Project</em></div><span class="arr">›</span></div></div>';
+  n.innerHTML='<div class="sb-ref-brand">'+sunLogo()+'<strong>Sunbliss CRM</strong><small>Desktop Workspace</small></div><nav class="sb-ref-nav"><button data-route="overview">'+icon('overview')+'<span>Overview</span></button><button data-route="list">'+icon('units')+'<span>Units &amp; Customers</span></button><button data-route="insights">'+icon('insights')+'<span>Insights</span></button><button data-action="search">'+icon('search')+'<span>Search</span></button><button class="sb-ref-add" data-action="add">'+icon('add')+'<span>Add Customer</span></button></nav><div class="sb-ref-side-bottom"><div class="sb-ref-project-card">'+icon('project')+'<div><b>Sunbliss Residences</b><em>Real Estate Project</em></div><span class="arr">›</span></div></div>';
   document.body.appendChild(n);
   n.querySelectorAll('[data-route]').forEach(function(b){b.onclick=function(){route(b.getAttribute('data-route'))}});
-  n.querySelector('[data-action="tasks"]').onclick=goTasks;
   n.querySelector('[data-action="search"]').onclick=function(){dock('.dock-search')};
   n.querySelector('[data-action="add"]').onclick=function(){dock('.dock-add')};
 }
