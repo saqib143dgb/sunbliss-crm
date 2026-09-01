@@ -272,7 +272,7 @@
       }
 
       .topbar.sunbliss-professional-header .sb-pro-project-sep{
-        display:block!important;
+        display:none!important;
         width:12px!important;
         height:1px!important;
         flex:0 0 12px!important;
