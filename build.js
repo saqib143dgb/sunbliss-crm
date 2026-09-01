@@ -6,7 +6,7 @@ const BASE = path.join(ROOT, 'vendor', 'base');
 const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_STATIC_FILES = [];
+const LOCAL_STATIC_FILES = ['assets/purvanchal-p-logo.svg'];
 const LOCAL_REPLACEMENT_FILES = { 'chunk_11.js': 'auth_core_replacement.js' };
 const PRELOAD_PATCH_FILES = ['mutation_observer_guard_patch.js'];
 const LOCAL_PATCH_FILES = [
