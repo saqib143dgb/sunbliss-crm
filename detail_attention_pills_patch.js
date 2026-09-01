@@ -20,19 +20,17 @@ function styles(){
     '.detail-attention-pill{flex:1 1 0;min-width:0;min-height:30px;margin:0!important;padding:6px 10px;border:1px solid var(--paper-line,#DCD2B6);border-radius:10px;background:rgba(255,255,255,.14);color:var(--muted,#6F706D);font:600 10px/1.2 Inter,sans-serif;letter-spacing:.01em;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;box-shadow:none}',
     '.detail-attention-pill:only-child{flex:0 0 auto;min-width:132px;max-width:100%;padding:7px 14px}',
     '.detail-attention-pill[aria-selected="true"]{background:rgba(69,86,107,.07);border-color:rgba(69,86,107,.28);color:var(--ink,#0F1A26)}',
-    '.detail-attention-pill[data-kind="scheduled"][aria-selected="true"]{background:rgba(69,86,107,.075);border-color:rgba(69,86,107,.30);color:var(--slate,#45566B)}',
     '.detail-attention-pill[data-kind="note"][aria-selected="true"],.detail-attention-pill[data-kind="special"][aria-selected="true"],.detail-attention-pill[data-kind="partial"][aria-selected="true"]{background:rgba(156,90,18,.075);border-color:rgba(156,90,18,.30);color:var(--amber,#9C5A12)}',
-    'html.detail-attention-system .detail #activeCustomerNoteCard,html.detail-attention-system .detail #customerNotesCard,html.detail-attention-system .detail #scheduledActionsDetail{display:none!important}',
-    'html.detail-attention-system .detail #activeCustomerNoteCard.detail-attention-selected,html.detail-attention-system .detail #customerNotesCard.detail-attention-selected,html.detail-attention-system .detail #scheduledActionsDetail.detail-attention-selected{display:block!important}',
+    'html.detail-attention-system .detail #activeCustomerNoteCard,html.detail-attention-system .detail #customerNotesCard{display:none!important}',
+    'html.detail-attention-system .detail #activeCustomerNoteCard.detail-attention-selected,html.detail-attention-system .detail #customerNotesCard.detail-attention-selected{display:block!important}',
     '.detail-attention-managed.detail-attention-hidden{display:none!important}',
-    '#activeCustomerNoteCard.detail-attention-managed,#customerNotesCard.detail-attention-managed,#scheduledActionsDetail.detail-attention-managed{margin-top:0!important;margin-bottom:14px!important}',
+    '#activeCustomerNoteCard.detail-attention-managed,#customerNotesCard.detail-attention-managed{margin-top:0!important;margin-bottom:14px!important}',
     '@media(max-width:520px){#detailAttentionPills{margin-bottom:9px}.detail-attention-pills-scroll{gap:7px}.detail-attention-pill{min-height:29px;padding:6px 8px;font-size:9.5px;line-height:1.15}.detail-attention-pill:only-child{min-width:126px;padding:7px 13px}}'
   ].join('');document.head.appendChild(s)
 }
 function visibleCustomerNoteRows(card){if(!card)return[];return Array.prototype.slice.call(card.querySelectorAll('.customer-note-display-row')).filter(function(r){return r.style.display!=='none'})}
 function candidateList(detail){
   var out=[];
-  var scheduledAction=document.getElementById('scheduledActionsDetail');if(scheduledAction&&detail.contains(scheduledAction)){var count=scheduledAction.querySelectorAll('.scheduled-task-card').length;out.push({kind:'scheduled',label:'Scheduled Action'+(count>1?' · '+count:''),node:scheduledAction,priority:1})}
   var note=document.getElementById('activeCustomerNoteCard');if(note&&detail.contains(note))out.push({kind:'note',label:'Note',node:note,priority:2});
   var special=document.getElementById('customerNotesCard');if(special&&detail.contains(special)){var rows=visibleCustomerNoteRows(special);if(rows.length){var hasSpecial=rows.some(function(r){var l=r.querySelector('.customer-note-display-label');return l&&norm(l.textContent).indexOf('special note')===0}),hasPartial=rows.some(function(r){var l=r.querySelector('.customer-note-display-label');return l&&norm(l.textContent).indexOf('partial booking note')===0});out.push({kind:hasSpecial?'special':hasPartial?'partial':'special',label:hasSpecial?'Special Note':hasPartial?'Partial Note':'Special Note',node:special,priority:3})}}
   return out.sort(function(a,b){return a.priority-b.priority})
