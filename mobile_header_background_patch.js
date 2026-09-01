@@ -12,7 +12,33 @@
         background-size:auto 90%!important;
         background-position:right bottom!important;
       }
-      .topbar.sunbliss-professional-header::before{display:none!important;}
+      .topbar.sunbliss-professional-header::before{
+        content:''!important;
+        display:block!important;
+        position:absolute!important;
+        inset:0!important;
+        width:auto!important;
+        height:auto!important;
+        border:0!important;
+        border-radius:0!important;
+        box-shadow:none!important;
+        background:linear-gradient(90deg,rgba(3,12,20,.82) 0%,rgba(3,12,20,.64) 52%,rgba(3,12,20,.30) 100%)!important;
+        pointer-events:none!important;
+        z-index:1!important;
+      }
+      .topbar.sunbliss-professional-header::after{z-index:2!important;}
+      .topbar.sunbliss-professional-header .sb-pro-signout,
+      .topbar.sunbliss-professional-header .sb-pro-sync{
+        background:rgba(4,14,23,.76)!important;
+        border-color:rgba(214,162,70,.68)!important;
+        box-shadow:0 4px 16px rgba(0,0,0,.24)!important;
+        -webkit-backdrop-filter:blur(5px);
+        backdrop-filter:blur(5px);
+      }
+      .topbar.sunbliss-professional-header .sb-pro-sync{color:rgba(255,250,240,.90)!important;}
+      .topbar.sunbliss-professional-header .sb-pro-name,
+      .topbar.sunbliss-professional-header .sb-pro-project,
+      .topbar.sunbliss-professional-header .sb-pro-welcome{text-shadow:0 2px 8px rgba(0,0,0,.72)!important;}
       .topbar.sunbliss-professional-header .sb-dubai-skyline{display:none!important;}
     }
   `;
