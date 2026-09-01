@@ -7,6 +7,14 @@ var MQ='(min-width:1024px)';
 function desktop(){return window.matchMedia?window.matchMedia(MQ).matches:window.innerWidth>=1024}
 function onOverview(){return desktop()&&window.state&&state.view==='overview'}
 
+function ensureWordmarkTypography(){
+  if(document.getElementById('sunblissPurvanchalTypographyRefine'))return;
+  var style=document.createElement('style');
+  style.id='sunblissPurvanchalTypographyRefine';
+  style.textContent='@media(min-width:1024px){body.sunbliss-ref-desktop .sb-rh-brand-name{font-family:Fraunces,Georgia,"Times New Roman",serif!important;font-weight:700!important;font-size:34px!important;line-height:.98!important;letter-spacing:.05em!important;font-optical-sizing:auto;transform:scaleX(1.10)!important;transform-origin:left center!important;text-rendering:geometricPrecision}}';
+  document.head.appendChild(style);
+}
+
 /*
   The exact desktop dashboard is rendered by a compatibility layer after the base CRM
   renderer. During a normal data refresh, the base renderer can replace .overview first
@@ -37,13 +45,14 @@ function wrap(name){
 }
 
 function install(){
+  ensureWordmarkTypography();
   wrap('renderOverview');
   wrap('renderMain');
   wrap('render');
   /* Some late CRM patches replace render functions during startup. Re-wrap only the
      function references themselves; there is no DOM observer and no recurring timer. */
-  setTimeout(function(){wrap('renderOverview');wrap('renderMain');wrap('render')},120);
-  setTimeout(function(){wrap('renderOverview');wrap('renderMain');wrap('render')},500);
+  setTimeout(function(){ensureWordmarkTypography();wrap('renderOverview');wrap('renderMain');wrap('render')},120);
+  setTimeout(function(){ensureWordmarkTypography();wrap('renderOverview');wrap('renderMain');wrap('render')},500);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
