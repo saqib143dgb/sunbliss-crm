@@ -9,8 +9,8 @@
         background-color:#071520!important;
         background-image:url('assets/sunbliss-mobile-header-background.webp')!important;
         background-repeat:no-repeat!important;
-        background-size:cover!important;
-        background-position:45% 50%!important;
+        background-size:auto 90%!important;
+        background-position:right bottom!important;
       }
       .topbar.sunbliss-professional-header::before{display:none!important;}
       .topbar.sunbliss-professional-header .sb-dubai-skyline{display:none!important;}
