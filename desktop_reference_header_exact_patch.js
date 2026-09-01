@@ -6,7 +6,7 @@ window.__sunblissDesktopReferenceHeaderExact=true;
 var MQ='(min-width:1024px)',queued=false;
 function desktop(){return window.matchMedia?window.matchMedia(MQ).matches:window.innerWidth>=1024}
 function text(v){return v==null?'':String(v)}
-function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
 function roleLabel(v){var s=text(v).trim().toLowerCase();if(s==='crm_officer')return'CRM Officer';if(s==='manager')return'Manager';return s.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()})||'CRM Officer'}
 function syncTime(v){var d=v?new Date(v):new Date();if(isNaN(d.getTime()))d=new Date();return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
 function svgIcon(name){var p={clock:'<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',signout:'<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>',project:'<path d="M4 21V8l6-3v16M10 21V3l8 4v14M2 21h20M7 11h1M7 15h1M13 9h1M13 13h1M16 10h1M16 14h1"/>'};return'<svg viewBox="0 0 24 24" aria-hidden="true">'+p[name]+'</svg>'}
@@ -19,7 +19,7 @@ function styles(){if(document.getElementById('sunblissDesktopReferenceHeaderExac
  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header>*:not(#sbReferenceHeaderExact){display:none!important}
  #sbReferenceHeaderExact{display:block!important;position:absolute;inset:0;z-index:20;color:#fff;font-family:Inter,system-ui,sans-serif;overflow:hidden}
  .sb-rh-brand{position:absolute;left:45px;top:24px;width:360px;height:70px;z-index:5}
- .sb-rh-brand-name{display:inline-block;color:#d9a64c;font:700 34px/1 Georgia,'Times New Roman',serif;letter-spacing:.065em;white-space:nowrap;text-shadow:0 1px 8px rgba(198,151,46,.10);transform:scaleX(1.12);transform-origin:left center}
+ .sb-rh-brand-name{display:inline-block;color:#d9a64c;font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;line-height:1;letter-spacing:.055em;white-space:nowrap;text-shadow:0 1px 8px rgba(198,151,46,.10);transform:scaleX(1.06);transform-origin:left center}
  .sb-rh-brand-sub{margin-top:8px;color:rgba(248,244,234,.94);font:600 8px/1 Inter,system-ui,sans-serif;letter-spacing:.26em;white-space:nowrap}
  .sb-rh-brand:after{content:'';position:absolute;left:0;top:68px;width:270px;height:1px;background:linear-gradient(90deg,#c6972e,rgba(198,151,46,.62),rgba(198,151,46,.08))}
  .sb-rh-user{position:absolute;left:45px;top:105px;z-index:5}
