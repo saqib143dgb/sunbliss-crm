@@ -78,7 +78,7 @@
     var role=roleLabel(st.userRole);
     var synced=syncTime(st.syncedAt);
     return '<div class="sb-pro-top">'+
-        '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><span class="sb-pro-brand-logo-frame"><img class="sb-pro-brand-logo" src="assets/purvanchal-p-desktop-previous.png" alt="Purvanchal logo" decoding="async"></span><div class="sb-pro-brand-copy"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub">REAL ESTATE DEVELOPERS LLC</div></div></div>'+
+        '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><span class="sb-pro-brand-logo-frame"><img class="sb-pro-brand-logo" src="assets/purvanchal-p-thin-ring.png" alt="Purvanchal logo" decoding="async"></span><div class="sb-pro-brand-copy"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub">REAL ESTATE DEVELOPERS LLC</div></div></div>'+
         '<div class="sb-pro-actions"><button type="button" class="sb-pro-signout" id="btnSignOut">'+signoutIcon()+'<span>Sign out</span></button></div>'+
       '</div>'+
     '<div class="sb-pro-main"><div class="sb-pro-copy">'+
