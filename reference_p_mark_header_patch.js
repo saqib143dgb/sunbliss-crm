@@ -64,8 +64,8 @@
       logo.alt = 'Purvanchal Dubai logo';
       mark.insertBefore(logo, mark.firstChild);
     }
-    if (logo.getAttribute('src') !== 'assets/purvanchal-p-dubai.webp'){
-      logo.setAttribute('src','assets/purvanchal-p-dubai.webp');
+    if (logo.getAttribute('src') !== 'assets/purvanchal-p-dubai.png'){
+      logo.setAttribute('src','assets/purvanchal-p-dubai.png');
     }
 
     var copy = identity.querySelector('.sunbliss-brand-copy');

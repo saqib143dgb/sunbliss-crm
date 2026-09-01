@@ -20,10 +20,10 @@ function ensureRealSidebarLogo(){
   var brand=document.querySelector('#sbRefSidebar .sb-ref-brand');
   if(!brand)return;
   var current=brand.querySelector('.sb-stable-brand-logo');
-  if(current&&current.tagName&&current.tagName.toLowerCase()==='img'&&current.getAttribute('src')==='assets/purvanchal-p-dubai.webp')return;
+  if(current&&current.tagName&&current.tagName.toLowerCase()==='img'&&current.getAttribute('src')==='assets/purvanchal-p-dubai.png')return;
   var img=document.createElement('img');
   img.className='sb-stable-brand-logo';
-  img.src='assets/purvanchal-p-dubai.webp';
+  img.src='assets/purvanchal-p-dubai.png';
   img.alt='Purvanchal logo';
   img.decoding='async';
   img.style.width='61px';
