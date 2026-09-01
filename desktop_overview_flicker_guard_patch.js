@@ -15,6 +15,25 @@ function ensureWordmarkTypography(){
   document.head.appendChild(style);
 }
 
+function ensureRealSidebarLogo(){
+  if(!desktop())return;
+  var brand=document.querySelector('#sbRefSidebar .sb-ref-brand');
+  if(!brand)return;
+  var current=brand.querySelector('.sb-stable-brand-logo');
+  if(current&&current.tagName&&current.tagName.toLowerCase()==='img'&&current.getAttribute('src')==='assets/purvanchal-p-dubai.webp')return;
+  var img=document.createElement('img');
+  img.className='sb-stable-brand-logo';
+  img.src='assets/purvanchal-p-dubai.webp';
+  img.alt='Purvanchal logo';
+  img.decoding='async';
+  img.style.width='61px';
+  img.style.height='61px';
+  img.style.objectFit='contain';
+  img.style.display='block';
+  img.style.margin='0 auto 1px';
+  if(current)current.replaceWith(img);else brand.insertBefore(img,brand.firstChild);
+}
+
 /*
   The exact desktop dashboard is rendered by a compatibility layer after the base CRM
   renderer. During a normal data refresh, the base renderer can replace .overview first
@@ -27,7 +46,11 @@ function wrap(name){
   var fn=window[name];
   if(typeof fn!=='function'||fn.__sbFlickerGuard)return;
   function guarded(){
-    if(!onOverview())return fn.apply(this,arguments);
+    if(!onOverview()){
+      var plain=fn.apply(this,arguments);
+      requestAnimationFrame(ensureRealSidebarLogo);
+      return plain;
+    }
     var keep=document.getElementById('sbRefOverviewV2');
     if(keep&&keep.parentNode)keep.parentNode.removeChild(keep);
     var result;
@@ -36,6 +59,7 @@ function wrap(name){
         var host=document.querySelector('.overview');
         if(host&&!document.getElementById('sbRefOverviewV2'))host.insertBefore(keep,host.firstChild);
       }
+      requestAnimationFrame(ensureRealSidebarLogo);
     }
     return result;
   }
@@ -46,13 +70,14 @@ function wrap(name){
 
 function install(){
   ensureWordmarkTypography();
+  ensureRealSidebarLogo();
   wrap('renderOverview');
   wrap('renderMain');
   wrap('render');
   /* Some late CRM patches replace render functions during startup. Re-wrap only the
      function references themselves; there is no DOM observer and no recurring timer. */
-  setTimeout(function(){ensureWordmarkTypography();wrap('renderOverview');wrap('renderMain');wrap('render')},120);
-  setTimeout(function(){ensureWordmarkTypography();wrap('renderOverview');wrap('renderMain');wrap('render')},500);
+  setTimeout(function(){ensureWordmarkTypography();ensureRealSidebarLogo();wrap('renderOverview');wrap('renderMain');wrap('render')},120);
+  setTimeout(function(){ensureWordmarkTypography();ensureRealSidebarLogo();wrap('renderOverview');wrap('renderMain');wrap('render')},500);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
