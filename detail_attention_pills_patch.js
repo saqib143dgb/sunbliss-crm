@@ -16,17 +16,18 @@ function styles(){
   var s=document.createElement('style');s.id='detailAttentionPillsStyles';s.textContent=[
     '#detailAttentionPills{width:100%;margin:0 0 10px;overflow:hidden;box-sizing:border-box}',
     '#detailAttentionPills[data-attention-pending="1"]{visibility:hidden!important;pointer-events:none!important}',
-    '.detail-attention-pills-scroll{display:flex;width:100%;gap:7px;overflow:visible;padding:1px 0 2px;box-sizing:border-box}',
-    '.detail-attention-pill{flex:1 1 0;min-width:0;min-height:31px;margin:0!important;padding:6px 7px;border:1px solid var(--paper-line,#DCD2B6);border-radius:999px;background:var(--paper-dim,#EFE8D6);color:var(--muted,#6F706D);font:700 9.5px/1.2 IBM Plex Mono,monospace;letter-spacing:.01em;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box}',
-    '.detail-attention-pill[aria-selected="true"]{background:var(--ink,#0F1A26);border-color:var(--ink,#0F1A26);color:var(--paper,#F6F1E4)}',
-    '.detail-attention-pill[data-kind="action"][aria-selected="true"]{background:var(--rust,#AE3B2B);border-color:var(--rust,#AE3B2B)}',
-    '.detail-attention-pill[data-kind="scheduled"][aria-selected="true"]{background:var(--slate,#45566B);border-color:var(--slate,#45566B)}',
-    '.detail-attention-pill[data-kind="note"][aria-selected="true"],.detail-attention-pill[data-kind="special"][aria-selected="true"],.detail-attention-pill[data-kind="partial"][aria-selected="true"]{background:var(--amber,#9C5A12);border-color:var(--amber,#9C5A12)}',
+    '.detail-attention-pills-scroll{display:flex;width:100%;gap:8px;align-items:center;justify-content:flex-start;overflow:visible;padding:1px 0 2px;box-sizing:border-box}',
+    '.detail-attention-pill{flex:1 1 0;min-width:0;min-height:30px;margin:0!important;padding:6px 10px;border:1px solid var(--paper-line,#DCD2B6);border-radius:10px;background:rgba(255,255,255,.14);color:var(--muted,#6F706D);font:600 10px/1.2 Inter,sans-serif;letter-spacing:.01em;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;box-shadow:none}',
+    '.detail-attention-pill:only-child{flex:0 0 auto;min-width:132px;max-width:100%;padding:7px 14px}',
+    '.detail-attention-pill[aria-selected="true"]{background:rgba(69,86,107,.07);border-color:rgba(69,86,107,.28);color:var(--ink,#0F1A26)}',
+    '.detail-attention-pill[data-kind="action"][aria-selected="true"]{background:rgba(174,59,43,.075);border-color:rgba(174,59,43,.32);color:var(--rust,#AE3B2B)}',
+    '.detail-attention-pill[data-kind="scheduled"][aria-selected="true"]{background:rgba(69,86,107,.075);border-color:rgba(69,86,107,.30);color:var(--slate,#45566B)}',
+    '.detail-attention-pill[data-kind="note"][aria-selected="true"],.detail-attention-pill[data-kind="special"][aria-selected="true"],.detail-attention-pill[data-kind="partial"][aria-selected="true"]{background:rgba(156,90,18,.075);border-color:rgba(156,90,18,.30);color:var(--amber,#9C5A12)}',
     'html.detail-attention-system .detail #actionRequiredCard,html.detail-attention-system .detail #activeCustomerNoteCard,html.detail-attention-system .detail #customerNotesCard,html.detail-attention-system .detail #scheduledActionsDetail{display:none!important}',
     'html.detail-attention-system .detail #actionRequiredCard.detail-attention-selected,html.detail-attention-system .detail #activeCustomerNoteCard.detail-attention-selected,html.detail-attention-system .detail #customerNotesCard.detail-attention-selected,html.detail-attention-system .detail #scheduledActionsDetail.detail-attention-selected{display:block!important}',
     '.detail-attention-managed.detail-attention-hidden{display:none!important}',
     '#actionRequiredCard.detail-attention-managed,#activeCustomerNoteCard.detail-attention-managed,#customerNotesCard.detail-attention-managed,#scheduledActionsDetail.detail-attention-managed{margin-top:0!important;margin-bottom:14px!important}',
-    '@media(max-width:520px){#detailAttentionPills{margin-bottom:9px}.detail-attention-pills-scroll{gap:6px}.detail-attention-pill{min-height:32px;padding:6px 5px;font-size:8.7px;line-height:1.15}}'
+    '@media(max-width:520px){#detailAttentionPills{margin-bottom:9px}.detail-attention-pills-scroll{gap:7px}.detail-attention-pill{min-height:29px;padding:6px 8px;font-size:9.5px;line-height:1.15}.detail-attention-pill:only-child{min-width:126px;padding:7px 13px}}'
   ].join('');document.head.appendChild(s)
 }
 function visibleCustomerNoteRows(card){if(!card)return[];return Array.prototype.slice.call(card.querySelectorAll('.customer-note-display-row')).filter(function(r){return r.style.display!=='none'})}
