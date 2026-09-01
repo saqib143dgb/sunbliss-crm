@@ -13,10 +13,11 @@
   ].join('');document.head.appendChild(style);
 
   var OLD_FOOTER='Figures are read directly from your uploaded workbook.';
-  var NEW_FOOTER='Sunbliss Residences · Sales & Collections CRM';
+  var NEW_FOOTER='Sunbliss Residences · CRM';
   function refineFooter(){document.querySelectorAll('p.footnote').forEach(function(note){if(String(note.textContent||'').trim()!==OLD_FOOTER)return;note.textContent=NEW_FOOTER;note.classList.add('sunbliss-professional-footer');});}
   var queued=false;
   function queue(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;refineFooter();});}
   function wrap(name){var original=window[name];if(typeof original!=='function'||original.__sunblissFooterWrapped)return;function wrapped(){var out=original.apply(this,arguments);queue();return out;}wrapped.__sunblissFooterWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;}
   wrap('render');wrap('renderMain');wrap('renderOverview');wrap('renderDetail');wrap('renderList');window.addEventListener('pageshow',queue);queue();
 })();
+
