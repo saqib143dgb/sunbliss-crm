@@ -20,6 +20,7 @@
   function syncIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.3 2.3 4.8-5"/></svg>';}
   function signoutIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg>';}
   function projectIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l6-3v16"/><path d="M10 21V3l8 4v14"/><path d="M2 21h20"/><path d="M7 11h1M7 15h1M13 9h1M13 13h1M16 10h1M16 14h1"/></svg>';}
+  function brandSubtitle(){return 'REAL ESTATE DEVELOPERS LLC'.split('').map(function(c){return '<span>'+(c===' '?'&nbsp;':c)+'</span>';}).join('');}
 
   function ensureStyles(){
     [
@@ -78,7 +79,7 @@
     var role=roleLabel(st.userRole);
     var synced=syncTime(st.syncedAt);
     return '<div class="sb-pro-top">'+
-        '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><span class="sb-pro-brand-logo-frame"><img class="sb-pro-brand-logo" src="assets/purvanchal-p-thin-ring.png" alt="Purvanchal logo" decoding="async"></span><div class="sb-pro-brand-copy"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub">REAL ESTATE DEVELOPERS LLC</div></div></div>'+
+        '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><span class="sb-pro-brand-logo-frame"><img class="sb-pro-brand-logo" src="assets/purvanchal-p-thin-ring.png" alt="Purvanchal logo" decoding="async"></span><div class="sb-pro-brand-copy"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub" aria-label="REAL ESTATE DEVELOPERS LLC"><span class="sb-pro-brand-sub-inner" aria-hidden="true">'+brandSubtitle()+'</span></div></div></div>'+
         '<div class="sb-pro-actions"><button type="button" class="sb-pro-signout" id="btnSignOut">'+signoutIcon()+'<span>Sign out</span></button></div>'+
       '</div>'+
     '<div class="sb-pro-main"><div class="sb-pro-copy">'+
@@ -92,30 +93,6 @@
   }
 
   function bindSignout(header){var b=header.querySelector('#btnSignOut');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.addEventListener('click',async function(){b.disabled=true;try{if(window.sb&&sb.auth)await sb.auth.signOut();}finally{location.reload();}});}
-  function fitBrandSubtitle(header){
-    var name=header&&header.querySelector('.sb-pro-brand-name');
-    var sub=header&&header.querySelector('.sb-pro-brand-sub');
-    if(!name||!sub)return;
-    if(!window.matchMedia||!window.matchMedia('(max-width:720px)').matches){
-      ['display','align-self','width','letter-spacing','text-align','text-align-last'].forEach(function(prop){sub.style.removeProperty(prop);});
-      return;
-    }
-    sub.style.setProperty('display','inline-block','important');
-    sub.style.setProperty('align-self','flex-start','important');
-    sub.style.setProperty('width','auto','important');
-    sub.style.setProperty('letter-spacing','0px','important');
-    sub.style.setProperty('text-align','left','important');
-    sub.style.setProperty('text-align-last','auto','important');
-    var target=name.getBoundingClientRect().width;
-    var natural=sub.getBoundingClientRect().width;
-    var chars=text(sub.textContent).trim().length;
-    if(!target||!natural||chars<2)return;
-    var spacing=Math.max(0,(target-natural)/chars);
-    sub.style.setProperty('letter-spacing',spacing.toFixed(3)+'px','important');
-    var measured=sub.getBoundingClientRect().width;
-    spacing=Math.max(0,spacing+(target-measured)/chars);
-    sub.style.setProperty('letter-spacing',spacing.toFixed(3)+'px','important');
-  }
   function apply(){
     ensureStyles();
     var header=document.querySelector('.topbar');
@@ -123,16 +100,14 @@
     header.querySelectorAll('img:not(.sb-pro-brand-logo)').forEach(function(img){img.remove();});
     var st=window.state||{};
     var sig=[st.userName||'',st.userRole||'',st.syncedAt||''].join('|');
-    if(header.classList.contains('sunbliss-professional-header')&&header.dataset.textV2Sig===sig&&header.querySelector('.sb-pro-brand-logo')){bindSignout(header);fitBrandSubtitle(header);return;}
+    if(header.classList.contains('sunbliss-professional-header')&&header.dataset.textV2Sig===sig&&header.querySelector('.sb-pro-brand-logo')){bindSignout(header);return;}
     header.className='topbar sunbliss-professional-header';
     header.dataset.textV2Sig=sig;
     header.innerHTML=markup();
     bindSignout(header);
-    fitBrandSubtitle(header);
   }
   function schedule(){requestAnimationFrame(function(){apply();requestAnimationFrame(apply);});}
   if(typeof window.render==='function'&&!window.__sunblissProfessionalHeaderTextV2RenderWrapped){var prev=window.render;window.render=function(){var r=prev.apply(this,arguments);schedule();return r;};window.__sunblissProfessionalHeaderTextV2RenderWrapped=true;}
-  if(!window.__sunblissProfessionalHeaderTextV2ResizeBound){window.addEventListener('resize',schedule,{passive:true});window.__sunblissProfessionalHeaderTextV2ResizeBound=true;}
   var app=document.getElementById('app');if(app&&window.MutationObserver){var queued=false;new MutationObserver(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;apply();});}).observe(app,{childList:true,subtree:true});}
   apply();schedule();setTimeout(apply,60);
 })();

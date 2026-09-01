@@ -118,9 +118,11 @@
         display:flex!important;
         min-width:0!important;
         width:max-content!important;
+        height:48px!important;
         max-width:calc(100% - 51px)!important;
         flex-direction:column!important;
         justify-content:center!important;
+        align-self:center!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-brand-name{
@@ -139,13 +141,27 @@
         display:block!important;
         width:100%!important;
         box-sizing:border-box!important;
+        padding:0 1px!important;
         margin-top:4px!important;
         color:rgba(228,180,92,.92)!important;
         font:600 6px/1.25 Inter,system-ui,sans-serif!important;
-        letter-spacing:.30em!important;
+        letter-spacing:0!important;
         white-space:nowrap!important;
         text-align:left!important;
         text-align-last:auto!important;
+      }
+
+      .topbar.sunbliss-professional-header .sb-pro-brand-sub-inner{
+        display:flex!important;
+        width:100%!important;
+        align-items:center!important;
+        justify-content:space-between!important;
+      }
+
+      .topbar.sunbliss-professional-header .sb-pro-brand-sub-inner span{
+        display:inline-block!important;
+        flex:0 0 auto!important;
+        letter-spacing:0!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-signout{
