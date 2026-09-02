@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV4';
+var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV5';
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
@@ -17,7 +17,8 @@ function revealFallback(key){if(!window.state||state.view!=='detail'||text(state
 function armGuard(key){clearTimeout(guardTimer);guardTimer=setTimeout(function(){revealFallback(key)},2500)}
 function current(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit)})||null}
 function unitIds(){var seen={},ids=[];(window.state&&Array.isArray(state.dues)?state.dues:[]).forEach(function(c){var id=Number(c&&c.sno);if(id>0&&!seen[id]){seen[id]=1;ids.push(id)}});return ids}
-function paymentStage(r){var n=norm(r&&r.stage_name);return !!n&&n.indexOf('dld')<0&&n.indexOf('admin fee')<0&&n.indexOf('booking')<0&&(n.indexOf('installment')>=0||n.indexOf('down payment')>=0||n.indexOf('final')>=0)}
+function stageKind(r){var n=norm(r&&r.stage_name).replace(/instalment/g,'installment');if(!n||n.indexOf('booking')>=0)return'';if(n.indexOf('dld')>=0||n.indexOf('admin fee')>=0)return'dld';if(n.indexOf('down payment')>=0)return'dp';if(/\b(1st|first)\b/.test(n)&&n.indexOf('installment')>=0)return'first';if(n.indexOf('installment')>=0||n.indexOf('final')>=0)return'later';return''}
+function paymentStage(r){return!!stageKind(r)}
 function carryManaged(c){var x={};(c&&c.stages||[]).forEach(function(s){if(s&&s.id&&s.carryForwardManaged===true)x[String(s.id)]=1});return x}
 function fresh(uid){var hit=cache[String(uid)];return hit&&Date.now()-hit.at<CACHE_TTL?hit:null}
 function hydrate(){try{var raw=sessionStorage.getItem(STORE_KEY);if(!raw)return;var saved=JSON.parse(raw),now=Date.now();Object.keys(saved||{}).forEach(function(k){var h=saved[k];if(h&&h.data&&now-Number(h.at||0)<CACHE_TTL)cache[k]=h})}catch(e){}}
@@ -40,7 +41,36 @@ function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[
 function genericPaymentTask(t){return t&&t.status==='pending'&&!t.auto_kind&&/(payment|installment|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/.test(norm(text(t.action_label)+' '+text(t.note)))}
 function coverage(data){var exact={},wildcard=false;(data.tasks||[]).forEach(function(t){if(t.status!=='pending')return;var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);ids.forEach(function(id){exact[id]=1});if(!ids.length&&genericPaymentTask(t))wildcard=true});return{exact:exact,wildcard:wildcard}}
 function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.push('By '+date(x.e.contractual));if(x.e.revised&&x.e.revised!==x.e.contractual)p.push('Revised to '+date(x.e.revised));p.push('Extended to '+date(x.e.date));return p.join(' · ')}if(x.e.kind==='revised')return 'By '+date(x.e.contractual)+' · Revised to '+date(x.e.date);return 'By '+date(x.e.date)}
-function build(data,c){var managed=carryManaged(c),rows=[];data.rows.forEach(function(r){if(!paymentStage(r)||managed[String(r.id)])return;var remaining=Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-(data.credit[String(r.id)]||0))*100)/100;if(remaining<=1)return;var e=effective(r,data.ext);if(!e.date)return;rows.push({r:r,remaining:remaining,e:e})});rows.sort(function(a,b){return a.e.date.localeCompare(b.e.date)});if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule is fully paid.'};var cov=coverage(data),td=today(),over=rows.filter(function(x){var d=day(x.e.date);return d&&d<td});if(over.length){var visible=cov.wildcard&&over.length===1?[]:over.filter(function(x){return !cov.exact[String(x.r.id)]});if(!visible.length)return{hidden:true,reason:'scheduled'};var sum=Math.round(visible.reduce(function(s,x){return s+x.remaining},0)*100)/100,oldest=visible[0],days=Math.max(1,Math.floor((td-day(oldest.e.date))/86400000)),labels=visible.map(function(x){return text(x.r.stage_name)});return{status:'Overdue',tone:'danger',message:visible.length===1?money(sum)+' for '+labels[0]+' was due on '+date(oldest.e.date)+'. Follow up for payment now.':money(sum)+' total overdue for '+labels.join(' + ')+'. Follow up for payment now.',detail:(visible.length>1?visible.length+' installments overdue · ':'')+sourceLine(oldest)+' · '+days+' day'+(days===1?'':'s')+' overdue.'}}var next=rows[0];if(cov.wildcard||cov.exact[String(next.r.id)])return{hidden:true,reason:'scheduled'};var d=day(next.e.date),delta=Math.round((d-td)/86400000),kind=next.e.kind,status=kind==='extension'?'Extension Active':kind==='revised'?'Revised Schedule':delta===0?'Due today':delta<=7?'Due soon':'Upcoming',tone=delta===0?'danger':(kind==='extension'||kind==='revised'||delta<=7?'warn':'neutral'),msg;if(delta===0)msg=money(next.remaining)+' for '+text(next.r.stage_name)+' is due today.';else msg='Next installment is '+money(next.remaining)+' due on '+date(next.e.date)+'.';return{status:status,tone:tone,message:msg,detail:'Stage: '+text(next.r.stage_name)+' · '+sourceLine(next)+(delta>0?' · Due in '+delta+' day'+(delta===1?'':'s')+'.':'.')}}
+function build(data,c){
+ var managed=carryManaged(c),rows=[];
+ data.rows.forEach(function(r){
+  var kind=stageKind(r);if(!kind||managed[String(r.id)])return;
+  var credit=kind==='dld'?0:(data.credit[String(r.id)]||0);
+  var remaining=Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-credit)*100)/100;
+  if(remaining<=1)return;var e=effective(r,data.ext);if(!e.date)return;
+  rows.push({r:r,remaining:remaining,e:e,kind:kind});
+ });
+ rows.sort(function(a,b){return a.e.date.localeCompare(b.e.date)||Number(a.r.id)-Number(b.r.id)});
+ if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule, including DLD and Admin Fees, is fully settled.'};
+ var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',current=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data);
+ if(cov.wildcard)return{hidden:true,reason:'scheduled'};
+ current=current.filter(function(x){return!cov.exact[String(x.r.id)]});
+ if(!current.length)return{hidden:true,reason:'scheduled'};
+ var td=today(),over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
+ if(over.length)focus=over;
+ else{var firstDate=current[0].e.date;focus=current.filter(function(x){return x.e.date===firstDate})}
+ var sum=Math.round(focus.reduce(function(s,x){return s+x.remaining},0)*100)/100,first=focus[0],labels=focus.map(function(x){return text(x.r.stage_name)}),stage=labels.join(' + '),d=day(first.e.date),delta=Math.round((d-td)/86400000),kind=first.e.kind,status=over.length?'Overdue':kind==='extension'?'Extension Active':kind==='revised'?'Revised Schedule':delta===0?'Due today':delta<=7?'Due soon':'Upcoming',tone=over.length||delta===0?'danger':(kind==='extension'||kind==='revised'||delta<=7?'warn':'neutral'),msg,detail;
+ if(gate==='pre_spa'){
+  if(over.length)msg='Collect '+money(sum)+' for '+stage+' now. '+(focus.length===1?'It was':'They were')+' due on '+date(first.e.date)+'.';
+  else if(delta===0)msg='Collect '+money(sum)+' for '+stage+' today before SPA signing.';
+  else msg='Collect '+money(sum)+' for '+stage+' by '+date(first.e.date)+' before SPA signing.';
+  detail='Stage: '+stage+' · '+sourceLine(first)+(over.length?' · '+Math.max(1,Math.floor((td-d)/86400000))+' day'+(Math.max(1,Math.floor((td-d)/86400000))===1?'':'s')+' overdue.':' · Due in '+delta+' day'+(delta===1?'':'s')+'.')+' The 2nd Installment remains blocked until the 1st Installment and DLD + Admin Fees are fully settled.';
+  return{status:status,tone:tone,message:msg,detail:detail};
+ }
+ if(over.length){var days=Math.max(1,Math.floor((td-d)/86400000));msg=focus.length===1?money(sum)+' for '+stage+' was due on '+date(first.e.date)+'. Follow up for payment now.':money(sum)+' total overdue for '+stage+'. Follow up for payment now.';detail=(focus.length>1?focus.length+' installments overdue · ':'')+sourceLine(first)+' · '+days+' day'+(days===1?'':'s')+' overdue.';return{status:status,tone:tone,message:msg,detail:detail}}
+ if(delta===0)msg=money(sum)+' for '+stage+' is due today.';else msg='Next installment is '+money(sum)+' due on '+date(first.e.date)+'.';
+ return{status:status,tone:tone,message:msg,detail:'Stage: '+stage+' · '+sourceLine(first)+(delta>0?' · Due in '+delta+' day'+(delta===1?'':'s')+'.':'.')}
+}
 function visibleMatches(card,a){var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail');return card.getAttribute('data-tone')===a.tone&&!!status&&text(status.textContent)===text(a.status)&&!!message&&text(message.textContent)===text(a.message)&&text(detail&&detail.textContent)===text(a.detail)}
 function setTextIfChanged(node,value){if(node&&text(node.textContent)!==text(value))node.textContent=text(value)}
 function apply(a,key){if(!window.state||state.view!=='detail'||text(state.selectedUnit)!==key)return;var card=document.getElementById('actionRequiredCard');if(!card)return;clearTimeout(guardTimer);card.dataset.effectiveReady='true';if(a.hidden){card.hidden=true;card.setAttribute('aria-hidden','true');card.dataset.scheduledCovered='true';return}card.hidden=false;card.removeAttribute('aria-hidden');delete card.dataset.scheduledCovered;var sig=[a.status,a.tone,a.message,a.detail].join('|');if(card.dataset.effectiveActionSig===sig||visibleMatches(card,a)){card.dataset.effectiveActionSig=sig;return}rendering=true;try{card.dataset.effectiveActionSig=sig;if(card.getAttribute('data-tone')!==a.tone)card.setAttribute('data-tone',a.tone);var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail');if(status&&message){setTextIfChanged(status,a.status);setTextIfChanged(message,a.message);if(a.detail){if(!detail){detail=document.createElement('p');detail.className='action-required-detail';card.appendChild(detail)}setTextIfChanged(detail,a.detail)}else if(detail){detail.remove()}}else{card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status">'+safe(a.status)+'</span></div><p class="action-required-message">'+safe(a.message)+'</p>'+(a.detail?'<p class="action-required-detail">'+safe(a.detail)+'</p>':'')}}finally{rendering=false}}

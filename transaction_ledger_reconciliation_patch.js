@@ -164,7 +164,7 @@
       stage.cashPaid=cash;
       stage.transactionCash=cash;
       stage.transactionCount=(stage.__txIds||[]).length;
-      stage.settledAmount=round2(cash+credit+carryApplied);
+      stage.settledAmount=round2(cash+(isDldStage(stage)?0:credit)+carryApplied);
       stage.paid=stage.settledAmount;
       stage.outAmt=stage.due===null||stage.due===undefined?null:round2((Number(stage.due)||0)-stage.settledAmount);
       setPaidDate(stage,stage.__txLatestDate||'');

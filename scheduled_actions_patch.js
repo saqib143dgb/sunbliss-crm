@@ -75,14 +75,18 @@
 
   function pendingForUnit(unitId){return cache.rows.filter(function(t){return Number(t.unit_id)===Number(unitId)&&t.status==='pending';}).sort(taskSort);}
   function taskSort(a,b){var d=text(a.due_date).localeCompare(text(b.due_date));if(d)return d;var p={High:0,Medium:1,Low:2};return (p[a.priority]||1)-(p[b.priority]||1)||Number(a.id)-Number(b.id);}
-  function paymentStage(r){var n=text(r&&r.stage_name).toLowerCase();return !!n&&n.indexOf('dld')<0&&n.indexOf('admin fee')<0&&n.indexOf('booking')<0&&(n.indexOf('installment')>=0||n.indexOf('down payment')>=0||n.indexOf('final')>=0);}
+  function stageKind(r){var n=text(r&&r.stage_name).toLowerCase().replace(/instalment/g,'installment');if(!n||n.indexOf('booking')>=0)return'';if(n.indexOf('dld')>=0||n.indexOf('admin fee')>=0)return'dld';if(n.indexOf('down payment')>=0)return'dp';if(/\b(1st|first)\b/.test(n)&&n.indexOf('installment')>=0)return'first';if(n.indexOf('installment')>=0||n.indexOf('final')>=0)return'later';return'';}
+  function paymentStage(r){return!!stageKind(r);}
   function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[1].split(',').map(Number):[];}
   function isPaymentAction(action,note){return /(payment|installment|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/.test((text(action)+' '+text(note)).toLowerCase());}
   function relatedPaymentRows(c){
     var core=window.PaymentExtensionsCore,cc=core&&core.cache;if(!c||!cc||!Array.isArray(cc.s))return[];
     var credit=typeof core.creditMap==='function'?core.creditMap():{},ext={};
     (cc.e||[]).forEach(function(e){if(e&&e.status==='active'&&e.payment_schedule_id!=null)ext[String(e.payment_schedule_id)]=text(e.extended_due_date).slice(0,10);});
-    return cc.s.filter(function(r){return Number(r&&r.unit_id)===Number(c.sno)&&paymentStage(r)&&Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-(Number(credit[r.id])||0))>1;}).map(function(r){var due=ext[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining=Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-(Number(credit[r.id])||0));return{row:r,due:due,remaining:remaining};}).sort(function(a,b){return text(a.due).localeCompare(text(b.due))||Number(a.row.id)-Number(b.row.id);});
+    var rows=cc.s.filter(function(r){if(Number(r&&r.unit_id)!==Number(c.sno)||!paymentStage(r))return false;var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0);return Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied)>1;}).map(function(r){var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0),due=ext[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining=Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied);return{row:r,due:due,remaining:remaining,kind:stageKind(r)};}).sort(function(a,b){return text(a.due).localeCompare(text(b.due))||Number(a.row.id)-Number(b.row.id);});
+    var dp=rows.filter(function(x){return x.kind==='dp';});if(dp.length)return dp;
+    var pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld';});if(pre.length)return pre;
+    return rows.filter(function(x){return x.kind==='later';});
   }
   function relatedPaymentField(c,selected){
     var rows=relatedPaymentRows(c);if(!rows.length)return'';var chosen=selected==='auto'?Number(rows[0].row.id):Number(selected)||0;

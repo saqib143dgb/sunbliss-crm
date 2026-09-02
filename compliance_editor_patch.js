@@ -39,6 +39,46 @@
     return el ? String(el.value || '').trim() : '';
   }
 
+  function complianceStageKind(name){
+    var n=normalize(name).replace(/instalment/g,'installment');
+    if (n.indexOf('dld')!==-1 || n.indexOf('admin fee')!==-1) return 'dld';
+    if (n.indexOf('down payment')!==-1) return 'dp';
+    if (/\b(1st|first)\b/.test(n) && n.indexOf('installment')!==-1) return 'first';
+    return '';
+  }
+
+  function aed(value){
+    var n=Math.max(0,Math.round((Number(value)||0)*100)/100);
+    return typeof window.fmtAED==='function' ? window.fmtAED(n) : 'AED '+n.toLocaleString('en-AE',{maximumFractionDigits:2});
+  }
+
+  async function assertSpaReady(c){
+    var results=await Promise.all([
+      sb.from('payment_schedule').select('id,stage_name,due_amount,paid_amount,status').eq('unit_id',c.sno),
+      sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',c.sno)
+    ]);
+    results.forEach(function(r){if(r.error)throw r.error;});
+    var credit={};
+    (results[1].data||[]).forEach(function(row){
+      if(row.payment_schedule_id==null)return;
+      credit[String(row.payment_schedule_id)]=(credit[String(row.payment_schedule_id)]||0)+(Number(row.amount)||0);
+    });
+    var totals={dp:{found:false,remaining:0},first:{found:false,remaining:0},dld:{found:false,remaining:0}};
+    (results[0].data||[]).forEach(function(row){
+      var kind=complianceStageKind(row.stage_name);if(!kind)return;
+      totals[kind].found=true;
+      var applied=kind==='dld'?0:(credit[String(row.id)]||0);
+      totals[kind].remaining+=normalize(row.status)==='paid'?0:Math.max(0,(Number(row.due_amount)||0)-(Number(row.paid_amount)||0)-applied);
+    });
+    var labels={dp:'Down Payment',first:'1st Installment',dld:'DLD + Admin Fees'},blocked=[];
+    ['dp','first','dld'].forEach(function(kind){
+      var item=totals[kind];
+      if(!item.found)blocked.push(labels[kind]+' schedule is missing');
+      else if(item.remaining>1)blocked.push(labels[kind]+' '+aed(item.remaining)+' outstanding');
+    });
+    if(blocked.length)throw new Error('SPA cannot be marked Signed. Settle the full 24% package first: '+blocked.join('; ')+'.');
+  }
+
   function numberOrNull(id,label,maximum){
     var raw = valueOf(id);
     if (!raw) return null;
@@ -297,6 +337,7 @@
       renderDetail();
 
       try{
+        if (normalize(spa)==='signed' && normalize(c.spa)!=='signed') await assertSpaReady(c);
         var result = await sb.from('sales').update({spa_status:spa,spa_date:spaDate || null,oqood_status:oqood,oqood_date:oqoodDate || null,furniture_status:furniture,updated_at:new Date().toISOString()}).eq('unit_id',c.sno);
         if (result.error) throw result.error;
 

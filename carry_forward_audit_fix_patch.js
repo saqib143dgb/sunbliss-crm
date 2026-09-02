@@ -5,6 +5,7 @@
 
   function text(v){return v==null?'':String(v)}
   function round2(v){return Math.round((Number(v)||0)*100)/100}
+  function isDldStage(stage){return !!stage&&(text(stage.code).toUpperCase()==='DLD'||/\bdld\b|admin\s*fees?/i.test(text(stage.label||stage.stage_name)))}
   function unitId(c){return Number(c&&(c.unitId||c.sno))||null}
   function customers(){
     var out=[];
@@ -74,7 +75,7 @@
         var cash=stage.cashPaid!==undefined?Number(stage.cashPaid)||0:Number(stage.paid)||0;
         var credit=Number(stage.creditNoteTotal)||0;
         stage.cashPaid=round2(cash);
-        stage.settledAmount=round2(stage.cashPaid+credit+carryApplied);
+        stage.settledAmount=round2(stage.cashPaid+(isDldStage(stage)?0:credit)+carryApplied);
         stage.paid=stage.settledAmount;
         stage.outAmt=stage.due===null||stage.due===undefined?null:round2((Number(stage.due)||0)-stage.settledAmount);
       });

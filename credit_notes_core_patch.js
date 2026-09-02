@@ -32,6 +32,11 @@
     if(s.indexOf('final')!==-1||s.indexOf('handover')!==-1) return 'FIN';
     return '';
   }
+  function isDldStage(stage){
+    if(!stage)return false;
+    if(text(stage.code).toUpperCase()==='DLD')return true;
+    return /\bdld\b|admin\s*fees?/i.test(text(stage.label||stage.stage_name));
+  }
   function selectedCustomer(){
     if(!window.state||!state.selectedUnit||!Array.isArray(state.dues)) return null;
     return state.dues.find(function(c){ return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit); })||null;
@@ -86,9 +91,9 @@
     var notes=(results[0].data||[]).map(function(x){ return {id:x.id,customerId:x.customer_id,unitId:x.unit_id,scheduleId:x.payment_schedule_id,issueDate:x.issue_date||'',amount:Number(x.amount)||0,reason:x.reason||'',reference:x.reference_number||'',createdAt:x.created_at||'',stageLabel:''}; });
     var schedules=results[1].data||[],units=results[2].data||[];
     state.creditNotes=notes;
-    var bySchedule={},byUnit={},scheduleByUnit={},unitByNo={};
+    var bySchedule={},byUnit={},scheduleByUnit={},scheduleById={},unitByNo={};
     notes.forEach(function(n){ var sk=text(n.scheduleId),uk=text(n.unitId); (bySchedule[sk]||(bySchedule[sk]=[])).push(n); (byUnit[uk]||(byUnit[uk]=[])).push(n); });
-    schedules.forEach(function(r){(scheduleByUnit[text(r.unit_id)]||(scheduleByUnit[text(r.unit_id)]=[])).push(r);});
+    schedules.forEach(function(r){scheduleById[text(r.id)]=r;(scheduleByUnit[text(r.unit_id)]||(scheduleByUnit[text(r.unit_id)]=[])).push(r);});
     units.forEach(function(u){var key=unitKey(u.unit_no);if(key&&!unitByNo[key])unitByNo[key]=u;});
     [state.dues,state.cancelled].forEach(function(list){
       if(!Array.isArray(list)) return;
@@ -96,13 +101,14 @@
         var dbUnit=unitByNo[unitKey(c.unit)]||null,actualUnitId=dbUnit?dbUnit.id:c.unitId,actualCustomerId=dbUnit?dbUnit.customer_id:c.customerId;
         c.unitId=actualUnitId||null;c.customerId=actualCustomerId||null;
         var unitRows=scheduleByUnit[text(actualUnitId)]||[],unitNotes=byUnit[text(actualUnitId)]||[];
-        c.cashReceived=Number(c.received)||0;c.creditNotes=unitNotes;c.creditNoteTotal=unitNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);c.settledReceived=c.cashReceived+c.creditNoteTotal;
+        var settlementNotes=unitNotes.filter(function(n){return!isDldStage(scheduleById[text(n.scheduleId)])}),dldNotes=unitNotes.filter(function(n){return isDldStage(scheduleById[text(n.scheduleId)])});
+        c.cashReceived=Number(c.received)||0;c.creditNotes=unitNotes;c.creditNoteTotal=settlementNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);c.dldAdminCreditNoteTotal=dldNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);c.allCreditNoteTotal=c.creditNoteTotal+c.dldAdminCreditNoteTotal;c.settledReceived=c.cashReceived+c.creditNoteTotal;
         (c.stages||[]).forEach(function(st){
           var sr=unitRows.find(function(r){return stageCode(r.stage_name)===st.code;})||null;
           if(sr){st.id=sr.id;st.scheduleId=sr.id;st.customerId=sr.customer_id;st.unitId=sr.unit_id;st.cashPaid=Number(sr.paid_amount)||0;if(sr.paid_date&& !st.paidDate)st.paidDate=new Date(sr.paid_date+'T00:00:00');}
           else st.cashPaid=st.cashPaid!==undefined?(Number(st.cashPaid)||0):(Number(st.paid)||0);
           var stageNotes=bySchedule[text(st.id)]||[],credit=stageNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);
-          st.creditNotes=stageNotes;st.creditNoteTotal=credit;st.settledAmount=(Number(st.cashPaid)||0)+credit;st.paid=st.settledAmount;stageNotes.forEach(function(n){n.stageLabel=st.label||'';});
+          st.creditNotes=stageNotes;st.creditNoteTotal=credit;st.settledAmount=(Number(st.cashPaid)||0)+(isDldStage(st)?0:credit);st.paid=st.settledAmount;stageNotes.forEach(function(n){n.stageLabel=st.label||'';});
         });
         adjustOutstanding(c);recomputeNextDue(c);
       });
@@ -113,8 +119,8 @@
     if(state.paymentFormError) h+='<p class="brand-error">'+safe(state.paymentFormError)+'</p>';
     h+='<label class="brand-field">Installment<select id="pfStage">';
     stages.forEach(function(s){
-      var due=Number(s.due)||0,settled=Number(s.paid)||0,credit=Number(s.creditNoteTotal)||0,cash=s.cashPaid===undefined?settled:Number(s.cashPaid)||0,rem=due-settled,label;
-      label=credit>0?s.label+' — '+money(cash)+' cash + '+money(credit)+' credit of '+money(due)+' settled'+(rem>1?' ('+money(rem)+' remaining)':' (fully paid)'):s.label+' — '+money(cash)+' of '+money(due)+' paid'+(rem>1?' ('+money(rem)+' remaining)':' (fully paid)');
+      var due=Number(s.due)||0,credit=Number(s.creditNoteTotal)||0,cash=s.cashPaid===undefined?(Number(s.paid)||0):Number(s.cashPaid)||0,dld=isDldStage(s),settled=cash+(dld?0:credit),rem=due-settled,label;
+      label=dld&&credit>0?s.label+' — '+money(cash)+' cash of '+money(due)+' paid ('+money(credit)+' historical credit does not settle DLD) remaining '+money(rem):credit>0?s.label+' — '+money(cash)+' cash + '+money(credit)+' credit of '+money(due)+' settled'+(rem>1?' ('+money(rem)+' remaining)':' (fully paid)'):s.label+' — '+money(cash)+' of '+money(due)+' paid'+(rem>1?' ('+money(rem)+' remaining)':' (fully paid)');
       h+='<option value="'+safe(s.code)+'"'+(s.code===selected?' selected':'')+'>'+safe(label)+'</option>';
     });
     h+='</select></label><label class="brand-field">Amount paid (AED)<input type="number" id="pfAmount" min="0" step="0.01" placeholder="e.g. 50000" /></label><label class="brand-field">Payment date<input type="date" id="pfDate" value="'+today()+'" /></label><label class="brand-field">Reference (optional)<input type="text" id="pfRef" placeholder="e.g. cheque or transfer no." /></label><label class="brand-field">Remarks (optional)<input type="text" id="pfRemarks" placeholder="e.g. paid via bank transfer" /></label>';
@@ -132,6 +138,7 @@
     state.paymentFormStage=code;
     if(!code){formError('Select an installment.');return;} if(!isFinite(cash)||cash<0){formError('Enter a valid cash payment amount.');return;} if(!isFinite(credit)||credit<0){formError('Enter a valid credit note amount.');return;} if(cash<=0&&credit<=0){formError('Enter a cash payment, a credit note, or both.');return;} if(cash>0&&!paymentDate){formError('Select a payment date.');return;} if(credit>0&&!creditDate){formError('Select the credit note issue date.');return;} if(credit>0&&!creditReason){formError('Enter the credit note reason.');return;}
     var st=(customer.stages||[]).find(function(s){return s.code===code;}); if(!st||!st.id){formError('That installment is not linked to its database schedule. Refresh and try again.');return;}
+    if(isDldStage(st)&&credit>0){formError('DLD + Admin Fees must be settled in cash. Credit notes cannot be applied to this stage.');return;}
     var btn=document.getElementById('pfSave'),key=state.selectedUnit,from=state.detailFrom||'list'; if(btn){btn.disabled=true;btn.textContent='Saving…';} state.paymentFormSaving=true; state.paymentFormError=null;
     try{
       var r=await sb.rpc('crm_record_payment_with_credit_note',{p_schedule_id:st.id,p_cash_amount:Math.round(cash*100)/100,p_payment_date:cash>0?paymentDate:null,p_payment_reference:paymentRef||null,p_remarks:remark||null,p_credit_amount:Math.round(credit*100)/100,p_credit_issue_date:credit>0?creditDate:null,p_credit_reason:credit>0?creditReason:null,p_credit_reference:credit>0?(creditRef||null):null});
@@ -147,7 +154,7 @@
   function install(){
     if(!window.state||!window.sb||typeof window.loadFromSupabase!=='function'||typeof window.renderPaymentForm!=='function'||typeof window.savePayment!=='function'){setTimeout(install,50);return;}
     ensureStyles();
-    window.__sunblissCreditNoteApi={text:text,safe:safe,number:number,money:money,today:today,dateLabel:dateLabel,selectedCustomer:selectedCustomer,allCustomers:allCustomers,enrichCreditNotes:enrichCreditNotes,ensureStyles:ensureStyles};
+    window.__sunblissCreditNoteApi={text:text,safe:safe,number:number,money:money,today:today,dateLabel:dateLabel,isDldStage:isDldStage,selectedCustomer:selectedCustomer,allCustomers:allCustomers,enrichCreditNotes:enrichCreditNotes,ensureStyles:ensureStyles};
     var load=window.loadFromSupabase;window.loadFromSupabase=async function(){var out=await load.apply(this,arguments);try{await enrichCreditNotes();if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();}catch(e){console.warn('Could not load credit notes',e);}return out;};
     if(typeof window.portfolioStats==='function'){var stats=window.portfolioStats;window.portfolioStats=function(){return fixStageBreakdown(stats.apply(this,arguments));};}
     window.renderPaymentForm=renderPaymentForm;window.savePayment=savePayment;
