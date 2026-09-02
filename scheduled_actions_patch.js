@@ -39,8 +39,6 @@
       '.scheduled-task-state.overdue{background:rgba(174,59,43,.08);color:var(--rust)}',
       '.scheduled-task-state.today{background:rgba(156,90,18,.08);color:var(--amber)}',
       '.scheduled-task-state.tomorrow{background:rgba(69,86,107,.08);color:var(--slate)}',
-      '.scheduled-task-state.outstanding{background:rgba(162,124,53,.11);color:var(--gold-deep)}',
-      '.scheduled-task-state.extension{background:rgba(156,90,18,.09);color:var(--amber)}',
       '#scheduledActionsOverview{margin-top:22px;padding-top:2px}',
       '.scheduled-overview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}',
       '.scheduled-overview-head .section-label{margin:0}',
@@ -52,10 +50,6 @@
       '.scheduled-overview-title{font:650 12.5px/1.35 Inter,sans-serif;color:var(--ink);margin-top:2px}',
       '.scheduled-overview-meta{font-size:10.5px;line-height:1.35;color:var(--muted);margin-top:3px}',
       '.scheduled-overview-done{min-width:72px;margin:0!important;justify-content:center}',
-      '.scheduled-outstanding-row:before{background:var(--gold-deep)!important}',
-      '.scheduled-outstanding-amount{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right;white-space:nowrap}',
-      '.scheduled-outstanding-value{font:750 13px/1.2 Inter,sans-serif;color:var(--ink)}',
-      '.scheduled-outstanding-label{font:600 8.5px/1.2 IBM Plex Mono,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}',
       '.scheduled-empty{padding:18px 2px;color:var(--muted);font-size:12px}',
       '#scheduledActionPanel .scheduled-form-summary{margin:-2px 0 14px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font-size:11.5px;line-height:1.45;color:var(--muted)}',
       '#scheduledActionPanel select,#scheduledActionPanel input,#scheduledActionPanel textarea{display:block;width:100%;margin-top:5px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:8px;font:500 16px/1.25 Inter,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box}',
@@ -63,7 +57,7 @@
       '#scheduledActionPanel .scheduled-danger{margin-top:10px;width:100%;justify-content:center;color:var(--rust)}',
       '.scheduled-next-check{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted)}',
       '.scheduled-next-check input{width:auto!important;margin:1px 0 0!important}',
-      '@media(max-width:520px){.scheduled-task-actions{flex-direction:column}.scheduled-task-actions button{width:100%}.scheduled-overview-row{grid-template-columns:1fr}.scheduled-overview-done{width:100%}.scheduled-overview-head{align-items:flex-start}.scheduled-overview-select{max-width:155px}.scheduled-outstanding-amount{align-items:flex-start;text-align:left;padding-top:2px}}'
+      '@media(max-width:520px){.scheduled-task-actions{flex-direction:column}.scheduled-task-actions button{width:100%}.scheduled-overview-row{grid-template-columns:1fr}.scheduled-overview-done{width:100%}.scheduled-overview-head{align-items:flex-start}.scheduled-overview-select{max-width:155px}}'
     ].join('');document.head.appendChild(s);
   }
 
@@ -100,69 +94,6 @@
   }
   function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
 
-  function outstandingAmount(c){
-    var balance=Number(c&&c.outstanding);
-    return isFinite(balance)&&balance<-1?Math.round(Math.abs(balance)*100)/100:0;
-  }
-  function outstandingCustomers(){
-    if(!window.state||!Array.isArray(state.dues))return[];
-    return state.dues.filter(function(c){return outstandingAmount(c)>1;}).map(function(c){
-      return{customer:c,amount:outstandingAmount(c),status:outstandingStatus(c)};
-    }).sort(function(a,b){
-      var rank={overdue:0,today:1,extension:2,upcoming:3,outstanding:4};
-      var ar=rank[a.status.key]===undefined?4:rank[a.status.key],br=rank[b.status.key]===undefined?4:rank[b.status.key];
-      return ar-br||text(a.status.date).localeCompare(text(b.status.date))||b.amount-a.amount||text(a.customer.unit).localeCompare(text(b.customer.unit),undefined,{numeric:true});
-    });
-  }
-  function outstandingStatus(c){
-    var today=todayIso(0),core=window.PaymentExtensionsCore,C=core&&core.cache,activeIds={},activeDates=[];
-    if(core&&typeof core.active==='function'){
-      core.active().forEach(function(e){
-        if(Number(e&&e.unit_id)!==Number(c.sno))return;
-        activeIds[String(e.payment_schedule_id)]=true;
-        if(e.extended_due_date)activeDates.push(text(e.extended_due_date).slice(0,10));
-      });
-    }
-    var open=[];
-    if(C&&Array.isArray(C.s)&&typeof core.remaining==='function'){
-      var credits=typeof core.creditMap==='function'?core.creditMap():{};
-      C.s.forEach(function(r){
-        if(Number(r&&r.unit_id)!==Number(c.sno)||!paymentStage(r))return;
-        var remaining=core.remaining(r,credits),date=text(r.revised_due_date||r.due_date).slice(0,10);
-        if(remaining>1)open.push({id:r.id,date:date,label:text(r.stage_name)});
-      });
-    }else{
-      (c.stages||[]).forEach(function(r){
-        var remaining=Math.max(0,(Number(r&&r.due)||0)-(Number(r&&r.paid)||0));
-        var date=r&&r.dueDate instanceof Date&&!isNaN(r.dueDate)?todayIsoFromDate(r.dueDate):'';
-        if(remaining>1)open.push({id:r&&r.id,date:date,label:text(r&&r.label)});
-      });
-    }
-    var unextended=open.filter(function(r){return !activeIds[String(r.id)];});
-    var overdue=unextended.filter(function(r){return r.date&&r.date<today;}).sort(function(a,b){return a.date.localeCompare(b.date);});
-    if(overdue.length)return{key:'overdue',label:'Overdue',date:overdue[0].date,next:overdue[0].label};
-    var dueToday=unextended.filter(function(r){return r.date===today;});
-    if(dueToday.length)return{key:'today',label:'Due Today',date:today,next:dueToday[0].label};
-    if(activeDates.length){activeDates.sort();return{key:'extension',label:'Extension Active',date:activeDates[0],next:'Extended payment'};}
-    var future=unextended.filter(function(r){return r.date>today;}).sort(function(a,b){return a.date.localeCompare(b.date);});
-    if(future.length)return{key:'upcoming',label:'Upcoming',date:future[0].date,next:future[0].label};
-    return{key:'outstanding',label:'Outstanding',date:'',next:text(c.upStage)||'Balance pending'};
-  }
-  function todayIsoFromDate(d){var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
-  function renderOutstandingList(host){
-    var rows=outstandingCustomers();
-    if(!rows.length){host.innerHTML='<div class="scheduled-empty">No customers have an outstanding balance.</div>';return;}
-    host.innerHTML=rows.map(function(item){
-      var c=item.customer,st=item.status,detail=st.next||'Balance pending';
-      if(st.date)detail+=' · '+formatDate(st.date);
-      return '<div class="scheduled-overview-row scheduled-outstanding-row"><div class="scheduled-overview-main" data-open-unit="'+safe(c.sno)+'"><div class="scheduled-overview-unit">'+safe(c.unit||'Unit '+c.sno)+' · '+safe(c.name||'Customer')+'</div><div class="scheduled-overview-title">'+safe(detail)+'</div><div class="scheduled-overview-meta"><span class="scheduled-task-state '+safe(st.key)+'">'+safe(st.label)+'</span></div></div><div class="scheduled-outstanding-amount"><span class="scheduled-outstanding-value">'+safe(typeof window.fmtAED==='function'?window.fmtAED(item.amount):'AED '+item.amount.toLocaleString('en-AE'))+'</span><span class="scheduled-outstanding-label">Total outstanding</span></div></div>';
-    }).join('');
-    bindCustomerLinks(host);
-  }
-  function bindCustomerLinks(host){
-    host.querySelectorAll('[data-open-unit]').forEach(function(el){el.onclick=function(){var c=customerForUnit(Number(el.getAttribute('data-open-unit')));if(!c)return;if(typeof window.goToDetail==='function')window.goToDetail(c.unit,c.sno,'overview');else{state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';if(typeof window.renderMain==='function')window.renderMain();}};});
-  }
-
   function renderDetailTasks(){
     if(!window.state||state.view!=='detail')return;
     var c=currentCustomer(),detail=document.querySelector('.detail');if(!c||!detail)return;
@@ -187,30 +118,24 @@
     return rows.sort(taskSort);
   }
 
-  function count(kind){
-    if(kind==='outstanding')return outstandingCustomers().length;
-    if(kind==='extensions')return cache.rows.filter(function(t){return t.status==='pending'&&t.auto_kind==='extension_active';}).length;
-    return filterRows(kind).length;
-  }
+  function count(kind){return filterRows(kind).length;}
   function overviewOption(value,label){return '<option value="'+value+'"'+(cache.overviewFilter===value?' selected':'')+'>'+safe(label)+' · '+count(value)+'</option>';}
   function renderOverviewTasks(){
     if(!window.state||state.view!=='overview')return;
     var overview=document.querySelector('.overview');if(!overview)return;
     var old=document.getElementById('scheduledActionsOverview');if(old)old.remove();
     var section=document.createElement('section');section.id='scheduledActionsOverview';
-    section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('overdue','Overdue')+overviewOption('extensions','Extensions')+overviewOption('outstanding','Outstanding')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
+    section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
     var foot=overview.querySelector('.footnote');if(foot)overview.insertBefore(section,foot);else overview.appendChild(section);
     document.getElementById('scheduledOverviewFilter').onchange=function(){cache.overviewFilter=this.value;renderOverviewList();};
     renderOverviewList();
   }
   function renderOverviewList(){
     var host=document.getElementById('scheduledOverviewList');if(!host)return;
-    if(cache.overviewFilter==='outstanding'){renderOutstandingList(host);return;}
-    if(cache.overviewFilter==='extensions'){host.innerHTML='<div class="scheduled-empty">Loading active extensions…</div>';return;}
     var rows=filterRows(cache.overviewFilter);
     if(!rows.length){host.innerHTML='<div class="scheduled-empty">No '+safe(cache.overviewFilter==='completed'?'completed':'pending')+' actions in this view.</div>';return;}
     host.innerHTML=rows.map(function(t){var c=customerForUnit(t.unit_id),st=stateForTask(t),name=c?c.name:'Customer',unit=c?c.unit:'Unit '+t.unit_id;var completion=t.status==='completed'&&t.completion_note?'<div class="scheduled-overview-meta">Completed: '+safe(t.completion_note)+'</div>':'';return '<div class="scheduled-overview-row" data-task-id="'+t.id+'"><div class="scheduled-overview-main" data-open-unit="'+safe(t.unit_id)+'"><div class="scheduled-overview-unit">'+safe(unit)+' · '+safe(name)+'</div><div class="scheduled-overview-title">'+safe(t.action_label)+'</div><div class="scheduled-overview-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span> · '+safe(t.priority)+' · '+safe(formatDate(t.due_date))+(t.note?' · '+safe(t.note):'')+'</div>'+completion+'</div>'+(t.status==='pending'?'<button type="button" class="btn-paper scheduled-overview-done scheduled-mark-done" data-task-id="'+t.id+'">Mark Done</button>':'')+'</div>';}).join('');
-    bindCustomerLinks(host);
+    host.querySelectorAll('[data-open-unit]').forEach(function(el){el.onclick=function(){var c=customerForUnit(Number(el.getAttribute('data-open-unit')));if(!c)return;if(typeof window.goToDetail==='function')window.goToDetail(c.unit,c.sno,'overview');else{state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';if(typeof window.renderMain==='function')window.renderMain();}};});
     bindTaskButtons(host);
   }
 

@@ -38,8 +38,7 @@ async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Da
 ]);q.forEach(function(r){if(r.error)throw r.error});var data=assemble(q[0].data||[],q[1].data||[],q[2].data||[],q[3].data||[]);cache[k]={at:Date.now(),data:data};persist();delete loading[k];return data})().catch(function(e){delete loading[k];throw e});return loading[k]}
 function effective(row,ext){var e=ext[String(row.id)];if(e&&iso(e.extended_due_date))return{date:iso(e.extended_due_date),kind:'extension',contractual:iso(row.due_date),revised:iso(row.revised_due_date)};var r=iso(row.revised_due_date);if(r)return{date:r,kind:'revised',contractual:iso(row.due_date),revised:r};var d=iso(row.due_date);return{date:d,kind:'contractual',contractual:d,revised:''}}
 function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[1].split(',').map(String):[]}
-function genericPaymentTask(t){return t&&t.status==='pending'&&!t.auto_kind&&/(payment|installment|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/.test(norm(text(t.action_label)+' '+text(t.note)))}
-function coverage(data){var exact={},wildcard=false;(data.tasks||[]).forEach(function(t){if(t.status!=='pending')return;var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);ids.forEach(function(id){exact[id]=1});if(!ids.length&&genericPaymentTask(t))wildcard=true});return{exact:exact,wildcard:wildcard}}
+function coverage(data){var exact={};(data.tasks||[]).forEach(function(t){if(t.status!=='pending'||t.auto_kind==='extension_active')return;var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);ids.forEach(function(id){exact[id]=1})});return exact}
 function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.push('By '+date(x.e.contractual));if(x.e.revised&&x.e.revised!==x.e.contractual)p.push('Revised to '+date(x.e.revised));p.push('Extended to '+date(x.e.date));return p.join(' · ')}if(x.e.kind==='revised')return 'By '+date(x.e.contractual)+' · Revised to '+date(x.e.date);return 'By '+date(x.e.date)}
 function build(data,c){
  var managed=carryManaged(c),rows=[];
@@ -53,8 +52,7 @@ function build(data,c){
  rows.sort(function(a,b){return a.e.date.localeCompare(b.e.date)||Number(a.r.id)-Number(b.r.id)});
  if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule, including DLD and Admin Fees, is fully settled.'};
  var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',current=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data);
- if(cov.wildcard)return{hidden:true,reason:'scheduled'};
- current=current.filter(function(x){return!cov.exact[String(x.r.id)]});
+ current=current.filter(function(x){return!cov[String(x.r.id)]});
  if(!current.length)return{hidden:true,reason:'scheduled'};
  var td=today(),over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
  if(over.length)focus=over;
