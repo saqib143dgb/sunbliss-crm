@@ -23,6 +23,15 @@
   function brandSubtitle(){return 'REAL ESTATE DEVELOPERS LLC'.split('').map(function(c){return '<span>'+(c===' '?'&nbsp;':c)+'</span>';}).join('');}
 
   function ensureStyles(){
+    if(!document.getElementById('sunblissPurvanchalLogoPreload')){
+      var preload=document.createElement('link');
+      preload.id='sunblissPurvanchalLogoPreload';
+      preload.rel='preload';
+      preload.as='image';
+      preload.href='assets/purvanchal-p-thin-ring.png';
+      preload.fetchPriority='high';
+      document.head.appendChild(preload);
+    }
     [
       'sunblissProfessionalHeaderStyles','sunblissFreshReferenceHeaderStyles','sunblissFreshReferenceMobileMatchStyles',
       'sunblissHeaderCompactStyle','sunblissHeaderSpacingStyle','sunblissPremiumHeroHeaderStyles',
@@ -45,7 +54,7 @@
       .sb-pro-top{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:80px;}
       .sb-pro-brand{display:flex;flex-direction:column;justify-content:center;min-width:0;max-width:62%;}
       .sb-pro-brand-logo-frame{display:none!important;width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;max-width:52px!important;max-height:52px!important;aspect-ratio:1 / 1!important;flex:0 0 52px!important;border-radius:50%!important;overflow:hidden!important;place-items:center!important;line-height:0!important;}
-      .sb-pro-brand-logo{display:block!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;max-width:48px!important;max-height:48px!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:50% 50%!important;align-self:center!important;justify-self:center!important;flex:none!important;margin:auto!important;transform:none!important;vertical-align:middle!important;}
+      .sb-pro-brand-logo{display:block!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;max-width:48px!important;max-height:48px!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:50% 50%!important;align-self:center!important;justify-self:center!important;flex:none!important;margin:auto!important;transform:none!important;vertical-align:middle!important;opacity:1!important;visibility:visible!important;animation:none!important;transition:none!important;}
       .sb-pro-brand-copy{display:flex;min-width:0;flex-direction:column;justify-content:center;}
       .sb-pro-brand-name{margin:0;color:#e0aa4e;font:500 29px/1 Georgia,'Times New Roman',serif;letter-spacing:.055em;white-space:nowrap;text-shadow:0 1px 10px rgba(198,151,46,.08);}
       .sb-pro-brand-sub{margin-top:5px;color:rgba(228,180,92,.9);font:600 8.5px/1.25 Inter,system-ui,sans-serif;letter-spacing:.28em;white-space:nowrap;}
@@ -79,7 +88,7 @@
     var role=roleLabel(st.userRole);
     var synced=syncTime(st.syncedAt);
     return '<div class="sb-pro-top">'+
-        '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><span class="sb-pro-brand-logo-frame"><img class="sb-pro-brand-logo" src="assets/purvanchal-p-thin-ring.png" alt="Purvanchal logo" decoding="async"></span><div class="sb-pro-brand-copy"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub" aria-label="REAL ESTATE DEVELOPERS LLC"><span class="sb-pro-brand-sub-inner" aria-hidden="true">'+brandSubtitle()+'</span></div></div></div>'+
+        '<div class="sb-pro-brand" aria-label="Purvanchal Real Estate Developers LLC"><span class="sb-pro-brand-logo-frame"><img class="sb-pro-brand-logo" src="assets/purvanchal-p-thin-ring.png" alt="Purvanchal logo" loading="eager" decoding="sync" fetchpriority="high"></span><div class="sb-pro-brand-copy"><div class="sb-pro-brand-name">PURVANCHAL</div><div class="sb-pro-brand-sub" aria-label="REAL ESTATE DEVELOPERS LLC"><span class="sb-pro-brand-sub-inner" aria-hidden="true">'+brandSubtitle()+'</span></div></div></div>'+
         '<div class="sb-pro-actions"><button type="button" class="sb-pro-signout" id="btnSignOut">'+signoutIcon()+'<span>Sign out</span></button></div>'+
       '</div>'+
     '<div class="sb-pro-main"><div class="sb-pro-copy">'+
@@ -99,8 +108,21 @@
     if(!header)return;
     header.querySelectorAll('img:not(.sb-pro-brand-logo)').forEach(function(img){img.remove();});
     var st=window.state||{};
+    var name=text(st.userName).trim()||'CRM User';
+    var role=roleLabel(st.userRole);
+    var synced=syncTime(st.syncedAt);
     var sig=[st.userName||'',st.userRole||'',st.syncedAt||''].join('|');
-    if(header.classList.contains('sunbliss-professional-header')&&header.dataset.textV2Sig===sig&&header.querySelector('.sb-pro-brand-logo')){bindSignout(header);return;}
+    if(header.classList.contains('sunbliss-professional-header')&&header.querySelector('.sb-pro-brand-logo')){
+      var nameNode=header.querySelector('.sb-pro-name');
+      var roleNode=header.querySelector('.sb-pro-role');
+      var syncNode=header.querySelector('.sb-pro-sync span');
+      if(nameNode&&nameNode.textContent!==name)nameNode.textContent=name;
+      if(roleNode&&roleNode.textContent!==role)roleNode.textContent=role;
+      if(syncNode&&syncNode.textContent!=='Synced '+synced)syncNode.textContent='Synced '+synced;
+      header.dataset.textV2Sig=sig;
+      bindSignout(header);
+      return;
+    }
     header.className='topbar sunbliss-professional-header';
     header.dataset.textV2Sig=sig;
     header.innerHTML=markup();
