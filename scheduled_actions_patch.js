@@ -114,7 +114,7 @@
     if(kind==='overdue')rows=rows.filter(function(t){return text(t.due_date)<today;});
     else if(kind==='today')rows=rows.filter(function(t){return text(t.due_date)===today;});
     else if(kind==='tomorrow')rows=rows.filter(function(t){return text(t.due_date)===tomorrow;});
-    else if(kind==='upcoming')rows=rows.filter(function(t){return text(t.due_date)>tomorrow;});
+    else if(kind==='upcoming')rows=rows.filter(function(t){return text(t.due_date)>today;});
     return rows.sort(taskSort);
   }
 
