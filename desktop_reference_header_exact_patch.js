@@ -5,49 +5,334 @@ window.__sunblissDesktopReferenceHeaderExact=true;
 
 var MQ='(min-width:1024px)',queued=false;
 function desktop(){return window.matchMedia?window.matchMedia(MQ).matches:window.innerWidth>=1024}
-function text(v){return v==null?'':String(v)}
-function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
-function roleLabel(v){var s=text(v).trim().toLowerCase();if(s==='crm_officer')return'CRM Officer';if(s==='manager')return'Manager';return s.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()})||'CRM Officer'}
-function syncTime(v){var d=v?new Date(v):new Date();if(isNaN(d.getTime()))d=new Date();return d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
-function svgIcon(name){var p={clock:'<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',signout:'<path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>',project:'<path d="M4 21V8l6-3v16M10 21V3l8 4v14M2 21h20M7 11h1M7 15h1M13 9h1M13 13h1M16 10h1M16 14h1"/>'};return'<svg viewBox="0 0 24 24" aria-hidden="true">'+p[name]+'</svg>'}
-function skyline(){return '<div class="sb-rh-skyline" aria-hidden="true"><svg viewBox="0 0 760 230" preserveAspectRatio="none"><path class="fill" d="M0 222V188h26v34h19v-55h35v55h18v-76h38v76h17v-43h34v43h18v-70h43v70h17v-91h40v91h18v-53h37v53h16v-104l10-15 6-29 7 29 11 15v104h14v-79h36v79h15v-112h25v112h13V59h8l8-20 8-34 8 34 8 20h8v163h13v-95h29v95h16v-62h35v62h16v-82h40v82h14v-50h34v50h16v-90h40v90h19v-55h31v55z"/><path class="line" d="M0 222h760M0 188h26v34M45 222v-55h35v55M98 222v-76h38v76M153 222v-43h34v43M205 222v-70h43v70M265 222v-91h40v91M323 222v-53h37v53M376 222V118l10-15 6-29 7 29 11 15v104M424 222v-79h36v79M475 222v-112h25v112M513 222V59h8l8-20 8-34 8 34 8 20h8v163M574 222v-95h29v95M619 222v-62h35v62M670 222v-82h40v82M724 222v-50h34v50"/><path class="thin" d="M519 84h38M521 101h34M523 119h30M525 138h26M527 158h22M529 180h18M386 137h22M386 155h22M386 174h22M386 193h22M477 139h21M477 158h21M477 178h21M477 198h21M576 149h26M576 169h26M576 190h26M57 178v39M70 178v39M110 158v59M124 158v59M218 165v52M234 165v52"/></svg><span class="sb-rh-glow"></span></div>'}
-function styles(){if(document.getElementById('sunblissDesktopReferenceHeaderExactStyles'))return;var s=document.createElement('style');s.id='sunblissDesktopReferenceHeaderExactStyles';s.textContent=`
-#sbReferenceHeaderExact{display:none}
+
+function styles(){
+  if(document.getElementById('sunblissDesktopReferenceHeaderExactStyles'))return;
+  var s=document.createElement('style');
+  s.id='sunblissDesktopReferenceHeaderExactStyles';
+  s.textContent=`
+#sbReferenceHeaderExact{display:none!important}
 @media(min-width:1024px){
- body.sunbliss-ref-desktop .topbar.sunbliss-professional-header{position:relative!important;height:214px!important;min-height:214px!important;padding:0!important;overflow:hidden!important;background:radial-gradient(700px 280px at 82% -20%,rgba(30,65,96,.62),transparent 63%),linear-gradient(108deg,#0a2138 0%,#081c30 49%,#071a2c 100%)!important}
- body.sunbliss-ref-desktop .topbar.sunbliss-professional-header:before,body.sunbliss-ref-desktop .topbar.sunbliss-professional-header:after{display:none!important}
- body.sunbliss-ref-desktop .topbar.sunbliss-professional-header>*:not(#sbReferenceHeaderExact){display:none!important}
- #sbReferenceHeaderExact{display:block!important;position:absolute;inset:0;z-index:20;color:#fff;font-family:Inter,system-ui,sans-serif;overflow:hidden}
- .sb-rh-brand{position:absolute;left:45px;top:24px;width:360px;height:70px;z-index:5}
- .sb-rh-brand-name{display:inline-block;color:#d9a64c;font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;line-height:1;letter-spacing:.055em;white-space:nowrap;text-shadow:0 1px 8px rgba(198,151,46,.10);transform:scaleX(1.06);transform-origin:left center}
- .sb-rh-brand-sub{margin-top:8px;color:rgba(248,244,234,.94);font:600 8px/1 Inter,system-ui,sans-serif;letter-spacing:.26em;white-space:nowrap}
- .sb-rh-brand:after{content:'';position:absolute;left:0;top:68px;width:270px;height:1px;background:linear-gradient(90deg,#c6972e,rgba(198,151,46,.62),rgba(198,151,46,.08))}
- .sb-rh-user{position:absolute;left:45px;top:105px;z-index:5}
- .sb-rh-welcome{margin:0 0 5px;color:rgba(248,244,234,.92);font:500 12.5px/1.2 Inter,system-ui,sans-serif}
- .sb-rh-name-row{display:flex;align-items:center;gap:13px}.sb-rh-name{margin:0;color:#fff;font:700 33px/1 Inter,system-ui,sans-serif;letter-spacing:-.035em;text-shadow:0 2px 12px rgba(0,0,0,.16)}
- .sb-rh-role{height:30px;display:inline-flex;align-items:center;padding:0 13px;border:1px solid rgba(214,162,70,.92);border-radius:999px;color:#e1ad51;background:rgba(198,151,46,.045);font:650 10px/1 Inter,system-ui,sans-serif;white-space:nowrap}
- .sb-rh-project{position:absolute;left:45px;top:169px;z-index:5;display:flex;align-items:center;gap:11px;color:#f8f4ea;font:600 13px/1 Inter,system-ui,sans-serif}
- .sb-rh-project-icon{width:32px;height:32px;border:1px solid rgba(214,162,70,.46);border-radius:8px;background:rgba(198,151,46,.04);display:grid;place-items:center;color:#d9a64c}.sb-rh-project-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
- .sb-rh-controls{position:absolute;right:24px;top:20px;z-index:8;height:38px;display:flex;align-items:center;gap:15px}
- .sb-rh-sync{height:38px;display:flex;align-items:center;gap:8px;padding:0 1px;color:#fff;font:500 11px/1 Inter,system-ui,sans-serif;white-space:nowrap}.sb-rh-sync svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
- .sb-rh-divider{width:1px;height:27px;background:rgba(237,230,214,.42)}
- .sb-rh-signout{height:38px;min-width:137px;padding:0 16px;border:1px solid rgba(214,162,70,.78);border-radius:8px;background:rgba(6,21,35,.20);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:600 12px/1 Inter,system-ui,sans-serif;cursor:pointer}.sb-rh-signout svg{width:18px;height:18px;fill:none;stroke:#dca84c;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
- .sb-rh-skyline{position:absolute;z-index:2;right:-4px;bottom:-1px;width:54%;height:166px;opacity:.54;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.25) 12%,#000 31%,#000 100%);mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.25) 12%,#000 31%,#000 100%)}
- .sb-rh-skyline svg{display:block;width:100%;height:100%}.sb-rh-skyline .fill{fill:#d5a04a;fill-opacity:.14}.sb-rh-skyline .line{fill:none;stroke:#dca84c;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}.sb-rh-skyline .thin{fill:none;stroke:#d5a04a;stroke-width:.9;stroke-opacity:.72}.sb-rh-glow{position:absolute;right:10%;bottom:-8px;width:220px;height:70px;background:radial-gradient(ellipse,rgba(214,162,70,.32),transparent 65%)}
- .sb-rh-tagline{position:absolute;right:43px;top:98px;z-index:7;width:115px;text-align:center;color:rgba(248,244,234,.83);font:italic 18px/1.07 'Segoe Script','Bradley Hand',cursive;transform:rotate(-6deg);text-shadow:0 2px 10px rgba(0,0,0,.32);pointer-events:none}
- body.sunbliss-ref-desktop main#main{min-height:calc(100vh - 214px)!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header{
+    position:relative!important;
+    height:286px!important;
+    min-height:286px!important;
+    box-sizing:border-box!important;
+    padding:24px 40px 26px!important;
+    overflow:hidden!important;
+    border:0!important;
+    border-radius:0!important;
+    color:#f8f4ea!important;
+    background-color:#071520!important;
+    background-image:url('assets/sunbliss-mobile-header-background.webp')!important;
+    background-repeat:no-repeat!important;
+    background-size:auto 136%!important;
+    background-position:100% 72%!important;
+    box-shadow:inset 0 0 0 1px rgba(224,170,78,.14),inset 0 -42px 70px rgba(1,8,14,.24),0 14px 34px rgba(2,9,15,.20)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header:before{
+    content:''!important;
+    display:block!important;
+    position:absolute!important;
+    inset:0!important;
+    width:auto!important;
+    height:auto!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:linear-gradient(90deg,rgba(3,12,20,.97) 0%,rgba(3,12,20,.91) 31%,rgba(3,12,20,.66) 51%,rgba(3,12,20,.20) 76%,rgba(3,12,20,.05) 100%),linear-gradient(180deg,rgba(3,12,20,.15),transparent 46%,rgba(3,12,20,.31))!important;
+    pointer-events:none!important;
+    z-index:1!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header:after{
+    content:''!important;
+    display:block!important;
+    position:absolute!important;
+    inset:0!important;
+    width:auto!important;
+    height:auto!important;
+    border:0!important;
+    border-radius:0!important;
+    background:radial-gradient(ellipse 45% 52% at 82% 105%,rgba(214,162,70,.14),transparent 72%),radial-gradient(ellipse 28% 25% at 12% 0%,rgba(214,162,70,.10),transparent 76%)!important;
+    pointer-events:none!important;
+    z-index:2!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header>.sb-pro-top,
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header>.sb-pro-main{
+    display:flex!important;
+    position:relative!important;
+    z-index:3!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-top{
+    min-height:78px!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:28px!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand{
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:12px!important;
+    width:auto!important;
+    max-width:calc(100% - 170px)!important;
+    min-width:0!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-logo-frame{
+    display:grid!important;
+    place-items:center!important;
+    width:70px!important;
+    height:70px!important;
+    min-width:70px!important;
+    min-height:70px!important;
+    max-width:70px!important;
+    max-height:70px!important;
+    flex:0 0 70px!important;
+    overflow:hidden!important;
+    border-radius:50%!important;
+    line-height:0!important;
+    filter:drop-shadow(0 7px 18px rgba(214,162,70,.22))!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-logo{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:66px!important;
+    max-height:66px!important;
+    aspect-ratio:auto!important;
+    object-fit:contain!important;
+    object-position:50% 50%!important;
+    align-self:center!important;
+    justify-self:center!important;
+    margin:auto!important;
+    transform:none!important;
+    opacity:1!important;
+    visibility:visible!important;
+    animation:none!important;
+    transition:none!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-copy{
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+    width:360px!important;
+    max-width:360px!important;
+    min-width:0!important;
+    height:70px!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-name{
+    display:block!important;
+    margin:0!important;
+    color:#e0aa4e!important;
+    font:700 35px/1.02 'Avenir Next',Avenir,'Helvetica Neue',Arial,sans-serif!important;
+    letter-spacing:.055em!important;
+    font-kerning:normal!important;
+    text-rendering:geometricPrecision!important;
+    white-space:nowrap!important;
+    text-shadow:0 2px 16px rgba(214,162,70,.18)!important;
+    transform:none!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-sub{
+    display:block!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+    padding:0 2px!important;
+    margin-top:7px!important;
+    color:rgba(228,180,92,.94)!important;
+    font:600 9px/1.25 Inter,system-ui,sans-serif!important;
+    letter-spacing:0!important;
+    white-space:nowrap!important;
+    text-align:left!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-sub-inner{
+    display:flex!important;
+    width:100%!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-sub-inner span{
+    display:inline-block!important;
+    flex:0 0 auto!important;
+    letter-spacing:0!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-actions{
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+    display:flex!important;
+    align-items:center!important;
+    flex:none!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-v2-sync{display:none!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-signout{
+    height:42px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:9px!important;
+    padding:0 16px!important;
+    border:1px solid rgba(214,162,70,.62)!important;
+    border-radius:12px!important;
+    background:transparent!important;
+    color:#fffaf0!important;
+    font:600 12px/1 Inter,system-ui,sans-serif!important;
+    box-shadow:inset 0 1px 0 rgba(255,231,184,.10),0 10px 26px rgba(1,8,14,.20)!important;
+    -webkit-backdrop-filter:blur(8px)!important;
+    backdrop-filter:blur(8px)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-signout svg{width:18px!important;height:18px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-main{
+    margin-top:20px!important;
+    align-items:flex-start!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-copy{
+    width:min(610px,calc(100% - 80px))!important;
+    min-width:0!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-main:before{
+    content:''!important;
+    position:absolute!important;
+    left:-40px!important;
+    top:10px!important;
+    width:3px!important;
+    height:68px!important;
+    border-radius:999px!important;
+    background:linear-gradient(180deg,transparent,rgba(224,170,78,.88) 35%,rgba(224,170,78,.30) 76%,transparent)!important;
+    box-shadow:0 0 16px rgba(214,162,70,.28)!important;
+    pointer-events:none!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-welcome{
+    margin:0 0 4px!important;
+    color:rgba(248,244,234,.86)!important;
+    font:500 13px/1.3 Inter,system-ui,sans-serif!important;
+    letter-spacing:.01em!important;
+    text-shadow:0 2px 9px rgba(0,0,0,.74)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-name-row{
+    display:flex!important;
+    align-items:center!important;
+    gap:12px!important;
+    flex-wrap:nowrap!important;
+    white-space:nowrap!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-name{
+    margin:0!important;
+    color:#fff!important;
+    font:650 36px/1.04 Inter,system-ui,sans-serif!important;
+    letter-spacing:-.035em!important;
+    white-space:nowrap!important;
+    text-shadow:0 2px 10px rgba(0,0,0,.72)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-role{
+    min-height:31px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    padding:0 12px!important;
+    border:1px solid rgba(214,162,70,.78)!important;
+    border-radius:999px!important;
+    background:linear-gradient(180deg,rgba(198,151,46,.09),rgba(198,151,46,.025))!important;
+    color:#e2b157!important;
+    font:650 10px/1 Inter,system-ui,sans-serif!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-project-row{
+    position:relative!important;
+    isolation:isolate!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:18px!important;
+    min-width:0!important;
+    margin-top:26px!important;
+    padding:7px 8px!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-project-row:before{
+    content:''!important;
+    position:absolute!important;
+    inset:0!important;
+    z-index:-1!important;
+    border:1px solid rgba(224,170,78,.24)!important;
+    border-radius:13px!important;
+    background:linear-gradient(90deg,rgba(5,18,29,.56),rgba(5,18,29,.20))!important;
+    box-shadow:inset 0 1px 0 rgba(255,231,184,.07),0 12px 32px rgba(1,8,14,.17)!important;
+    -webkit-backdrop-filter:blur(7px)!important;
+    backdrop-filter:blur(7px)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-project{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    min-width:0!important;
+    color:#f5f0e6!important;
+    font:600 14px/1.2 Inter,system-ui,sans-serif!important;
+    text-shadow:0 2px 9px rgba(0,0,0,.72)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-project-icon{
+    width:34px!important;
+    height:34px!important;
+    flex:0 0 34px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border:1px solid rgba(214,162,70,.50)!important;
+    border-radius:9px!important;
+    background:linear-gradient(145deg,rgba(214,162,70,.11),rgba(7,21,32,.20))!important;
+    box-shadow:inset 0 1px 0 rgba(255,231,184,.08),0 7px 18px rgba(1,8,14,.16)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-project-icon svg{width:18px!important;height:18px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-project-sep{display:none!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-sync{
+    height:32px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:7px!important;
+    padding:0 11px!important;
+    flex:none!important;
+    border:1px solid rgba(214,162,70,.54)!important;
+    border-radius:10px!important;
+    background:transparent!important;
+    color:rgba(255,250,240,.92)!important;
+    font:500 10.5px/1 Inter,system-ui,sans-serif!important;
+    white-space:nowrap!important;
+    box-shadow:inset 0 1px 0 rgba(255,231,184,.08),0 7px 18px rgba(1,8,14,.15)!important;
+    -webkit-backdrop-filter:blur(7px)!important;
+    backdrop-filter:blur(7px)!important;
+  }
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-sync svg{width:14px!important;height:14px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-v2-tagline,
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-dubai-skyline{display:none!important}
+  body.sunbliss-ref-desktop main#main{min-height:calc(100vh - 286px)!important}
 }
-`;document.head.appendChild(s)}
-function markup(){var st=window.state||{},name=text(st.userName).trim()||'CRM User',role=roleLabel(st.userRole),synced=syncTime(st.syncedAt);return '<div id="sbReferenceHeaderExact">'+
- '<div class="sb-rh-brand"><div class="sb-rh-brand-name">PURVANCHAL</div><div class="sb-rh-brand-sub">REAL ESTATE DEVELOPERS LLC</div></div>'+
- '<div class="sb-rh-user"><p class="sb-rh-welcome">Welcome back,</p><div class="sb-rh-name-row"><h1 class="sb-rh-name">'+esc(name)+'</h1><span class="sb-rh-role">'+esc(role)+'</span></div></div>'+
- '<div class="sb-rh-project"><span class="sb-rh-project-icon">'+svgIcon('project')+'</span><span>Sunbliss Residences</span></div>'+
- '<div class="sb-rh-controls"><div class="sb-rh-sync">'+svgIcon('clock')+'<span>Synced '+esc(synced)+'</span></div><span class="sb-rh-divider"></span><button type="button" class="sb-rh-signout" id="sbReferenceSignout">'+svgIcon('signout')+'<span>Sign out</span></button></div>'+
- skyline()+'<div class="sb-rh-tagline">Building<br>Better<br>Tomorrows</div></div>'}
-function bind(root){var b=root&&root.querySelector('#sbReferenceSignout');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=async function(){b.disabled=true;try{if(window.sb&&sb.auth)await sb.auth.signOut();}finally{location.reload()}}}
-function apply(){styles();if(!desktop())return;var h=document.querySelector('.topbar.sunbliss-professional-header');if(!h)return;var st=window.state||{},sig=[st.userName||'',st.userRole||'',st.syncedAt||''].join('|'),old=h.querySelector('#sbReferenceHeaderExact');if(old&&old.dataset.sig===sig){bind(old);return}if(old)old.remove();h.insertAdjacentHTML('beforeend',markup());var root=h.querySelector('#sbReferenceHeaderExact');if(root){root.dataset.sig=sig;bind(root)}}
-function schedule(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;apply()})}
-styles();apply();setTimeout(apply,80);setTimeout(apply,300);
-var app=document.getElementById('app');if(app&&window.MutationObserver)new MutationObserver(schedule).observe(app,{childList:true,subtree:true});
-window.addEventListener('resize',schedule);window.addEventListener('pageshow',schedule);
+@media(min-width:1024px) and (max-width:1180px){
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header{padding-left:32px!important;padding-right:32px!important;background-position:112% 72%!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-main:before{left:-32px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-copy{width:320px!important;max-width:320px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-name{font-size:31px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-sub{font-size:8px!important}
+  body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-copy{width:min(560px,calc(100% - 32px))!important}
+}
+  `;
+  document.head.appendChild(s);
+}
+
+function cleanup(){
+  styles();
+  var old=document.getElementById('sbReferenceHeaderExact');
+  if(old)old.remove();
+  if(!desktop())return;
+  document.querySelectorAll('.topbar.sunbliss-professional-header .sb-v2-sync,.topbar.sunbliss-professional-header .sb-v2-tagline').forEach(function(node){node.remove()});
+}
+function schedule(){
+  if(queued)return;
+  queued=true;
+  requestAnimationFrame(function(){queued=false;cleanup()});
+}
+
+styles();cleanup();setTimeout(cleanup,80);setTimeout(cleanup,300);
+var app=document.getElementById('app');
+if(app&&window.MutationObserver)new MutationObserver(schedule).observe(app,{childList:true,subtree:true});
+window.addEventListener('resize',schedule);
+window.addEventListener('pageshow',schedule);
 })();
