@@ -45,28 +45,17 @@ function installStyles(){
     '#sbxArchitecturalLines{position:absolute;left:0;right:0;bottom:13%;height:1px;background:linear-gradient(90deg,transparent,rgba(226,173,77,.10) 18%,rgba(226,173,77,.28) 50%,rgba(226,173,77,.10) 82%,transparent)}',
     '#sbxArchitecturalLines:before,#sbxArchitecturalLines:after{content:"";position:absolute;bottom:0;width:1px;height:46vh;background:linear-gradient(transparent,rgba(226,173,77,.13))}',
     '#sbxArchitecturalLines:before{left:20%}#sbxArchitecturalLines:after{right:20%}',
-    '#sbxBootCard{position:relative;z-index:2;display:none;width:min(88vw,560px);box-sizing:border-box;text-align:center;color:white}',
+    '#sbxBootCard{position:relative;z-index:2;display:none;width:120px;box-sizing:border-box;text-align:center;color:white}',
     'html.sbx-booting #sbxBootCard{display:block;animation:sbxCardArrive .64s cubic-bezier(.22,1,.36,1) both!important}',
-    '#sbxLogoStage{position:relative;width:104px;height:104px;margin:0 auto 24px;display:grid;place-items:center}',
+    '#sbxLogoStage{position:relative;width:104px;height:104px;margin:0 auto;display:grid;place-items:center}',
     '#sbxLogoStage:before{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid rgba(226,173,77,.28);box-shadow:0 0 42px rgba(226,173,77,.12);animation:sbxHalo 2.2s ease-in-out infinite!important}',
     '#sbxLogoStage:after{content:"";position:absolute;inset:-8px;border-radius:50%;border-top:1px solid var(--sbx-gold-soft);border-right:1px solid transparent;animation:sbxSpin 2.4s linear infinite!important}',
     '#sbxBootLogo{display:block;width:82px;height:82px;object-fit:contain;filter:drop-shadow(0 8px 22px rgba(0,0,0,.34))}',
-    '#sbxCompany{font:700 clamp(24px,5vw,38px)/1.05 Georgia,"Times New Roman",serif;letter-spacing:.16em;color:var(--sbx-gold-soft);text-indent:.16em;text-shadow:0 6px 24px rgba(0,0,0,.32)}',
-    '#sbxCompanySub{margin-top:9px;font:600 clamp(9px,1.8vw,12px)/1.3 Inter,system-ui,sans-serif;letter-spacing:.29em;text-indent:.29em;color:rgba(255,250,240,.78)}',
-    '#sbxProduct{display:flex;align-items:center;justify-content:center;gap:12px;margin:28px auto 0;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.22em;text-indent:.22em;color:rgba(255,250,240,.66)}',
-    '#sbxProduct:before,#sbxProduct:after{content:"";width:40px;height:1px;background:linear-gradient(90deg,transparent,rgba(226,173,77,.48))}',
-    '#sbxProduct:after{background:linear-gradient(90deg,rgba(226,173,77,.48),transparent)}',
-    '#sbxBootProgress{position:relative;width:min(74vw,330px);height:2px;margin:29px auto 13px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.10)}',
-    '#sbxBootProgressFill{display:block;width:100%;height:100%;transform:scaleX(.04);transform-origin:left center;border-radius:inherit;background:linear-gradient(90deg,#9d6819,var(--sbx-gold),#ffe3a2);box-shadow:0 0 14px rgba(226,173,77,.76);transition:transform .44s cubic-bezier(.22,1,.36,1)!important}',
-    '#sbxBootLabel{font:500 12px/1.35 Inter,system-ui,sans-serif;letter-spacing:.08em;color:rgba(255,255,255,.64);transition:opacity .14s ease}',
-    '#sbxRoutePill{position:relative;z-index:3;display:flex;align-items:center;gap:12px;min-width:208px;max-width:min(84vw,350px);box-sizing:border-box;padding:12px 15px 12px 11px;border:1px solid rgba(226,173,77,.52);border-radius:999px;background:linear-gradient(135deg,rgba(4,19,30,.96),rgba(10,34,49,.94));box-shadow:0 20px 50px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.07);color:white;opacity:0;transform:translateY(10px) scale(.97);transition:opacity .18s ease,transform .28s cubic-bezier(.22,1,.36,1);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}',
+    '#sbxRoutePill{position:relative;z-index:3;display:grid;place-items:center;width:62px;height:62px;box-sizing:border-box;padding:8px;border:1px solid rgba(226,173,77,.52);border-radius:50%;background:linear-gradient(135deg,rgba(4,19,30,.96),rgba(10,34,49,.94));box-shadow:0 20px 50px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.07);color:white;opacity:0;transform:translateY(10px) scale(.94);transition:opacity .18s ease,transform .28s cubic-bezier(.22,1,.36,1);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}',
     'html.sbx-loading:not(.sbx-booting) #sbxRoutePill{opacity:1;transform:none}',
-    '#sbxRouteMark{position:relative;display:grid;place-items:center;width:39px;height:39px;flex:0 0 39px;border-radius:50%;background:rgba(226,173,77,.09);box-shadow:inset 0 0 0 1px rgba(226,173,77,.20)}',
-    '#sbxRouteMark img{display:block;width:29px;height:29px;object-fit:contain}',
+    '#sbxRouteMark{position:relative;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:rgba(226,173,77,.09);box-shadow:inset 0 0 0 1px rgba(226,173,77,.20)}',
+    '#sbxRouteMark img{display:block;width:31px;height:31px;object-fit:contain}',
     '#sbxRouteMark:after{content:"";position:absolute;inset:-3px;border-radius:50%;border-top:1px solid var(--sbx-gold);border-right:1px solid transparent;animation:sbxSpin 1.05s linear infinite!important}',
-    '#sbxRouteCopy{min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}',
-    '#sbxRouteEyebrow{font:700 9px/1.2 Inter,system-ui,sans-serif;letter-spacing:.18em;color:var(--sbx-gold);white-space:nowrap}',
-    '#sbxRouteLabel{font:600 12px/1.3 Inter,system-ui,sans-serif;color:rgba(255,255,255,.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '#sbxTopProgress{position:fixed;z-index:2147483001;left:0;right:0;top:0;height:3px;overflow:hidden;opacity:0;background:rgba(226,173,77,.10);transition:opacity .14s ease}',
     'html.sbx-loading:not(.sbx-booting) #sbxTopProgress{opacity:1}',
     '#sbxTopProgressFill{display:block;width:100%;height:100%;transform:scaleX(.04);transform-origin:left center;background:linear-gradient(90deg,#8e5c13,var(--sbx-gold),#ffe3a2);box-shadow:0 0 14px rgba(226,173,77,.82);transition:transform .34s cubic-bezier(.22,1,.36,1)!important}',
@@ -74,7 +63,7 @@ function installStyles(){
     '@keyframes sbxHalo{0%,100%{transform:scale(.98);opacity:.62}50%{transform:scale(1.05);opacity:1}}',
     '@keyframes sbxOrbit{from{transform:translate(-50%,-50%) scale(.98)}to{transform:translate(-50%,-50%) scale(1.035)}}',
     '@keyframes sbxCardArrive{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}',
-    '@media(max-width:520px){#sbxLogoStage{width:88px;height:88px;margin-bottom:21px}#sbxBootLogo{width:69px;height:69px}#sbxCompany{font-size:26px;letter-spacing:.12em;text-indent:.12em}#sbxCompanySub{font-size:8.5px;letter-spacing:.21em;text-indent:.21em}#sbxProduct{margin-top:24px;font-size:9px}#sbxRoutePill{min-width:196px;padding:11px 14px 11px 10px}#sbxRouteLabel{font-size:11.5px}}',
+    '@media(max-width:520px){#sbxBootCard{width:102px}#sbxLogoStage{width:88px;height:88px}#sbxBootLogo{width:69px;height:69px}#sbxRoutePill{width:58px;height:58px;padding:8px}#sbxRouteMark{width:39px;height:39px}#sbxRouteMark img{width:29px;height:29px}}',
     '@media(prefers-reduced-motion:reduce){html.sbx-motion #app #main,#sbxLoader,#sbxBootScene,#sbxRoutePill,#sbxBootProgressFill,#sbxTopProgressFill{transition:none!important}#sbxBootCard,#sbxBootScene:before,#sbxBootScene:after,#sbxLogoStage:before,#sbxLogoStage:after,#sbxRouteMark:after{animation:none!important}}'
   ].join('');
   document.head.appendChild(style);
@@ -88,7 +77,7 @@ function ensureUi(){
     layer.setAttribute('role','status');
     layer.setAttribute('aria-live','polite');
     layer.setAttribute('aria-label','Loading CRM');
-    layer.innerHTML='<div id="sbxBootScene"><span id="sbxArchitecturalLines"></span></div><div id="sbxBootCard"><div id="sbxLogoStage"><img id="sbxBootLogo" src="assets/purvanchal-p-thin-ring.png" alt="" width="82" height="82" decoding="sync"></div><div id="sbxCompany">PURVANCHAL</div><div id="sbxCompanySub">REAL ESTATE DEVELOPERS LLC</div><div id="sbxProduct">SUNBLISS CRM</div><div id="sbxBootProgress"><span id="sbxBootProgressFill"></span></div><div id="sbxBootLabel">Securing workspace</div></div><div id="sbxRoutePill"><span id="sbxRouteMark"><img src="assets/purvanchal-p-thin-ring.png" alt="" width="29" height="29" decoding="async"></span><span id="sbxRouteCopy"><strong id="sbxRouteEyebrow">SUNBLISS CRM</strong><span id="sbxRouteLabel">Opening page</span></span></div>';
+    layer.innerHTML='<div id="sbxBootScene"><span id="sbxArchitecturalLines"></span></div><div id="sbxBootCard"><div id="sbxLogoStage"><img id="sbxBootLogo" src="assets/purvanchal-p-thin-ring.png" alt="" width="82" height="82" decoding="sync"></div></div><div id="sbxRoutePill"><span id="sbxRouteMark"><img src="assets/purvanchal-p-thin-ring.png" alt="" width="31" height="31" decoding="async"></span></div>';
     document.body.appendChild(layer);
   }
   if(!document.getElementById('sbxTopProgress')){
@@ -109,8 +98,8 @@ function mount(){
 
 function setLabel(label,isBoot){
   ensureUi();
-  var node=document.getElementById(isBoot?'sbxBootLabel':'sbxRouteLabel');
-  if(node)node.textContent=label||'Loading';
+  var layer=document.getElementById('sbxLoader');
+  if(layer)layer.setAttribute('aria-label',label||'Loading CRM');
 }
 
 function setProgress(value,isBoot){
