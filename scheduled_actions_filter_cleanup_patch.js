@@ -4,8 +4,8 @@
   if(window.__sunblissScheduledFilterCleanupInstalled)return;
   window.__sunblissScheduledFilterCleanupInstalled=true;
 
-  var ALLOWED={today:true,overdue:true,extensions:true};
-  var LABELS={today:'Today',overdue:'Overdue',extensions:'Extensions'};
+  var ALLOWED={today:true,overdue:true,extensions:true,outstanding:true};
+  var LABELS={today:'Today',overdue:'Overdue',extensions:'Extensions',outstanding:'Outstanding'};
   var observedList=null;
   var listObserver=null;
   var queued=false;
@@ -62,7 +62,7 @@
       if(!ALLOWED[option.value])option.remove();
     });
 
-    var order=['today','overdue','extensions'];
+    var order=['today','overdue','extensions','outstanding'];
     var current=Array.prototype.map.call(select.options,function(o){return o.value;}).join('|');
     if(current!==order.filter(function(v){return !!select.querySelector('option[value="'+v+'"]');}).join('|')){
       order.forEach(function(value){
