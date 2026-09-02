@@ -92,7 +92,10 @@
     var dues = window.state && Array.isArray(window.state.dues) ? window.state.dues : [];
     var key = personKey(brokerName);
     return dues.filter(function(customer){
-      return customer && customer.info && personKey(customer.info.brokerName) === key;
+      if (!customer || !customer.info) return false;
+      if (typeof window.__sunblissIsBrokerCustomer === 'function' && !window.__sunblissIsBrokerCustomer(customer)) return false;
+      var candidate = customer.info.brokerName || customer.info.brokerCompany || 'Unassigned Broker';
+      return personKey(candidate) === key;
     }).slice().sort(function(a,b){
       var ad = a.info && a.info.bookingDate ? new Date(a.info.bookingDate).getTime() : 0;
       var bd = b.info && b.info.bookingDate ? new Date(b.info.bookingDate).getTime() : 0;

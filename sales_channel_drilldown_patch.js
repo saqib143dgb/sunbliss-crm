@@ -38,6 +38,9 @@
   }
 
   function isBrokerCustomer(customer){
+    if (typeof window.__sunblissIsBrokerCustomer === 'function'){
+      return window.__sunblissIsBrokerCustomer(customer);
+    }
     return !!(customer && customer.info && String(customer.info.brokerName || '').trim());
   }
 
