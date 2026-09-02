@@ -64,6 +64,7 @@ function installStyles(){
     '@keyframes sbxOrbit{from{transform:translate(-50%,-50%) scale(.98)}to{transform:translate(-50%,-50%) scale(1.035)}}',
     '@keyframes sbxCardArrive{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}',
     '@media(max-width:520px){#sbxBootCard{width:102px}#sbxLogoStage{width:88px;height:88px}#sbxBootLogo{width:69px;height:69px}#sbxRoutePill{width:58px;height:58px;padding:8px}#sbxRouteMark{width:39px;height:39px}#sbxRouteMark img{width:29px;height:29px}}',
+    '@media(min-width:900px){#sbxBootScene:before{width:min(52vw,700px)}#sbxBootScene:after{width:min(76vw,980px)}#sbxArchitecturalLines:before{left:27%}#sbxArchitecturalLines:after{right:27%}#sbxBootCard{width:154px}#sbxLogoStage{width:126px;height:126px}#sbxLogoStage:after{inset:-11px}#sbxBootLogo{width:98px;height:98px}#sbxRoutePill{width:68px;height:68px;padding:9px}#sbxRouteMark{width:46px;height:46px}#sbxRouteMark img{width:34px;height:34px}html.sbx-loading:not(.sbx-booting) #app #main{transform:translateY(5px) scale(.995)!important}}',
     '@media(prefers-reduced-motion:reduce){html.sbx-motion #app #main,#sbxLoader,#sbxBootScene,#sbxRoutePill,#sbxBootProgressFill,#sbxTopProgressFill{transition:none!important}#sbxBootCard,#sbxBootScene:before,#sbxBootScene:after,#sbxLogoStage:before,#sbxLogoStage:after,#sbxRouteMark:after{animation:none!important}}'
   ].join('');
   document.head.appendChild(style);
