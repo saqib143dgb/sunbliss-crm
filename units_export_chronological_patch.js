@@ -15,30 +15,57 @@
     var d=new Date(s+'T00:00:00');
     return isNaN(d.getTime())?null:d;
   }
+  function money(v){
+    var n=Number(v);
+    return isFinite(n)?Math.round(n*100)/100:0;
+  }
+  function isVoidedTransaction(t){
+    return /(bounce|bounced|refund|refunded|revers|void|deleted|uncleared\s*pdc|credit\s*note|carry\s*forward)/i.test([
+      t&&t.payment_type,t&&t.payment_reference,t&&t.remarks
+    ].join(' '));
+  }
+  function isOtherCash(t){
+    return /(dld|admin|penalt|late\s*fee|late\s*charge|other\s*fee)/i.test(text(t&&t.payment_type));
+  }
   function pairKey(unitId,customerId){return text(unitId)+'|'+text(customerId);}
   function fallbackKey(unitNo,customerName){return norm(unitNo)+'|'+norm(customerName);}
 
   async function loadSalesIndex(){
     if(salesIndexPromise)return salesIndexPromise;
     salesIndexPromise=(async function(){
-      if(!window.sb)return {byPair:{},byFallback:{}};
+      if(!window.sb)return {byPair:{},byFallback:{},cashByUnit:{}};
       var results=await Promise.all([
-        sb.from('sales').select('id,unit_id,customer_id,booking_date').order('booking_date',{ascending:true}).order('id',{ascending:true}),
+        sb.from('sales').select('id,unit_id,customer_id,booking_date,commercial_sale_price,commercial_non_cash_settlement').order('booking_date',{ascending:true}).order('id',{ascending:true}),
         sb.from('units').select('id,unit_no'),
-        sb.from('customers').select('id,customer_name')
+        sb.from('customers').select('id,customer_name'),
+        sb.from('payment_transactions').select('unit_id,amount,payment_type,payment_reference,remarks')
       ]);
       results.forEach(function(r){if(r.error)throw r.error;});
-      var units={},customers={},byPair={},byFallback={};
+      var units={},customers={},byPair={},byFallback={},cashByUnit={};
       (results[1].data||[]).forEach(function(u){units[text(u.id)]=u.unit_no||'';});
       (results[2].data||[]).forEach(function(c){customers[text(c.id)]=c.customer_name||'';});
       (results[0].data||[]).forEach(function(s){
-        var entry={id:Number(s.id)||0,bookingDate:s.booking_date||''};
+        var entry={
+          id:Number(s.id)||0,
+          unitId:s.unit_id,
+          bookingDate:s.booking_date||'',
+          commercialSalePrice:money(s.commercial_sale_price),
+          nonCashSettlement:money(s.commercial_non_cash_settlement)
+        };
         var pk=pairKey(s.unit_id,s.customer_id);
         if(!byPair[pk] || (entry.bookingDate&&(!byPair[pk].bookingDate||entry.bookingDate<byPair[pk].bookingDate)))byPair[pk]=entry;
         var fk=fallbackKey(units[text(s.unit_id)]||'',customers[text(s.customer_id)]||'');
         if(fk!=='|' && (!byFallback[fk] || (entry.bookingDate&&(!byFallback[fk].bookingDate||entry.bookingDate<byFallback[fk].bookingDate))))byFallback[fk]=entry;
       });
-      return {byPair:byPair,byFallback:byFallback};
+      (results[3].data||[]).forEach(function(t){
+        if(isVoidedTransaction(t))return;
+        var key=text(t.unit_id),amount=money(t.amount);
+        if(amount<=0)return;
+        if(!cashByUnit[key])cashByUnit[key]={property:0,other:0};
+        if(isOtherCash(t))cashByUnit[key].other=money(cashByUnit[key].other+amount);
+        else cashByUnit[key].property=money(cashByUnit[key].property+amount);
+      });
+      return {byPair:byPair,byFallback:byFallback,cashByUnit:cashByUnit};
     })().catch(function(err){salesIndexPromise=null;throw err;});
     return salesIndexPromise;
   }
@@ -47,7 +74,7 @@
     var uid=c&&(c.unitId||c.dbUnitId),cid=c&&(c.customerId||c.dbCustomerId);
     var hit=index.byPair[pairKey(uid,cid)];
     if(hit)return hit;
-    return index.byFallback[fallbackKey(c&&c.unit,c&&c.name)]||{id:0,bookingDate:''};
+    return index.byFallback[fallbackKey(c&&c.unit,c&&c.name)]||{id:0,unitId:null,bookingDate:'',commercialSalePrice:0,nonCashSettlement:0};
   }
 
   async function exportChronological(rows){
@@ -70,18 +97,18 @@
     wb.created=new Date;
     var ws=wb.addWorksheet('Units',{views:[{state:'frozen',ySplit:1}]});
     ws.columns=[
-      {header:'S.No.',key:'serial',width:8},
       {header:'Booking Date',key:'bookingDate',width:15},
       {header:'Unit',key:'unit',width:12},
       {header:'Customer',key:'customer',width:30},
-      {header:'Type',key:'type',width:18},
-      {header:'Total (AED)',key:'total',width:16},
-      {header:'Received (AED)',key:'received',width:16},
-      {header:'Outstanding (AED)',key:'outstanding',width:16},
+      {header:'Actual Property Price (AED)',key:'commercialPrice',width:25},
+      {header:'Property Cash Received (AED)',key:'propertyCash',width:27},
+      {header:'DLD/Admin Cash Received (AED)',key:'otherCash',width:28},
+      {header:'Actual Property Outstanding (AED)',key:'propertyOutstanding',width:30},
       {header:'SPA',key:'spa',width:14},
       {header:'OQOOD',key:'oqood',width:14},
-      {header:'Furniture',key:'furniture',width:14}
+      {header:'Furnishing',key:'furniture',width:18}
     ];
+    ws.autoFilter={from:{row:1,column:1},to:{row:1,column:10}};
     var header=ws.getRow(1);header.height=20;header.eachCell(function(cell){
       cell.font={bold:true,color:{argb:'FFEDE6D6'},size:11};
       cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16232F'}};
@@ -89,28 +116,31 @@
       cell.border={bottom:{style:'medium',color:{argb:'FF16232F'}}};
     });
 
-    ordered.forEach(function(entry,i){
-      var c=entry.c||{},outstanding=c.outstanding!==null&&c.outstanding<-1;
+    ordered.forEach(function(entry){
+      var c=entry.c||{},cash=index.cashByUnit[text(entry.sale.unitId)]||{property:0,other:0};
+      var commercialPrice=entry.sale.commercialSalePrice>0?entry.sale.commercialSalePrice:money(c.total);
+      var propertyOutstanding=Math.max(0,money(commercialPrice-cash.property-entry.sale.nonCashSettlement));
+      var hasOutstanding=propertyOutstanding>0.01;
       var spa=(c.spa||'').toLowerCase()==='signed';
       var oqood=(c.oqood||'').toLowerCase()==='completed';
-      var furnished=c.furniture&&c.furniture.toLowerCase()==='signed';
+      var furnishing=c.info&&c.info.furnishingType?c.info.furnishingType:(c.furniture&&c.furniture.toLowerCase()==='signed'?'Fully Furnished':'Semi Furnished');
+      var furnished=furnishing==='Fully Furnished';
       var bookingDate=dateValue(entry.sale.bookingDate);
       var row=ws.addRow({
-        serial:i+1,
         bookingDate:bookingDate||'',
         unit:c.unit||'',
         customer:nice(c.name),
-        type:(c.type||'').replace(/\n/g,' '),
-        total:c.total,
-        received:c.received,
-        outstanding:c.outstanding,
+        commercialPrice:commercialPrice,
+        propertyCash:cash.property,
+        otherCash:cash.other,
+        propertyOutstanding:propertyOutstanding,
         spa:c.spa||'Not Started',
         oqood:c.oqood||'Not Completed',
-        furniture:furnished?'Furnished':'Unfurnished'
+        furniture:furnishing
       });
       if(bookingDate)row.getCell('bookingDate').numFmt='dd mmm yyyy';
-      ['total','received','outstanding'].forEach(function(key){row.getCell(key).numFmt='#,##0';});
-      row.getCell('outstanding').font={bold:true,color:{argb:outstanding?'FFAE3B2B':'FF3F7A57'}};
+      ['commercialPrice','propertyCash','otherCash','propertyOutstanding'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});
+      row.getCell('propertyOutstanding').font={bold:true,color:{argb:hasOutstanding?'FFAE3B2B':'FF3F7A57'}};
       row.getCell('spa').font={color:{argb:spa?'FF3F7A57':'FF9C5A12'}};
       row.getCell('oqood').font={color:{argb:oqood?'FF3F7A57':'FF9C5A12'}};
       row.getCell('furniture').font={color:{argb:furnished?'FF3F7A57':'FF736C5C'}};
