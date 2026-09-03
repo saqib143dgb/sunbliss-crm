@@ -53,8 +53,8 @@ function build(data,c){
  if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule, including DLD and Admin Fees, is fully settled.'};
  var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',gateRows=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data),td=today();
  var coveredOverdue=gateRows.some(function(x){var d=day(x.e.date);return !!cov[String(x.r.id)]&&d&&d<td});
- var current=gateRows.filter(function(x){return!cov[String(x.r.id)]});
- if(!current.length)return{hidden:true,reason:'scheduled'};
+ var current=gateRows.filter(function(x){var d=day(x.e.date),covered=!!cov[String(x.r.id)];return !(covered&&d&&d<td)});
+ if(!current.length)return{hidden:true,reason:coveredOverdue?'scheduled-overdue-only':'scheduled'};
  var over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
  if(over.length)focus=over;
  else{var firstDate=current[0].e.date;focus=current.filter(function(x){return x.e.date===firstDate})}
