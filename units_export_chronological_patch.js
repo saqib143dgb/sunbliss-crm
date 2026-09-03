@@ -102,13 +102,14 @@
       {header:'Customer',key:'customer',width:30},
       {header:'Actual Property Price (AED)',key:'commercialPrice',width:25},
       {header:'Property Cash Received (AED)',key:'propertyCash',width:27},
+      {header:'Received Amount %',key:'receivedPercentage',width:19},
       {header:'DLD/Admin Cash Received (AED)',key:'otherCash',width:28},
       {header:'Actual Property Outstanding (AED)',key:'propertyOutstanding',width:30},
       {header:'SPA',key:'spa',width:14},
       {header:'OQOOD',key:'oqood',width:14},
       {header:'Furnishing',key:'furniture',width:18}
     ];
-    ws.autoFilter={from:{row:1,column:1},to:{row:1,column:10}};
+    ws.autoFilter={from:{row:1,column:1},to:{row:1,column:11}};
     var header=ws.getRow(1);header.height=20;header.eachCell(function(cell){
       cell.font={bold:true,color:{argb:'FFEDE6D6'},size:11};
       cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16232F'}};
@@ -119,6 +120,7 @@
     ordered.forEach(function(entry){
       var c=entry.c||{},cash=index.cashByUnit[text(entry.sale.unitId)]||{property:0,other:0};
       var commercialPrice=entry.sale.commercialSalePrice>0?entry.sale.commercialSalePrice:money(c.total);
+      var receivedPercentage=commercialPrice>0?cash.property/commercialPrice:0;
       var propertyOutstanding=Math.max(0,money(commercialPrice-cash.property-entry.sale.nonCashSettlement));
       var hasOutstanding=propertyOutstanding>0.01;
       var spa=(c.spa||'').toLowerCase()==='signed';
@@ -132,6 +134,7 @@
         customer:nice(c.name),
         commercialPrice:commercialPrice,
         propertyCash:cash.property,
+        receivedPercentage:receivedPercentage,
         otherCash:cash.other,
         propertyOutstanding:propertyOutstanding,
         spa:c.spa||'Not Started',
@@ -140,6 +143,7 @@
       });
       if(bookingDate)row.getCell('bookingDate').numFmt='dd mmm yyyy';
       ['commercialPrice','propertyCash','otherCash','propertyOutstanding'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});
+      row.getCell('receivedPercentage').numFmt='0.0%';
       row.getCell('propertyOutstanding').font={bold:true,color:{argb:hasOutstanding?'FFAE3B2B':'FF3F7A57'}};
       row.getCell('spa').font={color:{argb:spa?'FF3F7A57':'FF9C5A12'}};
       row.getCell('oqood').font={color:{argb:oqood?'FF3F7A57':'FF9C5A12'}};
