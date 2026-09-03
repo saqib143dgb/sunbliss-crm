@@ -20,17 +20,15 @@ function ensureStyles(){
     '.scheduled-actions-detail.extension-only-detail .scheduled-actions-heading{display:none!important}',
     '.scheduled-actions-detail.extension-only-detail{margin-top:10px!important}',
     '.extension-reference-card.extension-collapsible-card{padding:0!important;overflow:hidden!important}',
-    '.extension-collapse-toggle{width:100%;min-height:54px;border:0;background:transparent;color:var(--ink);display:grid;grid-template-columns:minmax(0,1fr) auto 18px;gap:10px;align-items:center;padding:11px 13px;text-align:left;font-family:Inter,sans-serif;cursor:pointer}',
+    '.extension-collapse-toggle{width:100%;min-height:54px;border:0;background:transparent;color:var(--ink);display:grid;grid-template-columns:minmax(0,1fr) 18px;gap:10px;align-items:center;padding:11px 13px;text-align:left;font-family:Inter,sans-serif;cursor:pointer}',
     '.extension-collapse-toggle:hover,.extension-collapse-toggle:active{background:rgba(156,90,18,.045)}',
     '.extension-collapse-toggle:focus-visible{outline:2px solid var(--gold-deep);outline-offset:-2px}',
     '.extension-collapse-title{font:700 12.5px/1.25 Inter,sans-serif;color:var(--ink)}',
-    '.extension-collapse-sub{margin-top:3px;font:500 9.5px/1.25 Inter,sans-serif;color:var(--muted)}',
-    '.extension-collapse-meta{font:650 9.5px/1.2 IBM Plex Mono,monospace;color:var(--amber,#9C5A12);white-space:nowrap;text-align:right}',
     '.extension-collapse-chevron{font:500 20px/1 Inter,sans-serif;color:var(--muted);transform:rotate(0deg);transition:transform .18s ease;display:flex;align-items:center;justify-content:center}',
     '.extension-collapse-toggle[aria-expanded="true"] .extension-collapse-chevron{transform:rotate(90deg)}',
     '.extension-collapse-body{border-top:1px solid var(--paper-line)}',
     '.extension-collapse-body[hidden]{display:none!important}',
-    '@media(max-width:520px){.extension-collapse-toggle{min-height:50px;padding:10px 11px;grid-template-columns:minmax(0,1fr) auto 16px;gap:7px}.extension-collapse-title{font-size:11.5px}.extension-collapse-sub{font-size:8.8px}.extension-collapse-meta{font-size:8.7px}.extension-collapse-chevron{font-size:18px}}',
+    '@media(max-width:520px){.extension-collapse-toggle{min-height:50px;padding:10px 11px;grid-template-columns:minmax(0,1fr) 16px;gap:7px}.extension-collapse-title{font-size:11.5px}.extension-collapse-chevron{font-size:18px}}',
     '@media(prefers-reduced-motion:reduce){.extension-collapse-chevron{transition:none}}'
   ].join('');document.head.appendChild(s)
 }
@@ -61,7 +59,6 @@ function applyActionSummary(ctx){
     else{setText(status,'Extension Active');setText(msg,message);if(!det){det=document.createElement('p');det.className='action-required-detail';card.appendChild(det)}setText(det,detail)}
   }finally{applying=false}
 }
-function taskGroup(task,ctx){if(!task||!ctx)return null;var due=iso(task.due_date);return ctx.groups.find(function(g){return g.due===due})||ctx.selected}
 function compactExtensionCards(ctx){
   var P=window.PaymentExtensionsCore,C=P&&P.cache,host=document.getElementById('scheduledActionsDetail');if(!P||!C||!host)return;
   var extTasks={};(C.t||[]).forEach(function(t){if(t&&t.status==='pending'&&t.auto_kind==='extension_active'&&Number(t.unit_id)===Number(ctx&&ctx.unit))extTasks[String(t.id)]=t});
@@ -71,9 +68,9 @@ function compactExtensionCards(ctx){
   extCards.forEach(function(x){
     var card=x.card,task=x.task;if(card.dataset.extensionCompactReady==='1')return;
     if(!card.classList.contains('extension-reference-card')||!card.querySelector('.extref-top'))return;
-    var g=taskGroup(task,ctx),amount=g?money(g.total):'',due=g?formatDate(g.due):formatDate(task.due_date),body=card.innerHTML,id=String(task.id),open=!!expanded[id];
+    var body=card.innerHTML,id=String(task.id),open=!!expanded[id];
     card.dataset.extensionCompactReady='1';card.classList.add('extension-collapsible-card');
-    card.innerHTML='<button type="button" class="extension-collapse-toggle" aria-expanded="'+(open?'true':'false')+'"><span><span class="extension-collapse-title">Extension details</span></span><span class="extension-collapse-meta">'+safe(amount)+(amount&&due?' · ':'')+safe(due)+'</span><span class="extension-collapse-chevron" aria-hidden="true">›</span></button><div class="extension-collapse-body"'+(open?'':' hidden')+'>'+body+'</div>';
+    card.innerHTML='<button type="button" class="extension-collapse-toggle" aria-expanded="'+(open?'true':'false')+'"><span class="extension-collapse-title">Extension details</span><span class="extension-collapse-chevron" aria-hidden="true">›</span></button><div class="extension-collapse-body"'+(open?'':' hidden')+'>'+body+'</div>';
     var toggle=card.querySelector('.extension-collapse-toggle'),detail=card.querySelector('.extension-collapse-body');toggle.onclick=function(){var next=toggle.getAttribute('aria-expanded')!=='true';expanded[id]=next;toggle.setAttribute('aria-expanded',next?'true':'false');if(detail)detail.hidden=!next};
   })
 }
