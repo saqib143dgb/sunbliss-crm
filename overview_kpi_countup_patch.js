@@ -126,8 +126,10 @@
 
   function revealFinalOverview(){
     if(!financialDataReady()||!finalPortfolioHasRendered()||!loaderHasReleased())return false;
-    if(!hasAnimatedThisPage)animateOverviewKpis();
     root.classList.remove('sbx-overview-data-pending');
+    if(!hasAnimatedThisPage){
+      window.requestAnimationFrame(function(){animateOverviewKpis();});
+    }
     return true;
   }
 
@@ -153,10 +155,7 @@
   style.id='sunblissOverviewKpiCountUpStyle';
   style.textContent=[
     '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
-    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell:not(.wide) .stat-value{visibility:hidden!important;}',
-    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell:not(.wide) .stat-sub{visibility:hidden!important;}',
-    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell.wide .bar{visibility:hidden!important;}',
-    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell.wide .bar-caption{visibility:hidden!important;}'
+    'html.sbx-overview-data-pending .overview>.stat-hero{display:none!important;}'
   ].join('');
   document.head.appendChild(style);
 
