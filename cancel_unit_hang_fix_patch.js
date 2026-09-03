@@ -8,6 +8,13 @@
 
   function text(value){ return value == null ? '' : String(value); }
 
+  function placeCancelUnitLast(){
+    var button = document.getElementById('actionCancelUnit');
+    if (!button || !button.parentElement) return;
+    var parent = button.parentElement;
+    if (parent.lastElementChild !== button) parent.appendChild(button);
+  }
+
   function applyCancelledState(pending){
     if (!pending || !window.state) return;
 
@@ -127,6 +134,7 @@
   function install(){
     var rpcReady = installRpcWrapper();
     var loadReady = installLoadWrapper();
+    placeCancelUnitLast();
     softenMobileAutofocus();
 
     if (!rpcReady || !loadReady) setTimeout(install,60);
@@ -136,12 +144,19 @@
     var originalRenderDetail = window.renderDetail;
     function wrappedRenderDetail(){
       var out = originalRenderDetail.apply(this,arguments);
+      placeCancelUnitLast();
       softenMobileAutofocus();
       return out;
     }
     wrappedRenderDetail.__sunblissCancelHangRenderWrapped = true;
     wrappedRenderDetail.__sunblissOriginal = originalRenderDetail;
     window.renderDetail = wrappedRenderDetail;
+  }
+
+  if (window.MutationObserver) {
+    new MutationObserver(function(){
+      placeCancelUnitLast();
+    }).observe(document.documentElement,{childList:true,subtree:true});
   }
 
   install();
