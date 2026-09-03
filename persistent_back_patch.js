@@ -13,6 +13,7 @@
     'body.sunbliss-back-dock-mode .tabs{display:none!important;}',
     '#sunblissPersistentBack{position:fixed;z-index:10050;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));display:none;align-items:center;justify-content:center;gap:6px;width:min(600px,calc(100vw - 20px));height:56px;padding:0 16px;box-sizing:border-box;border:1px solid rgba(15,26,38,.58);border-radius:999px;background:rgba(246,241,228,.50);color:var(--ink-2);font:650 12px/1 Inter,system-ui,sans-serif;box-shadow:0 7px 22px rgba(15,26,38,.16),inset 0 1px 0 rgba(255,255,255,.52);-webkit-backdrop-filter:blur(22px) saturate(1.16);backdrop-filter:blur(22px) saturate(1.16);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transform:translateX(-50%);transition:background .16s ease,box-shadow .16s ease,transform .12s ease;}',
     '#sunblissPersistentBack.is-visible{display:flex;}',
+    'body.sunbliss-action-menu-open #sunblissPersistentBack,body.crm-full-page-action-open #sunblissPersistentBack,body.scheduled-action-open #sunblissPersistentBack,body.ext-panel-open #sunblissPersistentBack,body.cancel-unit-render-safe #sunblissPersistentBack{display:none!important;}',
     '#sunblissPersistentBack::before{content:"";width:17px;height:17px;flex:none;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.42-1.41L7.83 13H20v-2z%22/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.42-1.41L7.83 13H20v-2z%22/%3E%3C/svg%3E") center/contain no-repeat;}',
     '#sunblissPersistentBack:hover{background:rgba(246,241,228,.62);box-shadow:0 8px 24px rgba(15,26,38,.18),inset 0 1px 0 rgba(255,255,255,.62);}',
     '#sunblissPersistentBack:active{transform:translateX(-50%) scale(.988);}',
@@ -64,12 +65,47 @@
     var panel=document.getElementById('sunblissDockSearchPanel');if(panel)panel.classList.remove('is-open');
     var input=document.getElementById('dockPersistentSearchInput');if(input&&document.activeElement===input)input.blur();
   }
+  function visibleNode(node){
+    if(!node||!node.isConnected)return false;
+    var css=window.getComputedStyle?window.getComputedStyle(node):null;
+    return !css||css.display!=='none';
+  }
+  function customerActionMenuOpen(){
+    return visibleNode(document.getElementById('customerActionMenu'));
+  }
+  function fullPageActionOpen(){
+    if(document.body){
+      var classes=document.body.classList;
+      if(classes.contains('crm-full-page-action-open')||
+         classes.contains('scheduled-action-open')||
+         classes.contains('ext-panel-open')||
+         classes.contains('cancel-unit-render-safe'))return true;
+    }
+    var selectors=[
+      '#customerEditPanel','#unitEditPanel','#saleComplianceEditPanel','#unitCancellationPanel',
+      '#transactionEditPanel','#creditNoteEditPanel','#inlineComplianceEditor',
+      '#customerNotesManagementPanel','.record-payment-panel',
+      '#auditLogOverlay','#installmentEditOverlay','#installmentDeleteOverlay',
+      '#paymentDetailOverlay','#cancelledUnitEditModal',
+      '#scheduledActionPanel','#paymentExtensionPanel'
+    ];
+    for(var i=0;i<selectors.length;i++){
+      var nodes=document.querySelectorAll(selectors[i]);
+      for(var j=0;j<nodes.length;j++)if(visibleNode(nodes[j]))return true;
+    }
+    return false;
+  }
   function sync(){
     var button=ensureButton(),sources=collectInlineBacks();
     var detailVisible=!!(window.state&&state.view==='detail'&&document.querySelector('.detail'));
-    var shouldShow=detailVisible||sources.length>0;
+    var menuOpen=customerActionMenuOpen();
+    var actionOpen=fullPageActionOpen();
+    var shouldShow=!menuOpen&&!actionOpen&&(detailVisible||sources.length>0);
     button.classList.toggle('is-visible',shouldShow);button.setAttribute('aria-hidden',shouldShow?'false':'true');button.tabIndex=shouldShow?0:-1;
-    if(document.body)document.body.classList.toggle('sunbliss-back-dock-mode',shouldShow);
+    if(document.body){
+      document.body.classList.toggle('sunbliss-back-dock-mode',shouldShow);
+      document.body.classList.toggle('sunbliss-action-menu-open',menuOpen);
+    }
     if(shouldShow)closeDockSearch();
   }
   var queued=false;
