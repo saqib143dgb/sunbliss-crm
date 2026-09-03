@@ -71,9 +71,9 @@ function compactExtensionCards(ctx){
   extCards.forEach(function(x){
     var card=x.card,task=x.task;if(card.dataset.extensionCompactReady==='1')return;
     if(!card.classList.contains('extension-reference-card')||!card.querySelector('.extref-top'))return;
-    var g=taskGroup(task,ctx),amount=g?money(g.total):'',due=g?formatDate(g.due):formatDate(task.due_date),count=g?g.items.length:0,body=card.innerHTML,id=String(task.id),open=!!expanded[id];
+    var g=taskGroup(task,ctx),amount=g?money(g.total):'',due=g?formatDate(g.due):formatDate(task.due_date),body=card.innerHTML,id=String(task.id),open=!!expanded[id];
     card.dataset.extensionCompactReady='1';card.classList.add('extension-collapsible-card');
-    card.innerHTML='<button type="button" class="extension-collapse-toggle" aria-expanded="'+(open?'true':'false')+'"><span><span class="extension-collapse-title">Extension details</span><span class="extension-collapse-sub">'+safe(count?(count+' outstanding component'+(count===1?'':'s')):'Approved payment extension')+'</span></span><span class="extension-collapse-meta">'+safe(amount)+(amount&&due?' · ':'')+safe(due)+'</span><span class="extension-collapse-chevron" aria-hidden="true">›</span></button><div class="extension-collapse-body"'+(open?'':' hidden')+'>'+body+'</div>';
+    card.innerHTML='<button type="button" class="extension-collapse-toggle" aria-expanded="'+(open?'true':'false')+'"><span><span class="extension-collapse-title">Extension details</span></span><span class="extension-collapse-meta">'+safe(amount)+(amount&&due?' · ':'')+safe(due)+'</span><span class="extension-collapse-chevron" aria-hidden="true">›</span></button><div class="extension-collapse-body"'+(open?'':' hidden')+'>'+body+'</div>';
     var toggle=card.querySelector('.extension-collapse-toggle'),detail=card.querySelector('.extension-collapse-body');toggle.onclick=function(){var next=toggle.getAttribute('aria-expanded')!=='true';expanded[id]=next;toggle.setAttribute('aria-expanded',next?'true':'false');if(detail)detail.hidden=!next};
   })
 }
