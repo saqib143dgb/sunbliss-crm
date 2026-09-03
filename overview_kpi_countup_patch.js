@@ -9,8 +9,9 @@
     'collected':true,
     'outstanding':true
   };
-  var DURATION=1050;
+  var DURATION=525;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var hasAnimatedThisPage=false;
 
   function normalise(value){
     return String(value||'').replace(/\s+/g,' ').trim().toLowerCase();
@@ -71,14 +72,20 @@
   }
 
   function animateOverviewKpis(){
+    if(hasAnimatedThisPage)return;
     var cells=document.querySelectorAll('.overview > .stat-hero > .stat-cell:not(.wide)');
+    var animated=false;
     Array.prototype.forEach.call(cells,function(cell){
       var label=cell.querySelector('.stat-label');
       var value=cell.querySelector('.stat-value');
       if(!label||!value||!KPI_LABELS[normalise(label.textContent)])return;
       var parsed=parseValue(value.textContent);
-      if(parsed)animateValue(value,parsed);
+      if(parsed){
+        animateValue(value,parsed);
+        animated=true;
+      }
     });
+    if(animated)hasAnimatedThisPage=true;
   }
 
   function containsOverviewHero(node){
