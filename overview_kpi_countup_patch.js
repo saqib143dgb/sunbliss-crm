@@ -51,6 +51,27 @@
     return parsed.prefix+number+parsed.suffix;
   }
 
+  function parsePercentNode(node){
+    if(!node)return null;
+    var finalText=String(node.textContent||'').trim();
+    var match=finalText.match(/^([+\-]?\d+(?:\.\d+)?)%$/);
+    if(!match)return null;
+    var numberText=match[1];
+    var dot=numberText.indexOf('.');
+    return{
+      node:node,
+      finalText:finalText,
+      value:Number(numberText),
+      decimals:dot<0?0:numberText.length-dot-1
+    };
+  }
+
+  function formatPercent(parsed,value){
+    var factor=Math.pow(10,parsed.decimals);
+    var rounded=Math.round(value*factor)/factor;
+    return rounded.toFixed(parsed.decimals)+'%';
+  }
+
   function loaderHasReleased(){
     return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
   }
@@ -106,6 +127,55 @@
     window.requestAnimationFrame(frame);
   }
 
+  function prepareOverviewProgress(){
+    if(reduceMotion)return null;
+    var wide=document.querySelector('.overview > .stat-hero > .stat-cell.wide');
+    if(!wide||wide.dataset.sbxProgressPrepared==='1')return null;
+    var fill=wide.querySelector('.bar-fill');
+    if(!fill)return null;
+    var targetWidth=parseFloat(fill.style.width||'');
+    if(!Number.isFinite(targetWidth))return null;
+    var caption=wide.querySelector('.bar-caption');
+    var percentNodes=caption?caption.querySelectorAll('b'):[];
+    var percents=[];
+    Array.prototype.forEach.call(percentNodes,function(node){
+      var parsed=parsePercentNode(node);
+      if(parsed)percents.push(parsed);
+    });
+    wide.dataset.sbxProgressPrepared='1';
+    fill.style.width='0%';
+    percents.forEach(function(parsed){parsed.node.textContent=formatPercent(parsed,0);});
+    return {wide:wide,fill:fill,targetWidth:Math.max(0,Math.min(100,targetWidth)),percents:percents};
+  }
+
+  function animateOverviewProgress(prepared){
+    if(!prepared||reduceMotion)return;
+    var started=null;
+    prepared.fill.setAttribute('data-sbx-kpi-counting','');
+    prepared.percents.forEach(function(parsed){parsed.node.setAttribute('data-sbx-kpi-counting','');});
+    function frame(timestamp){
+      if(!prepared.fill.isConnected)return;
+      if(started===null)started=timestamp;
+      var progress=Math.min(1,(timestamp-started)/DURATION);
+      var eased=1-Math.pow(1-progress,4);
+      prepared.fill.style.width=(prepared.targetWidth*eased)+'%';
+      prepared.percents.forEach(function(parsed){
+        parsed.node.textContent=progress===1?parsed.finalText:formatPercent(parsed,parsed.value*eased);
+      });
+      if(progress<1){
+        window.requestAnimationFrame(frame);
+      }else{
+        prepared.fill.style.width=prepared.targetWidth+'%';
+        prepared.fill.removeAttribute('data-sbx-kpi-counting');
+        prepared.percents.forEach(function(parsed){
+          parsed.node.textContent=parsed.finalText;
+          parsed.node.removeAttribute('data-sbx-kpi-counting');
+        });
+      }
+    }
+    window.requestAnimationFrame(frame);
+  }
+
   function animateOverviewKpis(){
     if(hasAnimatedThisPage||!finalPortfolioHasRendered())return false;
     var cells=document.querySelectorAll('.overview > .stat-hero > .stat-cell:not(.wide)');
@@ -127,9 +197,13 @@
   function revealFinalOverview(){
     if(!financialDataReady()||!finalPortfolioHasRendered())return false;
     if(!loaderHasReleased())return false;
+    var progressAnimation=!hasAnimatedThisPage?prepareOverviewProgress():null;
     root.classList.remove('sbx-overview-data-pending');
     if(!hasAnimatedThisPage){
-      window.requestAnimationFrame(function(){animateOverviewKpis();});
+      window.requestAnimationFrame(function(){
+        animateOverviewKpis();
+        animateOverviewProgress(progressAnimation);
+      });
     }
     return true;
   }
