@@ -14,7 +14,7 @@
     'collected':true,
     'outstanding':true
   };
-  var DURATION=788;
+  var DURATION=946;
   var DESKTOP_MIN=1024;
   var DESKTOP_SETTLE_MS=660;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
