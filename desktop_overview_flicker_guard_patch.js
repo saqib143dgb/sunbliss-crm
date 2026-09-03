@@ -15,6 +15,14 @@ function ensureWordmarkTypography(){
   document.head.appendChild(style);
 }
 
+function ensureKpiCleanupStyles(){
+  if(document.getElementById('sunblissDesktopKpiCleanupStyle'))return;
+  var style=document.createElement('style');
+  style.id='sunblissDesktopKpiCleanupStyle';
+  style.textContent='@media(min-width:1024px){body.sunbliss-ref-desktop .sb-v2-kpi-sub,body.sunbliss-ref-desktop .sb-v2-kpi .sb-v2-trend{display:none!important}}';
+  document.head.appendChild(style);
+}
+
 var DESKTOP_LOGO_ASSET='assets/purvanchal-p-desktop-previous.png';
 
 function lockSidebarLogoGeometry(img){
@@ -87,14 +95,15 @@ function wrap(name){
 
 function install(){
   ensureWordmarkTypography();
+  ensureKpiCleanupStyles();
   ensureRealSidebarLogo();
   wrap('renderOverview');
   wrap('renderMain');
   wrap('render');
   /* Some late CRM patches replace render functions during startup. Re-wrap only the
      function references themselves; there is no DOM observer and no recurring timer. */
-  setTimeout(function(){ensureWordmarkTypography();ensureRealSidebarLogo();wrap('renderOverview');wrap('renderMain');wrap('render')},120);
-  setTimeout(function(){ensureWordmarkTypography();ensureRealSidebarLogo();wrap('renderOverview');wrap('renderMain');wrap('render')},500);
+  setTimeout(function(){ensureWordmarkTypography();ensureKpiCleanupStyles();ensureRealSidebarLogo();wrap('renderOverview');wrap('renderMain');wrap('render')},120);
+  setTimeout(function(){ensureWordmarkTypography();ensureKpiCleanupStyles();ensureRealSidebarLogo();wrap('renderOverview');wrap('renderMain');wrap('render')},500);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
