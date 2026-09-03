@@ -25,13 +25,29 @@
         body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-actions>.sb-pro-sync{
           position:absolute!important;
           top:50px!important;
-          right:0!important;
+          left:50%!important;
+          right:auto!important;
           margin:0!important;
+          transform:translateX(-50%)!important;
           z-index:4!important;
         }
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function alignSync(sync,actions,project){
+    if(!sync||!actions||!project)return;
+    var actionsRect=actions.getBoundingClientRect();
+    var projectRect=project.getBoundingClientRect();
+    var syncRect=sync.getBoundingClientRect();
+    if(!actionsRect.height||!projectRect.height||!syncRect.height)return;
+    var projectCenter=projectRect.top+(projectRect.height/2);
+    var targetTop=projectCenter-actionsRect.top-(syncRect.height/2);
+    sync.style.setProperty('top',Math.round(targetTop)+'px','important');
+    sync.style.setProperty('left','50%','important');
+    sync.style.setProperty('right','auto','important');
+    sync.style.setProperty('transform','translateX(-50%)','important');
   }
 
   function placeSync(){
@@ -41,11 +57,17 @@
     var sync=h.querySelector('.sb-pro-sync');
     if(!sync)return;
     var actions=h.querySelector('.sb-pro-actions');
-    var project=h.querySelector('.sb-pro-project-row');
+    var projectRow=h.querySelector('.sb-pro-project-row');
+    var project=h.querySelector('.sb-pro-project');
     if(desktop()){
       if(actions&&sync.parentNode!==actions)actions.appendChild(sync);
-    }else if(project&&sync.parentNode!==project){
-      project.appendChild(sync);
+      requestAnimationFrame(function(){alignSync(sync,actions,project||projectRow)});
+    }else if(projectRow&&sync.parentNode!==projectRow){
+      sync.style.removeProperty('top');
+      sync.style.removeProperty('left');
+      sync.style.removeProperty('right');
+      sync.style.removeProperty('transform');
+      projectRow.appendChild(sync);
     }
   }
 
