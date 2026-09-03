@@ -9,6 +9,9 @@
       body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-logo-frame{
         display:none!important;
       }
+      body.sunbliss-ref-desktop .topbar.sunbliss-professional-header .sb-pro-brand-name{
+        font-size:49px!important;
+      }
     }
   `;
   document.head.appendChild(style);
