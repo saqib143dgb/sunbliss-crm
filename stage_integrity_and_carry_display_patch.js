@@ -2,10 +2,15 @@
 'use strict';
 if(window.__sunblissStageIntegrityInstalled)return;
 window.__sunblissStageIntegrityInstalled=true;
+window.__sunblissOverviewFinancialReady=false;
 
 var cachedScheduleRows=[];
 var refreshPromise=null;
 
+function emitFinancialState(ready){
+  window.__sunblissOverviewFinancialReady=!!ready;
+  try{document.dispatchEvent(new CustomEvent(ready?'sunbliss:overview-financial-ready':'sunbliss:overview-financial-loading'));}catch(e){}
+}
 function text(v){return v==null?'':String(v)}
 function num(v){var n=Number(v);return isFinite(n)?n:0}
 function round2(v){return Math.round(num(v)*100)/100}
@@ -201,6 +206,10 @@ function wrapRender(name){
   wrapped.__sunblissStageIntegrityWrapped=true;
   window[name]=wrapped;
 }
+function renderFinalState(){
+  if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();
+  emitFinancialState(true);
+}
 function install(){
   if(!window.state||!window.sb||typeof window.loadFromSupabase!=='function'){
     setTimeout(install,40);return;
@@ -210,17 +219,21 @@ function install(){
   var baseLoad=window.loadFromSupabase;
   if(!baseLoad.__sunblissStageIntegrityLoad){
     var wrappedLoad=async function(){
+      emitFinancialState(false);
       var out=await baseLoad.apply(this,arguments);
       try{
         await refreshIntegrity();
-        if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();
-      }catch(err){console.warn('[Sunbliss] stage integrity refresh failed',err)}
+        renderFinalState();
+      }catch(err){
+        console.warn('[Sunbliss] stage integrity refresh failed',err);
+      }
       return out;
     };
     wrappedLoad.__sunblissStageIntegrityLoad=true;
     window.loadFromSupabase=wrappedLoad;
   }
-  refreshIntegrity().then(function(){if(state.view&&state.view!=='empty'&&typeof window.renderMain==='function')window.renderMain()}).catch(function(err){console.warn('[Sunbliss] stage integrity initialization failed',err)});
+  emitFinancialState(false);
+  refreshIntegrity().then(function(){renderFinalState()}).catch(function(err){console.warn('[Sunbliss] stage integrity initialization failed',err)});
 }
 install();
 })();
