@@ -25,7 +25,7 @@ function icon(name){
   };
   return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(p[name]||p.overview)+'</svg>';
 }
-function sunLogo(){return '<svg class="sb-stable-brand-logo" viewBox="0 0 100 100" role="img" aria-label="Purvanchal logo"><circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="4"/><path fill="currentColor" fill-rule="evenodd" d="M27 23h32c16 0 28 11 28 27S75 78 59 78H49v12H27V23Zm22 18v19h10c6 0 10-4 10-9.5S65 41 59 41H49Z"/><path d="M50 36l9 10v34H41V50l9-10Z" fill="#0b1a29"/><path d="M50 36v-8M42.5 52.5l15 8M42.5 61l15 8M42.5 69.5l15 8" fill="none" stroke="currentColor" stroke-width="3.1" stroke-linecap="round"/></svg>'}
+function sunLogo(){return '<img class="sb-stable-brand-logo" src="assets/purvanchal-p-thin-ring.png" alt="Purvanchal logo" loading="eager" decoding="sync">'}
 function styles(){
   if(document.getElementById('sunblissStableDesktopShellStyles'))return;
   var s=document.createElement('style');s.id='sunblissStableDesktopShellStyles';s.textContent=`
@@ -38,7 +38,7 @@ function styles(){
  body.sunbliss-ref-desktop main#main{position:relative!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
  #sbRefSidebar{display:flex;position:fixed;z-index:5000;left:0;top:0;bottom:0;width:216px;flex-direction:column;background:linear-gradient(180deg,var(--ink-2),#0b1a29);color:var(--cream-text);border-right:1px solid rgba(198,151,46,.30);box-shadow:none}
  .sb-ref-brand{height:145px;padding:9px 16px 13px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border-bottom:1px solid rgba(237,230,214,.12);overflow:hidden}
- .sb-stable-brand-logo{display:block;width:61px;height:61px;color:var(--gold);margin:0 auto 1px;flex:0 0 61px;overflow:visible}
+ .sb-stable-brand-logo{display:block;width:61px;height:auto;max-width:61px;max-height:61px;object-fit:contain;object-position:center;aspect-ratio:auto;margin:0 auto 1px;flex:none;overflow:visible}
  .sb-ref-brand strong{display:block;font:600 25px/1 Georgia,'Times New Roman',serif;color:var(--cream-text);letter-spacing:-.015em;white-space:nowrap;text-align:center}.sb-ref-brand small{display:block;margin-top:7px;font:700 8px/1 Inter,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);white-space:nowrap;text-align:center}
  .sb-ref-nav{padding:0;display:flex;flex-direction:column;gap:0}.sb-ref-nav button{position:relative;width:100%;height:51px;border:0;border-radius:0;background:transparent;color:var(--cream-text);display:flex;align-items:center;gap:15px;padding:0 28px;font:500 13px/1 Inter,sans-serif;text-align:left;cursor:pointer}.sb-ref-nav button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}.sb-ref-nav button:hover{background:rgba(237,230,214,.045)}.sb-ref-nav button.active{background:rgba(237,230,214,.10);color:var(--gold);font-weight:650}.sb-ref-nav button.active:before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--gold)}
  .sb-ref-nav .sb-ref-add{margin:17px 16px 0;width:calc(100% - 32px);height:44px;border:1px solid var(--gold);border-radius:10px;color:var(--gold);background:transparent;padding:0 17px}.sb-ref-nav .sb-ref-add:hover{background:rgba(198,151,46,.07)}
