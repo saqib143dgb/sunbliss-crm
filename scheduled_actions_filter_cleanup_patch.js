@@ -41,6 +41,34 @@
     return null;
   }
 
+  function todayIso(){
+    var d=new Date();
+    d.setHours(0,0,0,0);
+    var m=d.getMonth()+1,day=d.getDate();
+    return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);
+  }
+
+  function sourceCounts(){
+    var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
+    if(!C||!Array.isArray(C.t)||!C.loaded)return null;
+    var today=todayIso();
+    var counts={today:0,overdue:0,upcoming:0,extensions:0};
+    C.t.forEach(function(t){
+      if(!t)return;
+      if(t.auto_kind==='extension_active'){
+        if(t.status==='pending')counts.extensions++;
+        return;
+      }
+      if(t.status!=='pending')return;
+      var due=String(t.due_date||'').slice(0,10);
+      if(!due)return;
+      if(due<today)counts.overdue++;
+      else if(due===today)counts.today++;
+      else counts.upcoming++;
+    });
+    return counts;
+  }
+
   function syncSelectedCount(){
     var select=document.getElementById('scheduledOverviewFilter');
     if(!select||!ALLOWED[select.value])return;
@@ -50,6 +78,22 @@
     if(!option)return;
     var label=LABELS[select.value]+' · '+count;
     if(option.textContent!==label)option.textContent=label;
+  }
+
+  function syncAllCounts(){
+    var select=document.getElementById('scheduledOverviewFilter');
+    if(!select)return;
+    var counts=sourceCounts();
+    if(!counts){
+      syncSelectedCount();
+      return;
+    }
+    Object.keys(ALLOWED).forEach(function(value){
+      var option=select.querySelector('option[value="'+value+'"]');
+      if(!option)return;
+      var label=LABELS[value]+' · '+counts[value];
+      if(option.textContent!==label)option.textContent=label;
+    });
   }
 
   function clean(){
@@ -72,7 +116,7 @@
     }
 
     if(!ALLOWED[select.value])select.value='today';
-    syncSelectedCount();
+    syncAllCounts();
     observeList();
   }
 
