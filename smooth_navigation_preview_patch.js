@@ -214,7 +214,7 @@ function wrap(name,always){
   if(typeof original!=='function'||original.__sunblissExecutiveMotionWrapped)return false;
   function wrapped(){
     var before=signature();
-    var should=always||before!==lastSignature;
+    var should=!window.__sunblissSwipeNavigating&&(always||before!==lastSignature);
     var token=should?begin(viewLabel(),false):0;
     var output;
     try{output=original.apply(this,arguments)}
@@ -273,6 +273,7 @@ function shouldAnimate(element){
 }
 
 document.addEventListener('click',function(event){
+  if(window.__sunblissSwipeNavigating)return;
   var element=event.target&&event.target.closest?event.target.closest('button,a,[role="button"]'):null;
   if(!shouldAnimate(element)||root.classList.contains('sbx-loading'))return;
   var token=begin(actionLabel(element),false);
