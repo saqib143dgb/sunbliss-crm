@@ -169,10 +169,32 @@ function settle(token,minimum,isBoot){
   });
 }
 
+function finalOverviewReady(){
+  var s=window.state;
+  if(!s||!s.userRole||s.view!=='overview')return true;
+  if(!Array.isArray(s.dues))return false;
+  for(var i=0;i<s.dues.length;i++){
+    var customer=s.dues[i];
+    if(!customer||customer.customerId===null||customer.customerId===undefined||String(customer.customerId).trim()==='')return false;
+  }
+  var hero=document.querySelector('.overview > .stat-hero');
+  if(!hero)return false;
+  var cells=hero.querySelectorAll('.stat-cell:not(.wide)');
+  for(var j=0;j<cells.length;j++){
+    var label=cells[j].querySelector('.stat-label');
+    var value=cells[j].querySelector('.stat-value');
+    if(label&&value&&String(label.textContent||'').replace(/\s+/g,' ').trim().toLowerCase()==='units sold'){
+      var displayed=Number(String(value.textContent||'').replace(/[^0-9.\-]/g,''));
+      return isFinite(displayed)&&displayed===s.dues.length;
+    }
+  }
+  return false;
+}
+
 function bootReady(){
   var app=document.getElementById('app');
   if(!app||!app.children.length)return false;
-  if(window.state&&window.state.userRole&&document.getElementById('main'))return true;
+  if(window.state&&window.state.userRole&&document.getElementById('main'))return finalOverviewReady();
   return !!app.querySelector('form,input,button');
 }
 
