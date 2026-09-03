@@ -2,6 +2,8 @@
   'use strict';
   if(window.__sunblissOverviewKpiCountUpInstalled)return;
   window.__sunblissOverviewKpiCountUpInstalled=true;
+  var root=document.documentElement;
+  root.classList.add('sbx-kpi-pending');
 
   var KPI_LABELS={
     'units sold':true,
@@ -86,7 +88,10 @@
         animated=true;
       }
     });
-    if(animated)hasAnimatedThisPage=true;
+    if(animated){
+      hasAnimatedThisPage=true;
+      root.classList.remove('sbx-kpi-pending');
+    }
   }
 
   function containsOverviewHero(node){
@@ -138,8 +143,10 @@
   }
 
   var style=document.createElement('style');
-  style.textContent='[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
+  style.textContent='html.sbx-kpi-pending .overview > .stat-hero{visibility:hidden!important;opacity:0!important;}[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
   document.head.appendChild(style);
+
+  window.setTimeout(function(){root.classList.remove('sbx-kpi-pending');},8000);
 
   if(window.MutationObserver){
     new MutationObserver(function(mutations){
