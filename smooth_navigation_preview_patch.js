@@ -42,9 +42,6 @@ function installStyles(){
     '#sbxBootScene:before,#sbxBootScene:after{content:"";position:absolute;left:50%;top:50%;border:1px solid rgba(226,173,77,.14);border-radius:50%;transform:translate(-50%,-50%);animation:sbxOrbit 5s ease-in-out infinite alternate!important}',
     '#sbxBootScene:before{width:min(76vw,620px);aspect-ratio:1}',
     '#sbxBootScene:after{width:min(112vw,900px);aspect-ratio:1;border-color:rgba(226,173,77,.07);animation-delay:-2.5s!important}',
-    '#sbxArchitecturalLines{position:absolute;left:0;right:0;bottom:13%;height:1px;background:linear-gradient(90deg,transparent,rgba(226,173,77,.10) 18%,rgba(226,173,77,.28) 50%,rgba(226,173,77,.10) 82%,transparent)}',
-    '#sbxArchitecturalLines:before,#sbxArchitecturalLines:after{content:"";position:absolute;bottom:0;width:1px;height:46vh;background:linear-gradient(transparent,rgba(226,173,77,.13))}',
-    '#sbxArchitecturalLines:before{left:20%}#sbxArchitecturalLines:after{right:20%}',
     '#sbxBootCard{position:relative;z-index:2;grid-area:1/1;display:none;width:120px;box-sizing:border-box;text-align:center;color:white}',
     'html.sbx-booting #sbxBootCard{display:block;animation:sbxCardArrive .64s cubic-bezier(.22,1,.36,1) both!important}',
     '#sbxLogoStage{position:relative;width:104px;height:104px;margin:0 auto;display:grid;place-items:center}',
@@ -64,7 +61,7 @@ function installStyles(){
     '@keyframes sbxOrbit{from{transform:translate(-50%,-50%) scale(.98)}to{transform:translate(-50%,-50%) scale(1.035)}}',
     '@keyframes sbxCardArrive{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}',
     '@media(max-width:520px){#sbxBootCard{width:102px}#sbxLogoStage{width:88px;height:88px}#sbxBootLogo{width:69px;height:69px}#sbxRoutePill{width:58px;height:58px;padding:8px}#sbxRouteMark{width:39px;height:39px}#sbxRouteMark img{width:29px;height:29px}}',
-    '@media(min-width:900px){#sbxBootScene:before{width:min(52vw,700px)}#sbxBootScene:after{width:min(76vw,980px)}#sbxArchitecturalLines:before{left:27%}#sbxArchitecturalLines:after{right:27%}#sbxBootCard{width:154px}#sbxLogoStage{width:126px;height:126px}#sbxLogoStage:after{inset:-11px}#sbxBootLogo{width:98px;height:98px}#sbxRoutePill{width:68px;height:68px;padding:9px}#sbxRouteMark{width:46px;height:46px}#sbxRouteMark img{width:34px;height:34px}html.sbx-loading:not(.sbx-booting) #app #main{transform:translateY(5px) scale(.995)!important}}',
+    '@media(min-width:900px){#sbxBootScene:before{width:min(52vw,700px)}#sbxBootScene:after{width:min(76vw,980px)}#sbxBootCard{width:154px}#sbxLogoStage{width:126px;height:126px}#sbxLogoStage:after{inset:-11px}#sbxBootLogo{width:98px;height:98px}#sbxRoutePill{width:68px;height:68px;padding:9px}#sbxRouteMark{width:46px;height:46px}#sbxRouteMark img{width:34px;height:34px}html.sbx-loading:not(.sbx-booting) #app #main{transform:translateY(5px) scale(.995)!important}}',
     '@media(prefers-reduced-motion:reduce){html.sbx-motion #app #main,#sbxLoader,#sbxBootScene,#sbxRoutePill,#sbxBootProgressFill,#sbxTopProgressFill{transition:none!important}#sbxBootCard,#sbxBootScene:before,#sbxBootScene:after,#sbxLogoStage:before,#sbxLogoStage:after,#sbxRouteMark:after{animation:none!important}}'
   ].join('');
   document.head.appendChild(style);
@@ -78,7 +75,7 @@ function ensureUi(){
     layer.setAttribute('role','status');
     layer.setAttribute('aria-live','polite');
     layer.setAttribute('aria-label','Loading CRM');
-    layer.innerHTML='<div id="sbxBootScene"><span id="sbxArchitecturalLines"></span></div><div id="sbxBootCard"><div id="sbxLogoStage"><img id="sbxBootLogo" src="assets/purvanchal-p-thin-ring.png" alt="" width="82" height="82" decoding="sync"></div></div><div id="sbxRoutePill"><span id="sbxRouteMark"><img src="assets/purvanchal-p-thin-ring.png" alt="" width="31" height="31" decoding="async"></span></div>';
+    layer.innerHTML='<div id="sbxBootScene"></div><div id="sbxBootCard"><div id="sbxLogoStage"><img id="sbxBootLogo" src="assets/purvanchal-p-thin-ring.png" alt="" width="82" height="82" decoding="sync"></div></div><div id="sbxRoutePill"><span id="sbxRouteMark"><img src="assets/purvanchal-p-thin-ring.png" alt="" width="31" height="31" decoding="async"></span></div>';
     document.body.appendChild(layer);
   }
   if(!document.getElementById('sbxTopProgress')){
