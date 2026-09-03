@@ -54,18 +54,39 @@ function route(view){
   if(window.state&&typeof window.renderMain==='function'){state.view=view;renderMain();window.scrollTo(0,0)}
 }
 function dock(sel){var b=original(sel);if(b)b.click()}
+function ensureDesktopLogo(n){
+  if(!n)return;
+  var brand=n.querySelector('.sb-ref-brand');
+  if(!brand)return;
+  var logo=brand.querySelector('.sb-stable-brand-logo');
+  if(!logo){
+    var old=brand.querySelector('.sb-ref-sun');
+    if(old)old.outerHTML=sunLogo();
+    else brand.insertAdjacentHTML('afterbegin',sunLogo());
+    logo=brand.querySelector('.sb-stable-brand-logo');
+  }
+  if(logo&&logo.tagName==='IMG'){
+    if(logo.getAttribute('src')!=='assets/purvanchal-p-thin-ring.png')logo.setAttribute('src','assets/purvanchal-p-thin-ring.png');
+    logo.setAttribute('alt','Purvanchal logo');
+    logo.setAttribute('loading','eager');
+    logo.setAttribute('decoding','sync');
+  }
+}
 function ensureSidebar(){
   if(!desktop())return;
-  var n=document.getElementById('sbRefSidebar');if(n)return;
+  var n=document.getElementById('sbRefSidebar');
+  if(n){ensureDesktopLogo(n);return}
   n=document.createElement('aside');n.id='sbRefSidebar';
   n.innerHTML='<div class="sb-ref-brand">'+sunLogo()+'<strong>Sunbliss CRM</strong><small>Desktop Workspace</small></div><nav class="sb-ref-nav"><button data-route="overview">'+icon('overview')+'<span>Overview</span></button><button data-route="list">'+icon('units')+'<span>Units &amp; Customers</span></button><button data-route="insights">'+icon('insights')+'<span>Insights</span></button><button data-action="search">'+icon('search')+'<span>Search</span></button><button class="sb-ref-add" data-action="add">'+icon('add')+'<span>Add Customer</span></button></nav><div class="sb-ref-side-bottom"><div class="sb-ref-project-card">'+icon('project')+'<div><b>Sunbliss Residences</b><em>Real Estate Project</em></div><span class="arr">›</span></div></div>';
   document.body.appendChild(n);
+  ensureDesktopLogo(n);
   n.querySelectorAll('[data-route]').forEach(function(b){b.onclick=function(){route(b.getAttribute('data-route'))}});
   n.querySelector('[data-action="search"]').onclick=function(){dock('.dock-search')};
   n.querySelector('[data-action="add"]').onclick=function(){dock('.dock-add')};
 }
 function syncSidebar(){
   var n=document.getElementById('sbRefSidebar');if(!n)return;
+  ensureDesktopLogo(n);
   var v=(window.state&&state.view)||'overview';
   n.querySelectorAll('[data-route]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-route')===v)});
   var add=n.querySelector('[data-action="add"]');if(add)add.style.display=original('.dock-add')?'flex':'none';
