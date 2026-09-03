@@ -14,6 +14,7 @@
   var DURATION=525;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasAnimatedThisPage=false;
+  var layoutPrepared=false;
   var retryTimer=null;
 
   function normalise(value){
@@ -125,9 +126,23 @@
     return false;
   }
 
-  function runAtLoaderRelease(){
-    if(hasAnimatedThisPage||!loaderHasReleased())return false;
+  /*
+    Prepare the final KPI geometry while the full-screen boot loader is still covering
+    the app. The earlier implementation kept the entire hero visibility:hidden until
+    after the loader was removed, which produced a short white gap on refresh.
+  */
+  function prepareLayout(){
+    if(layoutPrepared)return true;
     if(!finalPortfolioHasRendered())return false;
+    layoutPrepared=true;
+    root.classList.remove('sbx-kpi-pending');
+    return true;
+  }
+
+  function runAtLoaderRelease(){
+    if(hasAnimatedThisPage)return true;
+    if(!prepareLayout())return false;
+    if(!loaderHasReleased())return false;
     window.clearTimeout(retryTimer);
     animateOverviewKpis();
     return hasAnimatedThisPage;
@@ -140,9 +155,12 @@
       queued=false;
       if(hasAnimatedThisPage)return;
       if(!document.querySelector('.overview > .stat-hero'))return;
-      if(runAtLoaderRelease())return;
-      window.clearTimeout(retryTimer);
-      retryTimer=window.setTimeout(schedule,24);
+      if(!prepareLayout()){
+        window.clearTimeout(retryTimer);
+        retryTimer=window.setTimeout(schedule,24);
+        return;
+      }
+      if(loaderHasReleased())runAtLoaderRelease();
     });
   }
 
@@ -153,18 +171,25 @@
   window.setTimeout(function(){root.classList.remove('sbx-kpi-pending');},8000);
 
   if(window.MutationObserver){
-    /* The loader removes sbx-loading/sbx-booting in one task. MutationObserver callbacks
-       run before the browser paints that class change, so initialize the count-up here.
-       This prevents a visible frame where the loader is gone but the KPI hero is hidden. */
+    /* Class mutations are delivered before paint. When the loader releases, replace
+       the final KPI values with zero and start the count-up in that same paint cycle. */
     new MutationObserver(function(){
       if(hasAnimatedThisPage||!loaderHasReleased())return;
-      if(!runAtLoaderRelease())schedule();
+      runAtLoaderRelease();
     }).observe(root,{attributes:true,attributeFilter:['class']});
 
     new MutationObserver(function(mutations){
       for(var i=0;i<mutations.length;i++){
         for(var j=0;j<mutations[i].addedNodes.length;j++){
-          if(containsOverviewHero(mutations[i].addedNodes[j])){schedule();return;}
+          if(containsOverviewHero(mutations[i].addedNodes[j])){
+            if(!hasAnimatedThisPage){
+              layoutPrepared=false;
+              root.classList.add('sbx-kpi-pending');
+              if(!prepareLayout())schedule();
+              else if(loaderHasReleased())runAtLoaderRelease();
+            }
+            return;
+          }
         }
       }
     }).observe(document.body||document.documentElement,{childList:true,subtree:true});
