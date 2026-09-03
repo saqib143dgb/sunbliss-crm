@@ -102,13 +102,33 @@
     return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
   }
 
+  function finalPortfolioHasRendered(){
+    var hero=document.querySelector('.overview > .stat-hero');
+    if(!hero||!window.state||state.view!=='overview'||!Array.isArray(state.dues))return false;
+    for(var i=0;i<state.dues.length;i++){
+      var customer=state.dues[i];
+      if(!customer||customer.customerId===null||customer.customerId===undefined||String(customer.customerId).trim()==='')return false;
+    }
+    var cells=hero.querySelectorAll('.stat-cell:not(.wide)');
+    for(var j=0;j<cells.length;j++){
+      var label=cells[j].querySelector('.stat-label');
+      var value=cells[j].querySelector('.stat-value');
+      if(label&&value&&normalise(label.textContent)==='units sold'){
+        var parsed=parseValue(value.textContent);
+        return !!parsed&&parsed.value===state.dues.length;
+      }
+    }
+    return false;
+  }
+
   function schedule(){
     if(hasAnimatedThisPage||queued)return;
     queued=true;
     window.requestAnimationFrame(function(){
       queued=false;
       if(hasAnimatedThisPage)return;
-      if(!loaderHasReleased()){
+      if(!document.querySelector('.overview > .stat-hero'))return;
+      if(!loaderHasReleased()||!finalPortfolioHasRendered()){
         window.clearTimeout(retryTimer);
         retryTimer=window.setTimeout(schedule,50);
         return;
