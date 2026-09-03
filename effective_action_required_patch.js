@@ -51,13 +51,15 @@ function build(data,c){
  });
  rows.sort(function(a,b){return a.e.date.localeCompare(b.e.date)||Number(a.r.id)-Number(b.r.id)});
  if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule, including DLD and Admin Fees, is fully settled.'};
- var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',current=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data);
- current=current.filter(function(x){return!cov[String(x.r.id)]});
+ var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',gateRows=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data),td=today();
+ var coveredOverdue=gateRows.some(function(x){var d=day(x.e.date);return !!cov[String(x.r.id)]&&d&&d<td});
+ var current=gateRows.filter(function(x){return!cov[String(x.r.id)]});
  if(!current.length)return{hidden:true,reason:'scheduled'};
- var td=today(),over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
+ var over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
  if(over.length)focus=over;
  else{var firstDate=current[0].e.date;focus=current.filter(function(x){return x.e.date===firstDate})}
  var sum=Math.round(focus.reduce(function(s,x){return s+x.remaining},0)*100)/100,first=focus[0],labels=focus.map(function(x){return text(x.r.stage_name)}),stage=labels.join(' + '),d=day(first.e.date),delta=Math.round((d-td)/86400000),kind=first.e.kind,status=over.length?'Overdue':kind==='extension'?'Extension Active':kind==='revised'?'Revised Schedule':delta===0?'Due today':delta<=7?'Due soon':'Upcoming',tone=over.length||delta===0?'danger':(kind==='extension'||kind==='revised'||delta<=7?'warn':'neutral'),msg,detail;
+ if(coveredOverdue&&!over.length&&delta>10)return{hidden:true,reason:'distant-next-while-overdue'};
  if(gate==='pre_spa'){
   if(over.length)msg='Collect '+money(sum)+' for '+stage+' now. '+(focus.length===1?'It was':'They were')+' due on '+date(first.e.date)+'.';
   else if(delta===0)msg='Collect '+money(sum)+' for '+stage+' today before SPA signing.';
