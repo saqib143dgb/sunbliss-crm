@@ -12,6 +12,7 @@
   var DURATION=525;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasAnimatedThisPage=false;
+  var retryTimer=null;
 
   function normalise(value){
     return String(value||'').replace(/\s+/g,' ').trim().toLowerCase();
@@ -96,11 +97,22 @@
   }
 
   var queued=false;
+  function loaderHasReleased(){
+    var root=document.documentElement;
+    return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
+  }
+
   function schedule(){
-    if(queued)return;
+    if(hasAnimatedThisPage||queued)return;
     queued=true;
     window.requestAnimationFrame(function(){
       queued=false;
+      if(hasAnimatedThisPage)return;
+      if(!loaderHasReleased()){
+        window.clearTimeout(retryTimer);
+        retryTimer=window.setTimeout(schedule,50);
+        return;
+      }
       animateOverviewKpis();
     });
   }
