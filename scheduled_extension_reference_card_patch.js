@@ -15,7 +15,7 @@ function ensureStyles(){
   if(document.getElementById('scheduledExtensionConsolidatedStyles'))return;
   var s=document.createElement('style');s.id='scheduledExtensionConsolidatedStyles';s.textContent=[
     '#actionRequiredCard[data-extension-consolidated="true"]{display:none!important}',
-    '#extensionConsolidatedActionCard{display:block!important;margin-bottom:16px!important}',
+    '#extensionConsolidatedActionCard{margin-bottom:16px!important}',
     '#extensionConsolidatedActionCard .action-required-status-wrap{color:var(--amber,#9C5A12)!important}',
     '#extensionConsolidatedActionCard .action-required-meta-icon{color:var(--amber,#9C5A12)!important;background:rgba(156,90,18,.06)!important}'
   ].join('');document.head.appendChild(s)
@@ -62,31 +62,17 @@ function restoreBase(){
   var base=document.getElementById('actionRequiredCard');if(base)base.removeAttribute('data-extension-consolidated');
   var card=document.getElementById('extensionConsolidatedActionCard');if(card)card.remove();
 }
-function insertCard(card,base){
-  if(base&&base.parentNode){if(base.nextElementSibling!==card)base.insertAdjacentElement('afterend',card);return true}
-  var detail=document.querySelector('.detail');if(!detail)return false;
-  var badges=detail.querySelector('.badges');
-  if(badges&&badges.parentNode){badges.insertAdjacentElement('afterend',card);return true}
-  detail.insertBefore(card,detail.firstChild);return true
-}
-function ensureCard(base){
-  var card=document.getElementById('extensionConsolidatedActionCard');if(card)return card;
-  if(base){card=base.cloneNode(true);card.id='extensionConsolidatedActionCard'}
-  else{card=document.createElement('section');card.id='extensionConsolidatedActionCard';card.className='action-required-card action-reference-card-v2'}
-  card.removeAttribute('hidden');card.removeAttribute('aria-hidden');card.style.removeProperty('display');card.hidden=false;
-  return card
-}
 function renderConsolidated(data){
-  if(!data)return;
-  var base=document.getElementById('actionRequiredCard'),card=ensureCard(base);
-  if(base)base.setAttribute('data-extension-consolidated','true');
-  if(!insertCard(card,base))return;
-  card.hidden=false;card.removeAttribute('hidden');card.removeAttribute('aria-hidden');card.style.removeProperty('display');card.setAttribute('data-tone','warn');
-  var action={status:'Extension Active',tone:'warn',message:'Collect '+data.amount+' total for '+(data.scope||'the covered obligations')+' by '+data.due+' under the active extension.',detail:'Stage: '+data.stage+' · Extended to '+data.due+(data.dueIn==='Today'?' · Due today.':' · Due in '+data.dueIn+'.')};
-  if(typeof window.sunblissRenderActionRequiredCard==='function')window.sunblissRenderActionRequiredCard(card,action);
-  else if(!card.querySelector('.action-required-message'))card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status-wrap"><span class="action-required-status">Extension Active</span></span></div><p class="action-required-message">'+safe(action.message)+'</p><p class="action-required-detail">'+safe(action.detail)+'</p>';
+  var base=document.getElementById('actionRequiredCard');if(!base||!data)return;
+  var card=document.getElementById('extensionConsolidatedActionCard');
+  if(!card){card=base.cloneNode(true);card.id='extensionConsolidatedActionCard';card.removeAttribute('hidden');card.removeAttribute('aria-hidden');card.style.removeProperty('display')}
+  base.setAttribute('data-extension-consolidated','true');
+  if(card.parentNode!==base.parentNode||base.nextElementSibling!==card)base.insertAdjacentElement('afterend',card);
+  card.hidden=false;card.removeAttribute('aria-hidden');card.setAttribute('data-tone','warn');
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value');
-  setText(status,'Extension Active');setText(message,action.message);setText(detail,action.detail);
+  setText(status,'Extension Active');
+  setText(message,'Collect '+data.amount+' total for '+(data.scope||'the covered obligations')+' by '+data.due+' under the active extension.');
+  setText(detail,'Stage: '+data.stage+' · Extended to '+data.due+(data.dueIn==='Today'?' · Due today.':' · Due in '+data.dueIn+'.'));
   if(values.length>=3){setText(values[0],data.stage);setText(values[1],data.due);setText(values[2],data.dueIn)}
 }
 function apply(){
@@ -95,7 +81,7 @@ function apply(){
   removeDuplicateExtensionTasks();
   var data=extensionData();if(data)renderConsolidated(data);else restoreBase();
 }
-function queue(){timers.forEach(clearTimeout);timers=[];Promise.resolve().then(apply);timers.push(setTimeout(apply,60));timers.push(setTimeout(apply,180));timers.push(setTimeout(apply,450));timers.push(setTimeout(apply,900))}
+function queue(){timers.forEach(clearTimeout);timers=[];Promise.resolve().then(apply);timers.push(setTimeout(apply,60));timers.push(setTimeout(apply,180));timers.push(setTimeout(apply,450))}
 function install(){
   if(!window.state||typeof window.renderDetail!=='function'||!window.PaymentExtensionsCore){setTimeout(install,80);return}
   ensureStyles();
