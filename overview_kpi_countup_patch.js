@@ -2,8 +2,9 @@
   'use strict';
   if(window.__sunblissOverviewKpiCountUpInstalled)return;
   window.__sunblissOverviewKpiCountUpInstalled=true;
+
   var root=document.documentElement;
-  root.classList.add('sbx-kpi-pending');
+  root.classList.remove('sbx-kpi-pending');
 
   var KPI_LABELS={
     'units sold':true,
@@ -14,7 +15,7 @@
   var DURATION=525;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasAnimatedThisPage=false;
-  var layoutPrepared=false;
+  var queued=false;
   var retryTimer=null;
 
   function normalise(value){
@@ -48,6 +49,29 @@
     return parsed.prefix+number+parsed.suffix;
   }
 
+  function loaderHasReleased(){
+    return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
+  }
+
+  function finalPortfolioHasRendered(){
+    var hero=document.querySelector('.overview > .stat-hero');
+    if(!hero||!window.state||state.view!=='overview'||!Array.isArray(state.dues))return false;
+    for(var i=0;i<state.dues.length;i++){
+      var customer=state.dues[i];
+      if(!customer||customer.customerId===null||customer.customerId===undefined||String(customer.customerId).trim()==='')return false;
+    }
+    var cells=hero.querySelectorAll('.stat-cell:not(.wide)');
+    for(var j=0;j<cells.length;j++){
+      var label=cells[j].querySelector('.stat-label');
+      var value=cells[j].querySelector('.stat-value');
+      if(label&&value&&normalise(label.textContent)==='units sold'){
+        var parsed=parseValue(value.textContent);
+        return !!parsed&&parsed.value===state.dues.length;
+      }
+    }
+    return false;
+  }
+
   function animateValue(node,parsed){
     if(!node||node.dataset.sbxKpiCountup==='1')return;
     node.dataset.sbxKpiCountup='1';
@@ -76,7 +100,7 @@
   }
 
   function animateOverviewKpis(){
-    if(hasAnimatedThisPage)return;
+    if(hasAnimatedThisPage||!finalPortfolioHasRendered())return false;
     var cells=document.querySelectorAll('.overview > .stat-hero > .stat-cell:not(.wide)');
     var animated=false;
     Array.prototype.forEach.call(cells,function(cell){
@@ -89,10 +113,8 @@
         animated=true;
       }
     });
-    if(animated){
-      hasAnimatedThisPage=true;
-      root.classList.remove('sbx-kpi-pending');
-    }
+    if(animated)hasAnimatedThisPage=true;
+    return animated;
   }
 
   function containsOverviewHero(node){
@@ -102,97 +124,43 @@
     );
   }
 
-  var queued=false;
-  function loaderHasReleased(){
-    return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
-  }
-
-  function finalPortfolioHasRendered(){
-    var hero=document.querySelector('.overview > .stat-hero');
-    if(!hero||!window.state||state.view!=='overview'||!Array.isArray(state.dues))return false;
-    for(var i=0;i<state.dues.length;i++){
-      var customer=state.dues[i];
-      if(!customer||customer.customerId===null||customer.customerId===undefined||String(customer.customerId).trim()==='')return false;
-    }
-    var cells=hero.querySelectorAll('.stat-cell:not(.wide)');
-    for(var j=0;j<cells.length;j++){
-      var label=cells[j].querySelector('.stat-label');
-      var value=cells[j].querySelector('.stat-value');
-      if(label&&value&&normalise(label.textContent)==='units sold'){
-        var parsed=parseValue(value.textContent);
-        return !!parsed&&parsed.value===state.dues.length;
-      }
-    }
-    return false;
-  }
-
-  /*
-    Prepare the final KPI geometry while the full-screen boot loader is still covering
-    the app. The earlier implementation kept the entire hero visibility:hidden until
-    after the loader was removed, which produced a short white gap on refresh.
-  */
-  function prepareLayout(){
-    if(layoutPrepared)return true;
-    if(!finalPortfolioHasRendered())return false;
-    layoutPrepared=true;
-    root.classList.remove('sbx-kpi-pending');
-    return true;
-  }
-
-  function runAtLoaderRelease(){
-    if(hasAnimatedThisPage)return true;
-    if(!prepareLayout())return false;
-    if(!loaderHasReleased())return false;
-    window.clearTimeout(retryTimer);
-    animateOverviewKpis();
-    return hasAnimatedThisPage;
-  }
-
   function schedule(){
     if(hasAnimatedThisPage||queued)return;
     queued=true;
     window.requestAnimationFrame(function(){
       queued=false;
       if(hasAnimatedThisPage)return;
-      if(!document.querySelector('.overview > .stat-hero'))return;
-      if(!prepareLayout()){
-        window.clearTimeout(retryTimer);
-        retryTimer=window.setTimeout(schedule,24);
-        return;
-      }
-      if(loaderHasReleased())runAtLoaderRelease();
+      if(loaderHasReleased()&&animateOverviewKpis())return;
+      window.clearTimeout(retryTimer);
+      retryTimer=window.setTimeout(schedule,20);
     });
   }
 
   var style=document.createElement('style');
-  style.textContent='html.sbx-kpi-pending .overview > .stat-hero{visibility:hidden!important;opacity:0!important;}[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
+  style.id='sunblissOverviewKpiCountUpStyle';
+  style.textContent='[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
   document.head.appendChild(style);
 
-  window.setTimeout(function(){root.classList.remove('sbx-kpi-pending');},8000);
-
   if(window.MutationObserver){
-    /* Class mutations are delivered before paint. When the loader releases, replace
-       the final KPI values with zero and start the count-up in that same paint cycle. */
+    /* Never hide the KPI container. The loader release is observed before paint, so
+       the visible cards remain in place while only the numbers switch to zero/count up. */
     new MutationObserver(function(){
       if(hasAnimatedThisPage||!loaderHasReleased())return;
-      runAtLoaderRelease();
+      animateOverviewKpis();
     }).observe(root,{attributes:true,attributeFilter:['class']});
 
     new MutationObserver(function(mutations){
+      if(hasAnimatedThisPage)return;
       for(var i=0;i<mutations.length;i++){
         for(var j=0;j<mutations[i].addedNodes.length;j++){
           if(containsOverviewHero(mutations[i].addedNodes[j])){
-            if(!hasAnimatedThisPage){
-              layoutPrepared=false;
-              root.classList.add('sbx-kpi-pending');
-              if(!prepareLayout())schedule();
-              else if(loaderHasReleased())runAtLoaderRelease();
-            }
+            schedule();
             return;
           }
         }
       }
-    }).observe(document.body||document.documentElement,{childList:true,subtree:true});
+    }).observe(document.documentElement,{childList:true,subtree:true});
   }
+
   schedule();
 })();
