@@ -15,6 +15,19 @@
       label.remove();
     });
   }
+  function removeRedundantFinancialPercentages(){
+    ['btnCollected','btnOutstanding'].forEach(function(id){
+      var cell=document.getElementById(id);
+      if(!cell)return;
+      var sub=cell.querySelector('.stat-sub');
+      if(!sub)return;
+      Array.prototype.slice.call(sub.childNodes).forEach(function(node){
+        if(node.nodeType!==3)return;
+        node.nodeValue=String(node.nodeValue||'').replace(/\s*\d+(?:\.\d+)?%\s+of\s+sales\s*/ig,' ');
+      });
+      if(!norm(sub.textContent))sub.remove();
+    });
+  }
   function cleanup(){
     if(!window.state || state.view!=='overview')return;
     var emptyLabel=document.getElementById('sunblissAllTasksEmptyLabel');
@@ -23,11 +36,12 @@
     if(empty)empty.remove();
     removeSectionByPrefixes(['top overdue accounts']);
     removeSectionByPrefixes(['all tasks','follow-up tasks']);
+    removeRedundantFinancialPercentages();
   }
   function relevant(node){
     if(!node||node.nodeType!==1)return false;
-    if(node.classList&&node.classList.contains('section-label'))return true;
-    return !!(node.querySelector&&node.querySelector('.overview .section-label,#sunblissAllTasksEmptyLabel,#sunblissAllTasksEmpty'));
+    if(node.classList&&(node.classList.contains('section-label')||node.classList.contains('stat-hero')))return true;
+    return !!(node.querySelector&&node.querySelector('.overview .section-label,.overview .stat-hero,#sunblissAllTasksEmptyLabel,#sunblissAllTasksEmpty'));
   }
   function install(){
     if(typeof window.renderOverview!=='function'){setTimeout(install,50);return;}
