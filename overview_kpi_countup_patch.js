@@ -125,7 +125,8 @@
   }
 
   function revealFinalOverview(){
-    if(!financialDataReady()||!finalPortfolioHasRendered()||!loaderHasReleased())return false;
+    if(!financialDataReady()||!finalPortfolioHasRendered())return false;
+    if(!loaderHasReleased())return false;
     root.classList.remove('sbx-overview-data-pending');
     if(!hasAnimatedThisPage){
       window.requestAnimationFrame(function(){animateOverviewKpis();});
@@ -155,7 +156,11 @@
   style.id='sunblissOverviewKpiCountUpStyle';
   style.textContent=[
     '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
-    'html.sbx-overview-data-pending .overview>.stat-hero{display:none!important;}'
+    'html.sbx-overview-data-pending body{background:#03101a!important;overflow:hidden!important;}',
+    'html.sbx-overview-data-pending #app{opacity:0!important;visibility:hidden!important;}',
+    'html.sbx-overview-data-pending #sbxLoader{opacity:1!important;visibility:visible!important;pointer-events:auto!important;}',
+    'html.sbx-overview-data-pending #sbxBootScene{opacity:1!important;}',
+    'html.sbx-overview-data-pending #sbxBootCard{display:block!important;}'
   ].join('');
   document.head.appendChild(style);
 
@@ -168,7 +173,7 @@
 
   if(window.MutationObserver){
     new MutationObserver(function(){
-      if(loaderHasReleased())schedule();
+      schedule();
     }).observe(root,{attributes:true,attributeFilter:['class']});
 
     new MutationObserver(function(mutations){
