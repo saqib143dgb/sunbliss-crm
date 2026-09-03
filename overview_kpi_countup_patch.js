@@ -103,7 +103,6 @@
 
   var queued=false;
   function loaderHasReleased(){
-    var root=document.documentElement;
     return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
   }
 
@@ -126,6 +125,14 @@
     return false;
   }
 
+  function runAtLoaderRelease(){
+    if(hasAnimatedThisPage||!loaderHasReleased())return false;
+    if(!finalPortfolioHasRendered())return false;
+    window.clearTimeout(retryTimer);
+    animateOverviewKpis();
+    return hasAnimatedThisPage;
+  }
+
   function schedule(){
     if(hasAnimatedThisPage||queued)return;
     queued=true;
@@ -133,12 +140,9 @@
       queued=false;
       if(hasAnimatedThisPage)return;
       if(!document.querySelector('.overview > .stat-hero'))return;
-      if(!loaderHasReleased()||!finalPortfolioHasRendered()){
-        window.clearTimeout(retryTimer);
-        retryTimer=window.setTimeout(schedule,50);
-        return;
-      }
-      animateOverviewKpis();
+      if(runAtLoaderRelease())return;
+      window.clearTimeout(retryTimer);
+      retryTimer=window.setTimeout(schedule,24);
     });
   }
 
@@ -149,6 +153,14 @@
   window.setTimeout(function(){root.classList.remove('sbx-kpi-pending');},8000);
 
   if(window.MutationObserver){
+    /* The loader removes sbx-loading/sbx-booting in one task. MutationObserver callbacks
+       run before the browser paints that class change, so initialize the count-up here.
+       This prevents a visible frame where the loader is gone but the KPI hero is hidden. */
+    new MutationObserver(function(){
+      if(hasAnimatedThisPage||!loaderHasReleased())return;
+      if(!runAtLoaderRelease())schedule();
+    }).observe(root,{attributes:true,attributeFilter:['class']});
+
     new MutationObserver(function(mutations){
       for(var i=0;i<mutations.length;i++){
         for(var j=0;j<mutations[i].addedNodes.length;j++){
