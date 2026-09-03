@@ -52,30 +52,7 @@
     if(option.textContent!==label)option.textContent=label;
   }
 
-  function cleanDetailActions(){
-    document.querySelectorAll('.scheduled-edit').forEach(function(button){
-      if(button.textContent!=='Reschedule')button.textContent='Reschedule';
-      button.setAttribute('aria-label','Reschedule this unfinished action');
-      button.setAttribute('title','Change the due date or details without marking the action done');
-    });
-
-    var panel=document.getElementById('scheduledActionPanel');
-    if(!panel)return;
-    var mode=panel.getAttribute('data-mode');
-    if(mode==='complete'){
-      var next=panel.querySelector('.scheduled-next-check span');
-      if(next&&next.textContent!=='Create a follow-up after marking this action done')next.textContent='Create a follow-up after marking this action done';
-    }else if(mode==='edit'){
-      var heading=panel.querySelector('.section-label');
-      if(heading&&heading.textContent==='Edit Scheduled Action')heading.textContent='Reschedule Scheduled Action';
-      var summary=panel.querySelector('.scheduled-form-summary');
-      if(summary)summary.textContent=summary.textContent.replace(/update or reschedule this action\.?/i,'change its due date or details without marking it done.');
-    }
-  }
-
   function clean(){
-    cleanDetailActions();
-
     var select=document.getElementById('scheduledOverviewFilter');
     if(!select)return;
 
@@ -136,27 +113,23 @@
     });
   }
 
-  function wrap(name,flag){
-    var original=window[name];
-    if(typeof original!=='function'||original[flag])return;
-    function wrapped(){
-      var out=original.apply(this,arguments);
-      queueClean();
-      return out;
-    }
-    wrapped[flag]=true;
-    wrapped.__sunblissOriginal=original;
-    window[name]=wrapped;
-  }
-
   function install(){
-    if(!window.state||typeof window.renderOverview!=='function'||typeof window.renderDetail!=='function'){
+    if(!window.state||typeof window.renderOverview!=='function'){
       setTimeout(install,50);
       return;
     }
 
-    wrap('renderOverview','__sunblissScheduledFilterEnsured');
-    wrap('renderDetail','__sunblissScheduledDetailLabelsEnsured');
+    var original=window.renderOverview;
+    if(!original.__sunblissScheduledFilterEnsured){
+      function wrapped(){
+        var out=original.apply(this,arguments);
+        queueClean();
+        return out;
+      }
+      wrapped.__sunblissScheduledFilterEnsured=true;
+      wrapped.__sunblissOriginal=original;
+      window.renderOverview=wrapped;
+    }
 
     document.addEventListener('change',function(e){
       if(!e.target||e.target.id!=='scheduledOverviewFilter')return;
@@ -164,7 +137,6 @@
       refreshExtensionView();
     },true);
 
-    document.addEventListener('click',function(){setTimeout(queueClean,0);},true);
     window.addEventListener('pageshow',queueClean);
     queueClean();
   }
