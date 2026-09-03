@@ -15,13 +15,37 @@
     'outstanding':true
   };
   var DURATION=525;
+  var DESKTOP_MIN=1024;
+  var DESKTOP_SETTLE_MS=660;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasAnimatedThisPage=false;
   var queued=false;
   var retryTimer=null;
+  var desktopFirstDashboardSeenAt=0;
 
   function normalise(value){
     return String(value||'').replace(/\s+/g,' ').trim().toLowerCase();
+  }
+
+  function desktop(){
+    return window.matchMedia?window.matchMedia('(min-width:'+DESKTOP_MIN+'px)').matches:window.innerWidth>=DESKTOP_MIN;
+  }
+
+  function now(){
+    return window.performance&&typeof window.performance.now==='function'?window.performance.now():Date.now();
+  }
+
+  function desktopDashboard(){
+    if(!desktop())return null;
+    var dashboard=document.getElementById('sbRefOverviewV2');
+    if(dashboard&&!desktopFirstDashboardSeenAt)desktopFirstDashboardSeenAt=now();
+    return dashboard;
+  }
+
+  function desktopDashboardSettled(){
+    var dashboard=desktopDashboard();
+    if(!dashboard)return false;
+    return now()-desktopFirstDashboardSeenAt>=DESKTOP_SETTLE_MS;
   }
 
   function parseValue(text){
@@ -80,14 +104,27 @@
     return window.__sunblissOverviewFinancialReady===true;
   }
 
-  function finalPortfolioHasRendered(){
-    if(!financialDataReady())return false;
-    var hero=document.querySelector('.overview > .stat-hero');
-    if(!hero||!window.state||state.view!=='overview'||!Array.isArray(state.dues))return false;
+  function portfolioStateReady(){
+    if(!financialDataReady()||!window.state||state.view!=='overview'||!Array.isArray(state.dues))return false;
     for(var i=0;i<state.dues.length;i++){
       var customer=state.dues[i];
       if(!customer||customer.customerId===null||customer.customerId===undefined||String(customer.customerId).trim()==='')return false;
     }
+    return true;
+  }
+
+  function finalPortfolioHasRendered(){
+    if(!portfolioStateReady())return false;
+
+    if(desktop()){
+      if(!desktopDashboardSettled())return false;
+      var desktopUnits=document.querySelector('#sbRefOverviewV2 .sb-v2-kpi.units .sb-v2-kpi-value');
+      var desktopParsed=parseValue(desktopUnits&&desktopUnits.textContent);
+      return !!desktopParsed&&desktopParsed.value===state.dues.length;
+    }
+
+    var hero=document.querySelector('.overview > .stat-hero');
+    if(!hero)return false;
     var cells=hero.querySelectorAll('.stat-cell:not(.wide)');
     for(var j=0;j<cells.length;j++){
       var label=cells[j].querySelector('.stat-label');
@@ -129,23 +166,33 @@
 
   function prepareOverviewProgress(){
     if(reduceMotion)return null;
-    var wide=document.querySelector('.overview > .stat-hero > .stat-cell.wide');
-    if(!wide||wide.dataset.sbxProgressPrepared==='1')return null;
-    var fill=wide.querySelector('.bar-fill');
+
+    var holder,fill,percentNodes;
+    if(desktop()){
+      holder=document.querySelector('#sbRefOverviewV2 .sb-v2-collection');
+      if(!holder||holder.dataset.sbxProgressPrepared==='1')return null;
+      fill=holder.querySelector('.sb-v2-bar i');
+      percentNodes=holder.querySelectorAll('.sb-v2-bar-cap b');
+    }else{
+      holder=document.querySelector('.overview > .stat-hero > .stat-cell.wide');
+      if(!holder||holder.dataset.sbxProgressPrepared==='1')return null;
+      fill=holder.querySelector('.bar-fill');
+      var caption=holder.querySelector('.bar-caption');
+      percentNodes=caption?caption.querySelectorAll('b'):[];
+    }
+
     if(!fill)return null;
     var targetWidth=parseFloat(fill.style.width||'');
     if(!Number.isFinite(targetWidth))return null;
-    var caption=wide.querySelector('.bar-caption');
-    var percentNodes=caption?caption.querySelectorAll('b'):[];
     var percents=[];
     Array.prototype.forEach.call(percentNodes,function(node){
       var parsed=parsePercentNode(node);
       if(parsed)percents.push(parsed);
     });
-    wide.dataset.sbxProgressPrepared='1';
+    holder.dataset.sbxProgressPrepared='1';
     fill.style.width='0%';
     percents.forEach(function(parsed){parsed.node.textContent=formatPercent(parsed,0);});
-    return {wide:wide,fill:fill,targetWidth:Math.max(0,Math.min(100,targetWidth)),percents:percents};
+    return {wide:holder,fill:fill,targetWidth:Math.max(0,Math.min(100,targetWidth)),percents:percents};
   }
 
   function animateOverviewProgress(prepared){
@@ -176,13 +223,17 @@
     window.requestAnimationFrame(frame);
   }
 
+  function overviewKpiCells(){
+    return desktop()?document.querySelectorAll('#sbRefOverviewV2 .sb-v2-kpi'):document.querySelectorAll('.overview > .stat-hero > .stat-cell:not(.wide)');
+  }
+
   function animateOverviewKpis(){
     if(hasAnimatedThisPage||!finalPortfolioHasRendered())return false;
-    var cells=document.querySelectorAll('.overview > .stat-hero > .stat-cell:not(.wide)');
+    var cells=overviewKpiCells();
     var animated=false;
     Array.prototype.forEach.call(cells,function(cell){
-      var label=cell.querySelector('.stat-label');
-      var value=cell.querySelector('.stat-value');
+      var label=cell.querySelector(desktop()?'.sb-v2-kpi-label':'.stat-label');
+      var value=cell.querySelector(desktop()?'.sb-v2-kpi-value':'.stat-value');
       if(!label||!value||!KPI_LABELS[normalise(label.textContent)])return;
       var parsed=parseValue(value.textContent);
       if(parsed){
@@ -210,8 +261,8 @@
 
   function containsOverviewHero(node){
     return node&&node.nodeType===1&&(
-      (node.matches&&node.matches('.stat-hero'))||
-      (node.querySelector&&node.querySelector('.overview > .stat-hero'))
+      (node.matches&&node.matches('.stat-hero,#sbRefOverviewV2,.sb-v2-kpis'))||
+      (node.querySelector&&node.querySelector('.overview > .stat-hero,#sbRefOverviewV2,.sb-v2-kpis'))
     );
   }
 
