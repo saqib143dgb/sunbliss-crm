@@ -4,7 +4,9 @@
   window.__sunblissOverviewKpiCountUpInstalled=true;
 
   var root=document.documentElement;
+  window.__sunblissOverviewFinancialGateRequired=true;
   root.classList.remove('sbx-kpi-pending');
+  root.classList.add('sbx-overview-data-pending');
 
   var KPI_LABELS={
     'units sold':true,
@@ -53,7 +55,12 @@
     return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');
   }
 
+  function financialDataReady(){
+    return window.__sunblissOverviewFinancialReady===true;
+  }
+
   function finalPortfolioHasRendered(){
+    if(!financialDataReady())return false;
     var hero=document.querySelector('.overview > .stat-hero');
     if(!hero||!window.state||state.view!=='overview'||!Array.isArray(state.dues))return false;
     for(var i=0;i<state.dues.length;i++){
@@ -117,6 +124,13 @@
     return animated;
   }
 
+  function revealFinalOverview(){
+    if(!financialDataReady()||!finalPortfolioHasRendered()||!loaderHasReleased())return false;
+    if(!hasAnimatedThisPage)animateOverviewKpis();
+    root.classList.remove('sbx-overview-data-pending');
+    return true;
+  }
+
   function containsOverviewHero(node){
     return node&&node.nodeType===1&&(
       (node.matches&&node.matches('.stat-hero'))||
@@ -125,12 +139,11 @@
   }
 
   function schedule(){
-    if(hasAnimatedThisPage||queued)return;
+    if(queued)return;
     queued=true;
     window.requestAnimationFrame(function(){
       queued=false;
-      if(hasAnimatedThisPage)return;
-      if(loaderHasReleased()&&animateOverviewKpis())return;
+      if(revealFinalOverview())return;
       window.clearTimeout(retryTimer);
       retryTimer=window.setTimeout(schedule,20);
     });
@@ -138,19 +151,28 @@
 
   var style=document.createElement('style');
   style.id='sunblissOverviewKpiCountUpStyle';
-  style.textContent='[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
+  style.textContent=[
+    '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
+    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell:not(.wide) .stat-value{visibility:hidden!important;}',
+    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell:not(.wide) .stat-sub{visibility:hidden!important;}',
+    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell.wide .bar{visibility:hidden!important;}',
+    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell.wide .bar-caption{visibility:hidden!important;}'
+  ].join('');
   document.head.appendChild(style);
 
+  document.addEventListener('sunbliss:overview-financial-loading',function(){
+    root.classList.add('sbx-overview-data-pending');
+  });
+  document.addEventListener('sunbliss:overview-financial-ready',function(){
+    schedule();
+  });
+
   if(window.MutationObserver){
-    /* Never hide the KPI container. The loader release is observed before paint, so
-       the visible cards remain in place while only the numbers switch to zero/count up. */
     new MutationObserver(function(){
-      if(hasAnimatedThisPage||!loaderHasReleased())return;
-      animateOverviewKpis();
+      if(loaderHasReleased())schedule();
     }).observe(root,{attributes:true,attributeFilter:['class']});
 
     new MutationObserver(function(mutations){
-      if(hasAnimatedThisPage)return;
       for(var i=0;i<mutations.length;i++){
         for(var j=0;j<mutations[i].addedNodes.length;j++){
           if(containsOverviewHero(mutations[i].addedNodes[j])){
