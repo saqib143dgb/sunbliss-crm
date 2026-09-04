@@ -32,4 +32,55 @@
     }
   `;
   document.head.appendChild(style);
+
+  /*
+    Startup safety: the KPI reconciliation patch may temporarily add
+    sbx-overview-data-pending. That state must never own the whole application
+    before authentication exists, and it must never be able to hold the boot
+    loader forever if a reconciliation request fails or is interrupted.
+  */
+  var root=document.documentElement;
+  var financialGateTimer=null;
+
+  function authenticatedOverview(){
+    return !!(window.state&&state.userRole&&state.view==='overview');
+  }
+
+  function releaseStaleFinancialGate(){
+    if(!root.classList.contains('sbx-overview-data-pending'))return;
+    if(!authenticatedOverview()||window.__sunblissOverviewFinancialReady===true){
+      root.classList.remove('sbx-overview-data-pending');
+    }
+  }
+
+  function armFinancialGateLimit(){
+    window.clearTimeout(financialGateTimer);
+    financialGateTimer=window.setTimeout(function(){
+      root.classList.remove('sbx-overview-data-pending');
+    },2500);
+  }
+
+  document.addEventListener('sunbliss:overview-financial-loading',function(){
+    if(!authenticatedOverview()){
+      window.setTimeout(releaseStaleFinancialGate,0);
+      return;
+    }
+    armFinancialGateLimit();
+  });
+
+  document.addEventListener('sunbliss:overview-financial-ready',function(){
+    window.clearTimeout(financialGateTimer);
+    root.classList.remove('sbx-overview-data-pending');
+  });
+
+  if(window.MutationObserver){
+    new MutationObserver(function(){
+      releaseStaleFinancialGate();
+    }).observe(root,{attributes:true,attributeFilter:['class']});
+  }
+
+  window.setTimeout(releaseStaleFinancialGate,0);
+  window.setTimeout(function(){
+    root.classList.remove('sbx-overview-data-pending');
+  },4000);
 })();
