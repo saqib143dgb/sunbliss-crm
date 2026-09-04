@@ -7,6 +7,7 @@ var activeRow=null;
 var portal=null;
 var MENU_WIDTH=196;
 var MENU_HEIGHT=88;
+var editorOpening=false;
 
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase()}
@@ -24,7 +25,9 @@ function ensureStyles(){
     '#transactionActionsPortal button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink,#16232F);cursor:pointer;animation:none!important;transition:none!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation}',
     '#transactionActionsPortal button:active,#transactionActionsPortal button:focus-visible{background:var(--paper-dim,#EBE3CE);outline:none}',
     '#transactionActionsPortal .tx-root-delete{color:var(--rust,#AE3B2B)}',
-    '#transactionEditPanel.crm-action-awaiting-ready{opacity:1!important;visibility:visible!important;pointer-events:auto!important}',
+    'body.crm-tx-editor-opening #transactionEditPanel{opacity:0!important;visibility:hidden!important;pointer-events:none!important;animation:none!important;transition:none!important}',
+    '#transactionEditPanel.crm-action-awaiting-ready{opacity:0!important;visibility:hidden!important;pointer-events:none!important;animation:none!important;transition:none!important}',
+    '#transactionEditPanel.crm-action-page-ready{animation:none!important;transition:none!important}',
     '#transactionEditPanel.crm-full-page-inline{z-index:20040!important}'
   ].join('');
   document.head.appendChild(s);
@@ -43,10 +46,39 @@ function closePortal(){
 function actionPanelOpen(){
   return !!document.querySelector('#transactionEditPanel,#creditNoteEditPanel,#installmentEditOverlay,#installmentDeleteOverlay,#paymentDetailOverlay,#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#unitCancellationPanel,#inlineComplianceEditor,#customerNotesManagementPanel,.record-payment-panel,#scheduledActionPanel,#paymentExtensionPanel');
 }
+function beginEditorOpening(){
+  editorOpening=true;
+  document.body.classList.add('crm-tx-editor-opening');
+}
+function endEditorOpening(){
+  editorOpening=false;
+  document.body.classList.remove('crm-tx-editor-opening');
+}
+function editorReady(panel){
+  if(!panel||!panel.isConnected)return false;
+  if(!panel.classList.contains('crm-full-page-inline'))return false;
+  if(panel.classList.contains('crm-action-awaiting-ready'))return false;
+  if(norm(panel.textContent).indexOf('loading transaction')!==-1)return false;
+  return !!panel.querySelector('input,select,textarea,button');
+}
+function settleEditorOpening(){
+  if(!editorOpening)return;
+  var panel=document.getElementById('transactionEditPanel');
+  if(!editorReady(panel))return;
+  panel.classList.remove('crm-action-page-ready');
+  endEditorOpening();
+}
+function watchEditorOpening(){
+  var Observer=window.__sunblissNativeMutationObserver||window.MutationObserver;
+  if(typeof Observer!=='function')return;
+  var observer=new Observer(function(){settleEditorOpening()});
+  observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+}
 function releaseStaleInvisibleTransactionPanel(){
   var panel=document.getElementById('transactionEditPanel');
   if(panel&&panel.classList.contains('crm-action-awaiting-ready')&&norm(panel.textContent).indexOf('loading transaction')!==-1){panel.remove()}
   if(!actionPanelOpen())document.body.classList.remove('crm-full-page-action-open');
+  if(!panel)endEditorOpening();
 }
 function portalCoordinates(button){
   var rect=button.getBoundingClientRect();
@@ -79,7 +111,10 @@ function makePortal(row,button){
     var targetRow=activeRow;
     closePortal();
     releaseStaleInvisibleTransactionPanel();
-    if(targetRow&&targetRow.isConnected)a.openEditor(targetRow);
+    if(targetRow&&targetRow.isConnected){
+      beginEditorOpening();
+      a.openEditor(targetRow);
+    }
   },true);
   del.addEventListener('click',function(ev){
     ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();
@@ -118,12 +153,13 @@ function outsideClick(event){
 function install(){
   ensureStyles();
   if(!api()){setTimeout(install,60);return}
+  watchEditorOpening();
   document.addEventListener('click',captureTransactionButton,true);
   document.addEventListener('click',outsideClick,false);
   window.addEventListener('resize',closePortal);
   window.addEventListener('scroll',closePortal,true);
   window.addEventListener('pageshow',function(){closePortal();releaseStaleInvisibleTransactionPanel()});
-  window.addEventListener('popstate',closePortal);
+  window.addEventListener('popstate',function(){closePortal();endEditorOpening()});
   releaseStaleInvisibleTransactionPanel();
 }
 install();
