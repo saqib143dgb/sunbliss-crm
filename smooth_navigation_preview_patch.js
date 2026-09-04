@@ -122,6 +122,7 @@ function viewLabel(){
 }
 
 function begin(label,isBoot){
+  if(!isBoot&&root.classList.contains('sbx-booting'))return 0;
   activeToken+=1;
   var token=activeToken;
   window.clearTimeout(finishTimer);
@@ -292,5 +293,11 @@ installStyles();
 mount();
 var bootToken=begin('Securing workspace',true);
 completeBoot(bootToken);
+window.setTimeout(function(){
+  if(root.classList.contains('sbx-booting')){
+    root.classList.remove('sbx-loading','sbx-booting','sbx-motion');
+    setProgress(.04,true);
+  }
+},7000);
 install();
 })();
