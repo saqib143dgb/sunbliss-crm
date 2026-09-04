@@ -15,12 +15,10 @@
   };
   var DURATION=946;
   var DESKTOP_MIN=1024;
-  var DESKTOP_SETTLE_MS=660;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasAnimatedThisPage=false;
   var queued=false;
   var gateTimer=null;
-  var desktopFirstDashboardSeenAt=0;
 
   function normalise(value){
     return String(value||'').replace(/\s+/g,' ').trim().toLowerCase();
@@ -28,23 +26,6 @@
 
   function desktop(){
     return window.matchMedia?window.matchMedia('(min-width:'+DESKTOP_MIN+'px)').matches:window.innerWidth>=DESKTOP_MIN;
-  }
-
-  function now(){
-    return window.performance&&typeof window.performance.now==='function'?window.performance.now():Date.now();
-  }
-
-  function desktopDashboard(){
-    if(!desktop())return null;
-    var dashboard=document.getElementById('sbRefOverviewV2');
-    if(dashboard&&!desktopFirstDashboardSeenAt)desktopFirstDashboardSeenAt=now();
-    return dashboard;
-  }
-
-  function desktopDashboardSettled(){
-    var dashboard=desktopDashboard();
-    if(!dashboard)return false;
-    return now()-desktopFirstDashboardSeenAt>=DESKTOP_SETTLE_MS;
   }
 
   function parseValue(text){
@@ -116,8 +97,9 @@
     if(!portfolioStateReady())return false;
 
     if(desktop()){
-      if(!desktopDashboardSettled())return false;
-      var desktopUnits=document.querySelector('#sbRefOverviewV2 .sb-v2-kpi.units .sb-v2-kpi-value');
+      var dashboard=document.getElementById('sbRefOverviewV2');
+      if(!dashboard)return false;
+      var desktopUnits=dashboard.querySelector('.sb-v2-kpi.units .sb-v2-kpi-value');
       var desktopParsed=parseValue(desktopUnits&&desktopUnits.textContent);
       return !!desktopParsed&&desktopParsed.value===state.dues.length;
     }
@@ -244,19 +226,21 @@
     return animated;
   }
 
-  function revealFinalOverview(){
-    if(!financialDataReady()||!finalPortfolioHasRendered())return false;
+  /*
+    Run synchronously in the loader-release MutationObserver. MutationObserver callbacks
+    happen before the browser paints the class removal, so the KPI values are replaced
+    with zero before the first visible Overview frame. The count-up therefore starts in
+    the exact transition where the loading screen disappears, without delaying startup.
+  */
+  function startCountUpNow(){
+    if(hasAnimatedThisPage)return true;
+    if(!loaderHasReleased()||!financialDataReady()||!finalPortfolioHasRendered())return false;
     window.clearTimeout(gateTimer);
+    var progressAnimation=prepareOverviewProgress();
+    var animated=animateOverviewKpis();
+    if(animated)animateOverviewProgress(progressAnimation);
     root.classList.remove('sbx-overview-data-pending');
-    if(!loaderHasReleased())return false;
-    var progressAnimation=!hasAnimatedThisPage?prepareOverviewProgress():null;
-    if(!hasAnimatedThisPage){
-      window.requestAnimationFrame(function(){
-        animateOverviewKpis();
-        animateOverviewProgress(progressAnimation);
-      });
-    }
-    return true;
+    return animated;
   }
 
   function containsOverviewHero(node){
@@ -267,11 +251,11 @@
   }
 
   function schedule(){
-    if(queued)return;
+    if(queued||hasAnimatedThisPage)return;
     queued=true;
     window.requestAnimationFrame(function(){
       queued=false;
-      revealFinalOverview();
+      startCountUpNow();
     });
   }
 
@@ -301,21 +285,19 @@
     markPending();
   });
   document.addEventListener('sunbliss:overview-financial-ready',function(){
-    window.clearTimeout(gateTimer);
-    root.classList.remove('sbx-overview-data-pending');
-    schedule();
+    if(!startCountUpNow())schedule();
   });
 
   if(window.MutationObserver){
     new MutationObserver(function(){
-      if(loaderHasReleased())schedule();
+      if(loaderHasReleased()&&!startCountUpNow())schedule();
     }).observe(root,{attributes:true,attributeFilter:['class']});
 
     new MutationObserver(function(mutations){
       for(var i=0;i<mutations.length;i++){
         for(var j=0;j<mutations[i].addedNodes.length;j++){
           if(containsOverviewHero(mutations[i].addedNodes[j])){
-            schedule();
+            if(loaderHasReleased()&&!startCountUpNow())schedule();
             return;
           }
         }
@@ -323,5 +305,5 @@
     }).observe(document.documentElement,{childList:true,subtree:true});
   }
 
-  schedule();
+  startCountUpNow();
 })();
