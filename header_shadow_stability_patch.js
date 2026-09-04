@@ -30,6 +30,27 @@
         box-shadow:0 14px 34px rgba(2,9,15,.24);
       }
     }
+
+    /* KPI reconciliation is allowed to delay only KPI presentation. Once the
+       real boot state has ended it can never bring the full-screen loader back. */
+    html.sbx-overview-data-pending:not(.sbx-booting) body{
+      overflow:auto!important;
+    }
+    html.sbx-overview-data-pending:not(.sbx-booting) #app{
+      opacity:1!important;
+      visibility:visible!important;
+    }
+    html.sbx-overview-data-pending:not(.sbx-booting) #sbxLoader{
+      opacity:0!important;
+      visibility:hidden!important;
+      pointer-events:none!important;
+    }
+    html.sbx-overview-data-pending:not(.sbx-booting) #sbxBootScene{
+      opacity:0!important;
+    }
+    html.sbx-overview-data-pending:not(.sbx-booting) #sbxBootCard{
+      display:none!important;
+    }
   `;
   document.head.appendChild(style);
 
