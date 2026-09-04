@@ -5,8 +5,7 @@
 
   var root=document.documentElement;
   window.__sunblissOverviewFinancialGateRequired=true;
-  root.classList.remove('sbx-kpi-pending');
-  root.classList.add('sbx-overview-data-pending');
+  root.classList.remove('sbx-kpi-pending','sbx-overview-data-pending');
 
   var KPI_LABELS={
     'units sold':true,
@@ -20,7 +19,7 @@
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasAnimatedThisPage=false;
   var queued=false;
-  var retryTimer=null;
+  var gateTimer=null;
   var desktopFirstDashboardSeenAt=0;
 
   function normalise(value){
@@ -247,9 +246,10 @@
 
   function revealFinalOverview(){
     if(!financialDataReady()||!finalPortfolioHasRendered())return false;
+    window.clearTimeout(gateTimer);
+    root.classList.remove('sbx-overview-data-pending');
     if(!loaderHasReleased())return false;
     var progressAnimation=!hasAnimatedThisPage?prepareOverviewProgress():null;
-    root.classList.remove('sbx-overview-data-pending');
     if(!hasAnimatedThisPage){
       window.requestAnimationFrame(function(){
         animateOverviewKpis();
@@ -271,34 +271,44 @@
     queued=true;
     window.requestAnimationFrame(function(){
       queued=false;
-      if(revealFinalOverview())return;
-      window.clearTimeout(retryTimer);
-      retryTimer=window.setTimeout(schedule,20);
+      revealFinalOverview();
     });
+  }
+
+  function markPending(){
+    window.clearTimeout(gateTimer);
+    if(window.state&&state.userRole&&state.view==='overview'){
+      root.classList.add('sbx-overview-data-pending');
+      gateTimer=window.setTimeout(function(){
+        root.classList.remove('sbx-overview-data-pending');
+      },2500);
+    }else{
+      root.classList.remove('sbx-overview-data-pending');
+    }
   }
 
   var style=document.createElement('style');
   style.id='sunblissOverviewKpiCountUpStyle';
   style.textContent=[
     '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
-    'html.sbx-overview-data-pending body{background:#03101a!important;overflow:hidden!important;}',
-    'html.sbx-overview-data-pending #app{opacity:0!important;visibility:hidden!important;}',
-    'html.sbx-overview-data-pending #sbxLoader{opacity:1!important;visibility:visible!important;pointer-events:auto!important;}',
-    'html.sbx-overview-data-pending #sbxBootScene{opacity:1!important;}',
-    'html.sbx-overview-data-pending #sbxBootCard{display:block!important;}'
+    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell:not(.wide) .stat-value,html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell:not(.wide) .stat-sub{visibility:hidden!important;}',
+    'html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell.wide .bar,html.sbx-overview-data-pending .overview>.stat-hero>.stat-cell.wide .bar-caption{visibility:hidden!important;}',
+    'html.sbx-overview-data-pending #sbRefOverviewV2 .sb-v2-kpi-value,html.sbx-overview-data-pending #sbRefOverviewV2 .sb-v2-kpi-sub,html.sbx-overview-data-pending #sbRefOverviewV2 .sb-v2-bar,html.sbx-overview-data-pending #sbRefOverviewV2 .sb-v2-bar-cap{visibility:hidden!important;}'
   ].join('');
   document.head.appendChild(style);
 
   document.addEventListener('sunbliss:overview-financial-loading',function(){
-    root.classList.add('sbx-overview-data-pending');
+    markPending();
   });
   document.addEventListener('sunbliss:overview-financial-ready',function(){
+    window.clearTimeout(gateTimer);
+    root.classList.remove('sbx-overview-data-pending');
     schedule();
   });
 
   if(window.MutationObserver){
     new MutationObserver(function(){
-      schedule();
+      if(loaderHasReleased())schedule();
     }).observe(root,{attributes:true,attributeFilter:['class']});
 
     new MutationObserver(function(mutations){
