@@ -5,6 +5,8 @@ window.__sunblissTransactionActionMenuRootFixInstalled=true;
 
 var activeRow=null;
 var portal=null;
+var MENU_WIDTH=196;
+var MENU_HEIGHT=88;
 
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase()}
@@ -16,8 +18,10 @@ function ensureStyles(){
   var s=document.createElement('style');
   s.id='transactionActionMenuRootFixStyles';
   s.textContent=[
-    '#transactionActionsPortal{position:fixed;z-index:20050;min-width:178px;padding:6px;background:var(--paper,#F6F1E4);border:1px solid rgba(0,0,0,.13);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.18);box-sizing:border-box}',
-    '#transactionActionsPortal button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink,#16232F);cursor:pointer}',
+    '.detail .tx-actions-menu{display:none!important;visibility:hidden!important;pointer-events:none!important}',
+    '.detail .tx-actions-btn{-webkit-tap-highlight-color:transparent!important;touch-action:manipulation!important}',
+    '#transactionActionsPortal{position:fixed;z-index:20050;width:'+MENU_WIDTH+'px;padding:6px;background:var(--paper,#F6F1E4);border:1px solid rgba(0,0,0,.13);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.18);box-sizing:border-box;animation:none!important;transition:none!important;transform:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;contain:layout paint style;overscroll-behavior:contain;-webkit-tap-highlight-color:transparent}',
+    '#transactionActionsPortal button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink,#16232F);cursor:pointer;animation:none!important;transition:none!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation}',
     '#transactionActionsPortal button:active,#transactionActionsPortal button:focus-visible{background:var(--paper-dim,#EBE3CE);outline:none}',
     '#transactionActionsPortal .tx-root-delete{color:var(--rust,#AE3B2B)}',
     '#transactionEditPanel.crm-action-awaiting-ready{opacity:1!important;visibility:visible!important;pointer-events:auto!important}',
@@ -44,41 +48,44 @@ function releaseStaleInvisibleTransactionPanel(){
   if(panel&&panel.classList.contains('crm-action-awaiting-ready')&&norm(panel.textContent).indexOf('loading transaction')!==-1){panel.remove()}
   if(!actionPanelOpen())document.body.classList.remove('crm-full-page-action-open');
 }
-function positionPortal(button){
-  if(!portal||!button)return;
-  portal.style.visibility='hidden';
-  portal.style.left='0px';portal.style.top='0px';
+function portalCoordinates(button){
   var rect=button.getBoundingClientRect();
-  var w=portal.offsetWidth||178,h=portal.offsetHeight||86;
-  var left=Math.max(8,Math.min(window.innerWidth-w-8,rect.right-w));
+  var left=Math.max(8,Math.min(window.innerWidth-MENU_WIDTH-8,rect.right-MENU_WIDTH));
   var top=rect.bottom+6;
-  if(top+h>window.innerHeight-8)top=Math.max(8,rect.top-h-6);
-  portal.style.left=Math.round(left)+'px';portal.style.top=Math.round(top)+'px';portal.style.visibility='visible';
+  if(top+MENU_HEIGHT>window.innerHeight-8)top=Math.max(8,rect.top-MENU_HEIGHT-6);
+  return {left:Math.round(left),top:Math.round(top)};
 }
 function makePortal(row,button){
-  closePortal();closeOriginalMenus();releaseStaleInvisibleTransactionPanel();
+  closePortal();
+  closeOriginalMenus();
   var a=api();
   if(!a||typeof a.openEditor!=='function')return;
+
   activeRow=row;
+  var pos=portalCoordinates(button);
   portal=document.createElement('div');
   portal.id='transactionActionsPortal';
   portal.setAttribute('role','menu');
+  portal.style.left=pos.left+'px';
+  portal.style.top=pos.top+'px';
   portal.innerHTML='<button type="button" class="tx-root-edit">Edit transaction</button><button type="button" class="tx-root-delete">Delete transaction</button>';
   document.body.appendChild(portal);
   button.setAttribute('aria-expanded','true');
-  positionPortal(button);
+
   var edit=portal.querySelector('.tx-root-edit');
   var del=portal.querySelector('.tx-root-delete');
   edit.addEventListener('click',function(ev){
     ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();
     var targetRow=activeRow;
     closePortal();
+    releaseStaleInvisibleTransactionPanel();
     if(targetRow&&targetRow.isConnected)a.openEditor(targetRow);
   },true);
   del.addEventListener('click',function(ev){
     ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();
     var targetRow=activeRow;
     closePortal();
+    releaseStaleInvisibleTransactionPanel();
     if(targetRow&&targetRow.isConnected&&typeof a.deleteTransaction==='function')a.deleteTransaction(targetRow,del);
   },true);
 }
