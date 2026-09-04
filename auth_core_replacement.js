@@ -6,9 +6,10 @@ var authLoadRecoveryActive=false;
 function authWait(ms){return new Promise(function(resolve){setTimeout(resolve,ms);});}
 function authMessage(err){return err&&err.message?String(err.message):String(err||'');}
 function authStatus(err){return Number(err&&err.status)||0;}
+function authIsTimeout(err){var m=authMessage(err).toLowerCase();return authStatus(err)===408||m.indexOf('timed out')!==-1||m.indexOf('timeout')!==-1;}
 function authIsNetworkError(err){
   var m=authMessage(err).toLowerCase();
-  return !m||m.indexOf('load failed')!==-1||m.indexOf('failed to fetch')!==-1||m.indexOf('network')!==-1||m.indexOf('fetch')!==-1||m.indexOf('connection')!==-1||m.indexOf('timeout')!==-1||m.indexOf('offline')!==-1||authStatus(err)>=500;
+  return !m||m.indexOf('load failed')!==-1||m.indexOf('failed to fetch')!==-1||m.indexOf('network')!==-1||m.indexOf('fetch')!==-1||m.indexOf('connection')!==-1||m.indexOf('timeout')!==-1||m.indexOf('timed out')!==-1||m.indexOf('offline')!==-1||authStatus(err)>=500;
 }
 function authIsSessionError(err){
   var m=authMessage(err).toLowerCase(),s=authStatus(err);
@@ -17,6 +18,37 @@ function authIsSessionError(err){
 function authIsCredentialError(err){
   var m=authMessage(err).toLowerCase();
   return m.indexOf('invalid login credentials')!==-1||m.indexOf('invalid credentials')!==-1||m.indexOf('email not confirmed')!==-1||m.indexOf('user not found')!==-1;
+}
+function authWithTimeout(promise,ms,label){
+  return new Promise(function(resolve,reject){
+    var done=false,timer=setTimeout(function(){
+      if(done)return;done=true;
+      var err=new Error((label||'Request')+' timed out.');
+      err.status=408;err.code='AUTH_TIMEOUT';reject(err);
+    },ms||12000);
+    Promise.resolve(promise).then(function(value){
+      if(done)return;done=true;clearTimeout(timer);resolve(value);
+    },function(err){
+      if(done)return;done=true;clearTimeout(timer);reject(err);
+    });
+  });
+}
+function authStorageKey(){
+  try{
+    var raw=sb&&sb.supabaseUrl?String(sb.supabaseUrl):'';
+    var ref=raw?new URL(raw).hostname.split('.')[0]:'';
+    return ref?'sb-'+ref+'-auth-token':'sb-aeaakgndnihmuicyierp-auth-token';
+  }catch(_e){return'sb-aeaakgndnihmuicyierp-auth-token';}
+}
+function authClearStoredSession(){
+  var key=authStorageKey();
+  try{if(window.localStorage)localStorage.removeItem(key);}catch(_e){}
+  try{if(window.sessionStorage)sessionStorage.removeItem(key);}catch(_e){}
+}
+async function authResetStaleSession(){
+  try{await authWithTimeout(sb.auth.signOut(),4000,'Sign out');}catch(_e){}
+  authClearStoredSession();
+  state.userName=null;state.userRole=null;
 }
 async function authWaitForOnline(maxMs){
   if(typeof navigator==='undefined'||navigator.onLine!==false)return;
@@ -29,7 +61,7 @@ async function authWaitForOnline(maxMs){
 async function authRefreshSession(){
   if(authRefreshPromise)return authRefreshPromise;
   authRefreshPromise=(async function(){
-    var r=await sb.auth.refreshSession();
+    var r=await authWithTimeout(sb.auth.refreshSession(),10000,'Session refresh');
     if(r.error)throw r.error;
     return r.data&&r.data.session?r.data.session:null;
   })().finally(function(){authRefreshPromise=null;});
@@ -37,11 +69,11 @@ async function authRefreshSession(){
 }
 async function authRetryOperation(operation,options){
   options=options||{};
-  var attempts=options.attempts||3,lastError=null,refreshed=false;
+  var attempts=options.attempts||3,lastError=null,refreshed=false,timeoutMs=options.timeoutMs||12000,label=options.label||'Request';
   for(var i=0;i<attempts;i++){
     if(typeof navigator!=='undefined'&&navigator.onLine===false)await authWaitForOnline(8000);
     try{
-      var result=await operation(i);
+      var result=await authWithTimeout(operation(i),timeoutMs,label);
       if(result&&result.error){
         lastError=result.error;
         if(options.refreshOn401&&authIsSessionError(lastError)&&!refreshed){
@@ -67,6 +99,7 @@ async function authRetryOperation(operation,options){
 }
 
 function renderAuthScreen(message,ok,emailValue){
+  authLoadRecoveryActive=false;
   var app=document.getElementById('app');
   var preserved=emailValue!==undefined?emailValue:rememberedSignInEmail;
   app.innerHTML='<div class="auth-wrap">'+
@@ -102,7 +135,7 @@ function renderAuthScreen(message,ok,emailValue){
       var result=await authRetryOperation(function(attempt){
         if(button&&attempt>0)button.textContent='Reconnecting…';
         return sb.auth.signInWithPassword({email:userEmail,password:userPassword});
-      },{attempts:3});
+      },{attempts:3,timeoutMs:15000,label:'Sign in'});
       if(result&&result.error){
         if(authIsCredentialError(result.error))renderAuthScreen(result.error.message,false,userEmail);
         else renderAuthScreen('Connection was interrupted. Please try again.',false,userEmail);
@@ -121,7 +154,7 @@ function renderAuthScreen(message,ok,emailValue){
 }
 
 async function denyUnauthorized(message){
-  try{await sb.auth.signOut();}catch(_e){}
+  try{await authWithTimeout(sb.auth.signOut(),4000,'Sign out');}catch(_e){}
   state.userName=null;
   state.userRole=null;
   renderAuthScreen(message||'This account is not authorized for this CRM.',false,rememberedSignInEmail);
@@ -144,7 +177,7 @@ function renderLoadRecovery(message){
     '</div></div>';
   var retry=document.getElementById('btnRetryCrmLoad'),out=document.getElementById('btnRecoverySignOut');
   if(retry)retry.onclick=function(){retry.disabled=true;retry.textContent='Retrying…';boot();};
-  if(out)out.onclick=async function(){try{await sb.auth.signOut();}catch(_e){}location.reload();};
+  if(out)out.onclick=async function(){await authResetStaleSession();location.reload();};
 }
 
 async function boot(preloadedSession){
@@ -153,16 +186,42 @@ async function boot(preloadedSession){
     try{
       var session=preloadedSession||null;
       if(!session){
-        var sessionResult=await authRetryOperation(function(){return sb.auth.getSession();},{attempts:3});
-        if(sessionResult&&sessionResult.error){renderAuthScreen(authMessage(sessionResult.error),false);return;}
+        var sessionResult;
+        try{
+          sessionResult=await authRetryOperation(function(){return sb.auth.getSession();},{attempts:1,timeoutMs:7000,label:'Saved session'});
+        }catch(sessionErr){
+          if(authIsTimeout(sessionErr)||authIsSessionError(sessionErr)){
+            await authResetStaleSession();
+            renderAuthScreen('Your saved session could not be restored. Please sign in again.',false,rememberedSignInEmail);
+            return;
+          }
+          throw sessionErr;
+        }
+        if(sessionResult&&sessionResult.error){
+          if(authIsSessionError(sessionResult.error)){
+            await authResetStaleSession();
+            renderAuthScreen('Your session expired. Please sign in again.',false,rememberedSignInEmail);
+          }else renderLoadRecovery('Could not restore your saved session. Please retry.');
+          return;
+        }
         session=sessionResult&&sessionResult.data?sessionResult.data.session:null;
       }
       if(!session){renderAuthScreen();return;}
 
-      var userResult=await authRetryOperation(function(){return sb.auth.getUser();},{attempts:3,refreshOn401:true});
+      var userResult;
+      try{
+        userResult=await authRetryOperation(function(){return sb.auth.getUser();},{attempts:2,timeoutMs:10000,label:'Account verification',refreshOn401:true});
+      }catch(userErr){
+        if(authIsTimeout(userErr)||authIsSessionError(userErr)){
+          await authResetStaleSession();
+          renderAuthScreen('Your session expired. Please sign in again.',false,rememberedSignInEmail);
+          return;
+        }
+        throw userErr;
+      }
       if(userResult&&userResult.error){
         if(authIsSessionError(userResult.error)){
-          try{await sb.auth.signOut();}catch(_e){}
+          await authResetStaleSession();
           renderAuthScreen('Your session expired. Please sign in again.',false,rememberedSignInEmail);
         }else renderLoadRecovery('Could not verify your account. Please retry.');
         return;
@@ -170,7 +229,7 @@ async function boot(preloadedSession){
       var user=userResult&&userResult.data?userResult.data.user:null;
       if(!user){renderAuthScreen();return;}
 
-      var profileResult=await authRetryOperation(function(){return sb.from('profiles').select('full_name, role').eq('id',user.id).single();},{attempts:3,refreshOn401:true});
+      var profileResult=await authRetryOperation(function(){return sb.from('profiles').select('full_name, role').eq('id',user.id).single();},{attempts:2,timeoutMs:10000,label:'Access profile',refreshOn401:true});
       var profile=profileResult&&profileResult.data;
       var role=profile&&profile.role;
       if((profileResult&&profileResult.error)||!profile||(role!=='crm_officer'&&role!=='manager')){
@@ -187,7 +246,7 @@ async function boot(preloadedSession){
       var loaded=false,lastError=null;
       for(var attempt=0;attempt<3&&!loaded;attempt++){
         try{
-          await loadFromSupabase();
+          await authWithTimeout(loadFromSupabase(),20000,'CRM data loading');
           loaded=true;
         }catch(err){
           lastError=err;
@@ -201,7 +260,8 @@ async function boot(preloadedSession){
       authLoadRecoveryActive=false;
       render();
     }catch(err){
-      if(authIsNetworkError(err))renderLoadRecovery('Internet connection was interrupted. Please retry.');
+      if(authIsTimeout(err))renderLoadRecovery('The CRM took too long to respond. Please retry.');
+      else if(authIsNetworkError(err))renderLoadRecovery('Internet connection was interrupted. Please retry.');
       else renderLoadRecovery(authMessage(err)||'Could not load the CRM. Please retry.');
     }
   })().finally(function(){authBootPromise=null;});
