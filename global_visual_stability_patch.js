@@ -54,6 +54,20 @@
 
       /* The persistent Back control is centered inside the workspace, not the full browser including the sidebar. */
       'body.sunbliss-ref-desktop #sunblissPersistentBack{left:calc(50% + 108px)!important;width:min(600px,calc(100vw - 280px))!important;bottom:14px!important;}',
+
+      /* Desktop Insights: compact cards into fixed row counts so zooming does not keep changing the composition. */
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .overview{width:100%!important;max-width:none!important;box-sizing:border-box!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .sb-insights-inline-grid{display:grid!important;width:100%!important;align-items:stretch!important;gap:1px!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .sb-insights-inline-grid[data-sb-cols="2"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .sb-insights-inline-grid[data-sb-cols="3"]{grid-template-columns:repeat(3,minmax(0,1fr))!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .sb-insights-inline-grid>.stat-cell{min-width:0!important;width:auto!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid]{display:grid!important;width:100%!important;gap:10px!important;align-items:stretch!important;flex-wrap:nowrap!important;margin:6px 0 18px!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid="3"]{grid-template-columns:repeat(3,minmax(0,1fr))!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid="2"],body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid="aging"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid]>.pill-stat{display:flex!important;flex-direction:column!important;justify-content:center!important;width:100%!important;min-width:0!important;max-width:none!important;min-height:84px!important;margin:0!important;padding:13px 14px!important;overflow:hidden!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid] .pill-stat-num{min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .pipeline[data-sb-insights-grid] .pill-stat-lbl{white-space:normal!important;overflow-wrap:anywhere!important;}',
+      'body.sunbliss-ref-desktop #main[data-sb-layout-view="insights"] .section-label{clear:both!important;}',
       '}',
       '@media(min-width:1440px){body.sunbliss-ref-desktop .detail .ledger-scroll{grid-template-columns:repeat(5,minmax(0,1fr))!important;}}',
       '@media(min-width:1800px){body.sunbliss-ref-desktop .detail .ledger-scroll{grid-template-columns:repeat(6,minmax(0,1fr))!important;}}',
@@ -62,6 +76,81 @@
     document.head.appendChild(style);
   }
 
-  installStyle();
-  window.addEventListener('pageshow',installStyle);
+  function normalize(value){return String(value==null?'':value).replace(/\s+/g,' ').trim().toLowerCase();}
+
+  function previousSectionLabel(node){
+    var current=node ? node.previousElementSibling : null;
+    var guard=0;
+    while(current&&guard++<5){
+      if(current.classList&&current.classList.contains('section-label'))return normalize(current.textContent);
+      current=current.previousElementSibling;
+    }
+    return '';
+  }
+
+  function syncInsightsLayout(){
+    var main=document.getElementById('main');
+    if(!main)return;
+    var isInsights=!!(window.state&&state.view==='insights');
+    if(!isInsights){
+      main.removeAttribute('data-sb-layout-view');
+      return;
+    }
+    main.setAttribute('data-sb-layout-view','insights');
+    var overview=main.querySelector('.overview');
+    if(!overview)return;
+
+    overview.querySelectorAll('.pipeline').forEach(function(pipeline){
+      var count=pipeline.children ? pipeline.children.length : 0;
+      var label=previousSectionLabel(pipeline);
+      var kind='';
+      if(label.indexOf('overdue aging')!==-1)kind='aging';
+      else if(count>=3)kind='3';
+      else if(count===2)kind='2';
+      if(kind)pipeline.setAttribute('data-sb-insights-grid',kind);
+      else pipeline.removeAttribute('data-sb-insights-grid');
+    });
+
+    Array.prototype.forEach.call(overview.children,function(node){
+      if(!node||node.tagName!=='DIV')return;
+      var cells=node.querySelectorAll(':scope > .stat-cell');
+      if(cells.length===2||cells.length===3){
+        node.classList.add('sb-insights-inline-grid');
+        node.setAttribute('data-sb-cols',String(cells.length));
+      }
+    });
+  }
+
+  var queued=false;
+  function scheduleInsightsLayout(){
+    if(queued)return;
+    queued=true;
+    requestAnimationFrame(function(){queued=false;syncInsightsLayout();});
+  }
+
+  function wrap(name){
+    var original=window[name];
+    if(typeof original!=='function'||original.__sbInsightsLayoutWrapped)return;
+    function wrapped(){
+      var result=original.apply(this,arguments);
+      scheduleInsightsLayout();
+      return result;
+    }
+    wrapped.__sbInsightsLayoutWrapped=true;
+    wrapped.__sbOriginal=original;
+    window[name]=wrapped;
+  }
+
+  function install(){
+    installStyle();
+    wrap('render');
+    wrap('renderMain');
+    wrap('renderInsights');
+    syncInsightsLayout();
+    window.addEventListener('resize',scheduleInsightsLayout,{passive:true});
+    window.addEventListener('pageshow',scheduleInsightsLayout);
+    setTimeout(function(){wrap('render');wrap('renderMain');wrap('renderInsights');scheduleInsightsLayout();},120);
+  }
+
+  install();
 })();
