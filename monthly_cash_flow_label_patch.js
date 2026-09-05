@@ -11,22 +11,24 @@ function installStyle(){
   var style=document.createElement('style');
   style.id='sunblissInsightsCompactLayoutStyles';
   style.textContent=[
-    /* DLD summary keeps the existing visual treatment, but uses the available width cleanly. */
-    '.sb-dld-summary-layout{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;width:100%!important;max-width:none!important;align-items:stretch!important;justify-content:stretch!important;}',
-    '.sb-dld-summary-layout>.stat-cell{display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;}',
-
-    /* DLD status cards retain the existing card language while becoming compact and evenly aligned. */
-    '.sb-dld-status-layout{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))!important;width:100%!important;align-items:stretch!important;gap:9px!important;}',
+    /* Only reorganize the DLD tracker. Keep the existing colors, borders, typography and card language untouched. */
+    '.sb-dld-summary-layout{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;width:100%!important;max-width:none!important;align-items:stretch!important;justify-content:stretch!important;height:auto!important;min-height:0!important;}',
+    '.sb-dld-summary-layout>.stat-cell{display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;width:100%!important;max-width:none!important;height:auto!important;box-sizing:border-box!important;}',
+    '.sb-dld-status-layout{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))!important;width:100%!important;max-width:none!important;align-items:stretch!important;gap:9px!important;height:auto!important;min-height:0!important;}',
     '.sb-dld-status-layout>.pill-stat{display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;}',
+    '.sb-dld-status-layout>.pill-stat>.pill-stat-num{display:flex!important;align-items:center!important;visibility:visible!important;opacity:1!important;height:auto!important;min-height:0!important;overflow:visible!important;}',
+    '.sb-dld-status-layout>.pill-stat>.pill-stat-lbl{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;min-height:0!important;}',
 
     '@media(min-width:1024px){',
-      'body.sunbliss-ref-desktop .overview .sb-dld-summary-layout{grid-template-columns:repeat(2,minmax(0,1fr))!important;}',
-      'body.sunbliss-ref-desktop .overview .sb-dld-summary-layout>.stat-cell{padding:15px 14px!important;}',
-      'body.sunbliss-ref-desktop .overview .sb-dld-status-layout{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important;margin:2px 0 18px!important;background:#fff!important;border:1px solid var(--paper-line)!important;border-radius:11px!important;padding:6px!important;box-shadow:0 3px 14px rgba(15,26,38,.045)!important;overflow:hidden!important;}',
-      'body.sunbliss-ref-desktop .overview .sb-dld-status-layout>.pill-stat{min-height:76px!important;height:76px!important;padding:11px 12px!important;}',
+      /* This deliberately matches the desktop Insights selector specificity so the generic direct-child rule cannot force these grids back to display:block. */
+      'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.sb-dld-summary-layout{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;}',
+      'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.sb-dld-summary-layout>.stat-cell{display:flex!important;min-width:0!important;width:100%!important;max-width:none!important;height:auto!important;min-height:104px!important;padding:15px 14px!important;}',
+      'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.sb-dld-status-layout{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important;max-width:none!important;gap:9px!important;margin:2px 0 18px!important;height:auto!important;min-height:0!important;}',
+      'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.sb-dld-status-layout>.pill-stat{display:flex!important;min-width:0!important;width:100%!important;max-width:none!important;height:76px!important;min-height:76px!important;padding:11px 12px!important;}',
+      'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.sb-dld-status-layout>.pill-stat>.pill-stat-num{display:flex!important;visibility:visible!important;opacity:1!important;overflow:visible!important;}',
     '}',
 
-    '@media(max-width:520px){',
+    '@media(max-width:720px){',
       '.sb-dld-summary-layout{grid-template-columns:1fr!important;}',
       '.sb-dld-status-layout{grid-template-columns:1fr!important;}',
     '}'
@@ -39,8 +41,9 @@ function organizeDldTracker(overview){
 
   var paid=document.getElementById('btnDldPaid');
   if(paid&&paid.parentElement&&overview.contains(paid)){
-    paid.parentElement.classList.add('sb-dld-summary-layout');
-    paid.parentElement.setAttribute('data-sb-dld-layout','summary');
+    var summary=paid.parentElement;
+    summary.classList.add('sb-dld-summary-layout');
+    summary.setAttribute('data-sb-dld-layout','summary');
   }
 
   var fullyPaid=document.getElementById('btnDldFullyPaid');
