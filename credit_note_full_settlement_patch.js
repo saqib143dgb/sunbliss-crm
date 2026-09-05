@@ -6,7 +6,6 @@ var TOLERANCE=1000;
 function n(v){var x=Number(v);return isFinite(x)?x:0}
 function r(v){return Math.round(n(v)*100)/100}
 function customers(){var a=[];if(window.state)[state.dues,state.cancelled].forEach(function(x){if(Array.isArray(x))x.forEach(function(c){if(c)a.push(c)})});return a}
-function uid(c){return Number(c&&(c.unitId||c.dbUnitId||c.sno))||null}
 function sid(s){return String(s&&(s.id||s.scheduleId)||'')}
 function apply(){
  if(!window.state)return;
@@ -31,6 +30,11 @@ function apply(){
   c.upStage=next?next.s.label:'';c.upAmt=next?next.r:null;c.upDate=next?next.s.dueDate:null;
  });
 }
-function install(){if(!window.state||typeof window.loadFromSupabase!=='function'){setTimeout(install,50);return}var base=window.loadFromSupabase;if(!base.__creditNoteSettlementWrapped){var w=async function(){var out=await base.apply(this,arguments);apply();if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();return out};w.__creditNoteSettlementWrapped=true;window.loadFromSupabase=w}setTimeout(function(){apply();if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain()},0);window.__sunblissApplyCreditNoteSettlement=apply}
+function renderFresh(){
+ if(!window.state||!state.view||state.view==='empty')return;
+ if(typeof window.renderMain==='function')window.renderMain();
+ if(state.view==='detail'&&!document.getElementById('actionRequiredCard')&&typeof window.renderDetail==='function')window.renderDetail();
+}
+function install(){if(!window.state||typeof window.loadFromSupabase!=='function'){setTimeout(install,50);return}var base=window.loadFromSupabase;if(!base.__creditNoteSettlementWrapped){var w=async function(){var out=await base.apply(this,arguments);apply();renderFresh();return out};w.__creditNoteSettlementWrapped=true;window.loadFromSupabase=w}setTimeout(function(){apply();renderFresh()},0);window.__sunblissApplyCreditNoteSettlement=function(){apply();renderFresh()}}
 install();
 })();
