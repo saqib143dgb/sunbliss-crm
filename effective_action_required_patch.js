@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV5';
+var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV6';
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
@@ -44,9 +44,10 @@ function build(data,c){
  var managed=carryManaged(c),rows=[];
  data.rows.forEach(function(r){
   var kind=stageKind(r);if(!kind||managed[String(r.id)])return;
-  var credit=kind==='dld'?0:(data.credit[String(r.id)]||0);
+  if(norm(r.status)==='paid')return;
+  var credit=data.credit[String(r.id)]||0;
   var remaining=Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-credit)*100)/100;
-  if(remaining<=1)return;var e=effective(r,data.ext);if(!e.date)return;
+  if(remaining<=1000)return;var e=effective(r,data.ext);if(!e.date)return;
   rows.push({r:r,remaining:remaining,e:e,kind:kind});
  });
  rows.sort(function(a,b){return a.e.date.localeCompare(b.e.date)||Number(a.r.id)-Number(b.r.id)});
