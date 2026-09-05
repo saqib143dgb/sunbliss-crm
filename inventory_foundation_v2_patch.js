@@ -77,6 +77,11 @@
     return norm(value)==='reserved'?'Sold':value;
   }
   function isCancelled(unit){return norm(unit&&unit.status)==='cancelled';}
+  function hasCustomerConditionFilter(){
+    if(!window.state)return false;
+    var f=state.filters||{};
+    return !!((f.payment&&f.payment!=='all')||f.spa||f.oqood||f.furniture||f.unitType||f.dld);
+  }
 
   function loadInventory(force){
     if(!window.sb)return Promise.resolve(rows);
@@ -128,7 +133,7 @@
     return '<button type="button" class="inventory-status-chip" data-inventory-filter="'+safe(key)+'" aria-pressed="'+(activeFilter===key?'true':'false')+'">'+safe(label)+' · '+safe(count)+'</button>';
   }
   function ensureStatusBar(){
-    if(!window.state||state.view!=='list'||openInventoryId||!rows.length)return null;
+    if(!window.state||state.view!=='list'||openInventoryId||!rows.length||hasCustomerConditionFilter())return null;
     var controls=document.querySelector('#main .controls');
     if(!controls)return null;
     var bar=controls.querySelector('.inventory-status-bar');
@@ -153,9 +158,10 @@
     var list=document.querySelector('#main .list');
     if(!list)return [];
     var visible=[];
+    var customerFiltered=hasCustomerConditionFilter();
     list.querySelectorAll('.row-btn[data-sno][data-unit]:not(.inventory-only-row)').forEach(function(row){
       var unit=unitForBaseRow(row);
-      var show=!!unit&&matchesFilter(unit);
+      var show=customerFiltered?true:(!!unit&&matchesFilter(unit));
       row.hidden=!show;
       if(show){row.style.removeProperty('display');visible.push(row);}
       else row.style.setProperty('display','none','important');
@@ -182,6 +188,7 @@
     var list=document.querySelector('#main .list');
     if(!list)return 0;
     list.querySelectorAll('.inventory-only-row,.inventory-list-empty').forEach(function(el){el.remove();});
+    if(hasCustomerConditionFilter())return 0;
     var generated=rows.filter(function(u){
       return (!u.customer_id||isCancelled(u))&&matchesFilter(u)&&matchesSearch(u);
     });
@@ -191,7 +198,7 @@
 
   function updateResultLine(visibleBaseCount,inventoryOnlyCount){
     var line=document.querySelector('#main .result-count');
-    if(!line)return;
+    if(!line||hasCustomerConditionFilter())return;
     var c=counts(),q=currentSearch(),shown=visibleBaseCount+inventoryOnlyCount,copy='';
     if(activeFilter==='all'&&!q){
       copy=c.all+' physical units · '+c.sold+' sold · '+c.available+' available';
@@ -210,10 +217,19 @@
 
   function applyInventoryView(){
     if(openInventoryId||!window.state||state.view!=='list'||!rows.length)return;
+    var list=document.querySelector('#main .list');
+    if(hasCustomerConditionFilter()){
+      var bar=document.querySelector('#main .inventory-status-bar');
+      if(bar)bar.remove();
+      if(list){
+        list.querySelectorAll('.inventory-only-row,.inventory-list-empty').forEach(function(el){el.remove();});
+        list.querySelectorAll('.row-btn[data-sno][data-unit]:not(.inventory-only-row)').forEach(function(row){row.hidden=false;row.style.removeProperty('display');});
+      }
+      return;
+    }
     ensureStatusBar();
     var visibleBase=decorateBaseRows();
     var generated=injectPhysicalOnlyRows();
-    var list=document.querySelector('#main .list');
     if(list){
       var hasRows=visibleBase.length+generated>0;
       list.querySelectorAll('.no-results').forEach(function(el){el.style.display=hasRows?'none':'';});
