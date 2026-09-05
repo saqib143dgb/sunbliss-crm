@@ -62,7 +62,10 @@
   function install(){
     var style=document.createElement('style');
     style.id='sunblissEmptyInstallmentVisibilityStyles';
-    style.textContent='.detail .ledger-scroll .stage-card.sunbliss-empty-installment{display:none!important;}';
+    style.textContent=[
+      '.detail .ledger-scroll .stage-card.sunbliss-empty-installment{display:none!important;}',
+      '@media(min-width:1024px){body.sunbliss-ref-desktop .overview>#scheduledActionsOverview{display:block!important;visibility:visible!important;max-width:1480px!important;margin:28px auto 8px!important;box-sizing:border-box!important}}'
+    ].join('');
     document.head.appendChild(style);
     if(!wrapRenderDetail())setTimeout(wrapRenderDetail,50);
     updateCards();
