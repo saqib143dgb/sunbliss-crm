@@ -8,7 +8,11 @@ function num(v){var n=Number(v);return isFinite(n)?n:0}
 function round2(v){return Math.round(num(v)*100)/100}
 function text(v){return v==null?'':String(v)}
 function settled(stage){return num(stage&&stage.settledAmount!==undefined?stage.settledAmount:stage&&stage.paid)}
-function remaining(stage){if(!stage||stage.due===null||stage.due===undefined)return null;return round2(num(stage.due)-settled(stage))}
+function remaining(stage){
+  if(!stage||stage.due===null||stage.due===undefined)return null;
+  if(text(stage.status).trim().toLowerCase()==='paid')return 0;
+  return round2(num(stage.due)-settled(stage));
+}
 function allCustomers(){var out=[];if(!window.state)return out;[state.dues,state.cancelled].forEach(function(list){if(Array.isArray(list))list.forEach(function(c){if(c)out.push(c)})});return out}
 function applyCustomer(c){
   if(!c)return;
@@ -21,8 +25,7 @@ function applyCustomer(c){
     var rem=remaining(stage);
     if(rem===null)return;
     stage.toleranceCarry=rem>0&&rem<=TOLERANCE?rem:0;
-    if(rem>0&&rem<=TOLERANCE){stage.outAmt=0;stage.status='Paid'}
-    if(rem<=TOLERANCE)return;
+    if(rem<=TOLERANCE){stage.outAmt=0;if(rem>0)stage.status='Paid';return}
     if(!next){next={stage:stage,remaining:rem};return}
     var a=stage.dueDate?new Date(stage.dueDate).getTime():Infinity;
     var b=next.stage.dueDate?new Date(next.stage.dueDate).getTime():Infinity;
