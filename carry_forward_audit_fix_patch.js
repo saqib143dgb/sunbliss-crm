@@ -5,30 +5,13 @@
 
   function text(v){return v==null?'':String(v)}
   function round2(v){return Math.round((Number(v)||0)*100)/100}
-  function isDldStage(stage){return !!stage&&(text(stage.code).toUpperCase()==='DLD'||/\bdld\b|admin\s*fees?/i.test(text(stage.label||stage.stage_name)))}
-  function unitId(c){return Number(c&&(c.unitId||c.sno))||null}
+  function unitId(c){return Number(c&&(c.unitId||c.dbUnitId||c.sno))||null}
   function customers(){
     var out=[];
     if(window.state){
       [state.dues,state.cancelled].forEach(function(list){if(Array.isArray(list))list.forEach(function(c){if(c)out.push(c)})});
     }
     return out;
-  }
-  function recomputeNextDue(c){
-    var next=null;
-    (c.stages||[]).forEach(function(stage){
-      if(stage.due===null||stage.due===undefined)return;
-      var settled=Number(stage.settledAmount!==undefined?stage.settledAmount:stage.paid)||0;
-      var remaining=round2((Number(stage.due)||0)-settled);
-      if(remaining<=1)return;
-      if(!next){next={stage:stage,remaining:remaining};return}
-      var a=stage.dueDate?new Date(stage.dueDate).getTime():Infinity;
-      var b=next.stage.dueDate?new Date(next.stage.dueDate).getTime():Infinity;
-      if(a<b)next={stage:stage,remaining:remaining};
-    });
-    c.upStage=next?next.stage.label:'';
-    c.upAmt=next?next.remaining:null;
-    c.upDate=next?next.stage.dueDate:null;
   }
 
   async function applyActiveAllocations(){
@@ -75,12 +58,19 @@
         var cash=stage.cashPaid!==undefined?Number(stage.cashPaid)||0:Number(stage.paid)||0;
         var credit=Number(stage.creditNoteTotal)||0;
         stage.cashPaid=round2(cash);
-        stage.settledAmount=round2(stage.cashPaid+(isDldStage(stage)?0:credit)+carryApplied);
+        stage.settledAmount=round2(stage.cashPaid+credit+carryApplied);
         stage.paid=stage.settledAmount;
         stage.outAmt=stage.due===null||stage.due===undefined?null:round2((Number(stage.due)||0)-stage.settledAmount);
       });
-      recomputeNextDue(c);
     });
+  }
+
+  function refreshPaymentTruth(){
+    if(typeof window.__sunblissRefreshPaymentScheduleSourceTruth==='function'){
+      return window.__sunblissRefreshPaymentScheduleSourceTruth();
+    }
+    if(typeof window.renderMain==='function'&&window.state&&state.view&&state.view!=='empty')window.renderMain();
+    return Promise.resolve();
   }
 
   function install(){
@@ -89,20 +79,18 @@
     }
 
     var baseLoad=window.loadFromSupabase;
-    window.loadFromSupabase=async function(){
-      var out=await baseLoad.apply(this,arguments);
-      try{
-        await applyActiveAllocations();
-        if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();
-      }catch(ex){console.warn('Could not refresh active carry allocations',ex)}
-      return out;
-    };
+    if(!baseLoad.__carryForwardAuditWrapped){
+      var wrapped=async function(){
+        var out=await baseLoad.apply(this,arguments);
+        try{await applyActiveAllocations();await refreshPaymentTruth()}catch(ex){console.warn('Could not refresh active carry allocations',ex)}
+        return out;
+      };
+      wrapped.__carryForwardAuditWrapped=true;
+      window.loadFromSupabase=wrapped;
+    }
 
-    applyActiveAllocations().then(function(){
-      if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();
-    }).catch(function(ex){console.warn('Could not initialize active carry allocations',ex)});
-
-    window.__sunblissCarryForwardAuditFix={refresh:applyActiveAllocations};
+    applyActiveAllocations().then(refreshPaymentTruth).catch(function(ex){console.warn('Could not initialize active carry allocations',ex)});
+    window.__sunblissCarryForwardAuditFix={refresh:async function(){await applyActiveAllocations();await refreshPaymentTruth()}};
   }
 
   install();
