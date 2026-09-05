@@ -8,7 +8,7 @@ function ensureHeadlineSize(){
   if(document.getElementById('actionRequiredHeadlineSizeRefine'))return;
   var style=document.createElement('style');
   style.id='actionRequiredHeadlineSizeRefine';
-  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}}';
+  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}}';
   document.head.appendChild(style);
 }
 function parse(status,message,detail){
