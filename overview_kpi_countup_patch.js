@@ -7,40 +7,18 @@
   var DURATION=1892;
   var DESKTOP_MIN=1024;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var animated=false;
-  var queued=false;
-  var rerendering=false;
+  var targets=null;
+  var started=false;
+  var completed=false;
+  var startTime=null;
+  var currentProgress=0;
+  var frameId=0;
 
   function text(v){return v==null?'':String(v);}
   function normalise(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
   function desktop(){return window.matchMedia?window.matchMedia('(min-width:'+DESKTOP_MIN+'px)').matches:window.innerWidth>=DESKTOP_MIN;}
   function loaderReleased(){return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');}
-  function easeOutCubic(progress){return 1-Math.pow(1-progress,3);}
-
-  /* Available / resale inventory must never enter the sales KPI state. Doing this
-     before the first Overview paint prevents the old 95 -> 70 second-render jump. */
-  function normalisePortfolioBeforePaint(){
-    if(rerendering||!window.state||!Array.isArray(state.dues))return false;
-    var clean=state.dues.filter(function(c){
-      return !!c&&c.customerId!==null&&c.customerId!==undefined&&text(c.customerId).trim()!=='';
-    });
-    if(clean.length===state.dues.length)return false;
-    state.dues=clean;
-    if(state.view==='overview'&&typeof window.renderMain==='function'){
-      rerendering=true;
-      try{window.renderMain();}finally{rerendering=false;}
-    }
-    return true;
-  }
-
-  function stateReady(){
-    if(!window.state||state.view!=='overview'||!Array.isArray(state.dues)||!state.syncedAt)return false;
-    for(var i=0;i<state.dues.length;i++){
-      var c=state.dues[i];
-      if(!c||c.customerId===null||c.customerId===undefined||text(c.customerId).trim()==='')return false;
-    }
-    return true;
-  }
+  function ease(progress){return 1-Math.pow(1-progress,4);}
 
   function parseValue(value){
     var finalText=text(value).replace(/\u00a0/g,' ').trim();
@@ -60,7 +38,7 @@
     var finalText=text(node.textContent).trim(),m=finalText.match(/^([+\-]?\d+(?:\.\d+)?)%$/);
     if(!m)return null;
     var dot=m[1].indexOf('.');
-    return{node:node,finalText:finalText,value:Number(m[1]),decimals:dot<0?0:m[1].length-dot-1};
+    return{finalText:finalText,value:Number(m[1]),decimals:dot<0?0:m[1].length-dot-1};
   }
 
   function formatPercent(p,value){
@@ -89,83 +67,114 @@
     };
   }
 
-  function finalOverviewReady(nodes){
-    if(!nodes||!stateReady())return false;
-    for(var i=0;i<nodes.cells.length;i++){
-      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
-      if(label&&value&&normalise(label.textContent)==='units sold'){
-        var parsed=parseValue(value.textContent);
-        return !!parsed&&parsed.value===state.dues.length;
-      }
+  function stateReady(){
+    if(!window.state||state.view!=='overview'||!Array.isArray(state.dues)||!state.syncedAt)return false;
+    for(var i=0;i<state.dues.length;i++){
+      var c=state.dues[i];
+      if(!c||c.customerId===null||c.customerId===undefined||text(c.customerId).trim()==='')return false;
     }
-    return false;
+    return true;
   }
 
-  function animateNumber(node,p){
-    if(!node||!p||!Number.isFinite(p.value))return;
-    node.setAttribute('aria-label',p.finalText);
-    if(reduceMotion){node.textContent=p.finalText;return;}
-    node.textContent=formatValue(p,0);
-    node.setAttribute('data-sbx-kpi-counting','');
-    var started=null;
-    function frame(ts){
-      if(!node.isConnected)return;
-      if(started===null)started=ts;
-      var progress=Math.min(1,(ts-started)/DURATION),eased=easeOutCubic(progress);
-      node.textContent=progress===1?p.finalText:formatValue(p,p.value*eased);
-      if(progress<1)requestAnimationFrame(frame);else node.removeAttribute('data-sbx-kpi-counting');
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function animateProgress(nodes){
-    var holder=nodes&&nodes.progress;
-    if(!holder||reduceMotion)return;
-    var fill=holder.querySelector(nodes.fillSelector);
-    if(!fill)return;
-    var target=parseFloat(fill.style.width||'');
-    if(!Number.isFinite(target))return;
-    var percents=[];
-    holder.querySelectorAll(nodes.percentSelector).forEach(function(node){var p=parsePercent(node);if(p)percents.push(p);});
-    fill.style.width='0%';
-    percents.forEach(function(p){p.node.textContent=formatPercent(p,0);});
-    var started=null;
-    function frame(ts){
-      if(!fill.isConnected)return;
-      if(started===null)started=ts;
-      var progress=Math.min(1,(ts-started)/DURATION),eased=easeOutCubic(progress);
-      fill.style.width=(Math.max(0,Math.min(100,target))*eased)+'%';
-      percents.forEach(function(p){p.node.textContent=progress===1?p.finalText:formatPercent(p,p.value*eased);});
-      if(progress<1)requestAnimationFrame(frame);else fill.style.width=Math.max(0,Math.min(100,target))+'%';
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function start(){
-    if(animated||!loaderReleased())return false;
-    normalisePortfolioBeforePaint();
-    var nodes=overviewNodes();
-    if(!finalOverviewReady(nodes))return false;
-    var didAnimate=false;
+  function captureTargets(nodes){
+    if(!nodes||!stateReady())return null;
+    var result={values:{},progress:null};
     for(var i=0;i<nodes.cells.length;i++){
       var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
       if(!label||!value)continue;
       var key=normalise(label.textContent);
       if(key!=='units sold'&&key!=='sales value'&&key!=='collected'&&key!=='outstanding')continue;
       var parsed=parseValue(value.textContent);
-      if(parsed){animateNumber(value,parsed);didAnimate=true;}
+      if(parsed)result.values[key]=parsed;
     }
-    if(!didAnimate)return false;
-    animated=true;
-    animateProgress(nodes);
-    root.classList.remove('sbx-overview-data-pending','sbx-kpi-pending');
+    var units=result.values['units sold'];
+    if(!units||units.value!==state.dues.length)return null;
+    if(nodes.progress){
+      var fill=nodes.progress.querySelector(nodes.fillSelector),width=fill?parseFloat(fill.style.width||''):NaN,percents=[];
+      nodes.progress.querySelectorAll(nodes.percentSelector).forEach(function(node){var p=parsePercent(node);if(p)percents.push(p);});
+      if(fill&&Number.isFinite(width))result.progress={width:Math.max(0,Math.min(100,width)),percents:percents};
+    }
+    return result;
+  }
+
+  function applyProgress(progress){
+    if(!targets)return false;
+    var nodes=overviewNodes();
+    if(!nodes)return false;
+    var raw=Math.max(0,Math.min(1,progress)),eased=ease(raw);
+    for(var i=0;i<nodes.cells.length;i++){
+      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
+      if(!label||!value)continue;
+      var target=targets.values[normalise(label.textContent)];
+      if(!target)continue;
+      value.setAttribute('aria-label',target.finalText);
+      if(raw<1)value.setAttribute('data-sbx-kpi-counting','');else value.removeAttribute('data-sbx-kpi-counting');
+      value.textContent=raw>=1?target.finalText:formatValue(target,target.value*eased);
+    }
+    if(nodes.progress&&targets.progress){
+      var fill=nodes.progress.querySelector(nodes.fillSelector);
+      if(fill)fill.style.width=(targets.progress.width*(raw>=1?1:eased))+'%';
+      var percentNodes=nodes.progress.querySelectorAll(nodes.percentSelector);
+      for(var j=0;j<percentNodes.length&&j<targets.progress.percents.length;j++){
+        var p=targets.progress.percents[j];
+        percentNodes[j].textContent=raw>=1?p.finalText:formatPercent(p,p.value*eased);
+      }
+    }
     return true;
   }
 
-  function schedule(){
-    if(animated||queued)return;
-    queued=true;
-    requestAnimationFrame(function(){queued=false;start();});
+  function frame(ts){
+    if(completed)return;
+    if(startTime===null)startTime=ts;
+    currentProgress=Math.min(1,(ts-startTime)/DURATION);
+    applyProgress(currentProgress);
+    if(currentProgress<1){frameId=requestAnimationFrame(frame);return;}
+    completed=true;
+    frameId=0;
+  }
+
+  function startTimeline(){
+    if(started||completed||!targets)return false;
+    started=true;
+    currentProgress=0;
+    applyProgress(0);
+    if(reduceMotion){currentProgress=1;applyProgress(1);completed=true;return true;}
+    frameId=requestAnimationFrame(frame);
+    return true;
+  }
+
+  function prepareFromRenderedOverview(){
+    if(completed)return false;
+    var nodes=overviewNodes();
+    var next=captureTargets(nodes);
+    if(!next)return false;
+    targets=next;
+    applyProgress(started?currentProgress:0);
+    if(loaderReleased())startTimeline();
+    return true;
+  }
+
+  /* Called synchronously by the core Overview renderer immediately after it writes
+     the final KPI DOM. This makes the renderer—not an arbitrary DOM mutation—the
+     owner of animation preparation, so zero is applied before the browser can paint. */
+  window.__sunblissOverviewKpiRendered=prepareFromRenderedOverview;
+
+  if(window.MutationObserver){
+    new MutationObserver(function(){
+      if(!loaderReleased()||completed)return;
+      if(!targets)prepareFromRenderedOverview();
+      startTimeline();
+    }).observe(root,{attributes:true,attributeFilter:['class']});
+
+    /* Desktop replaces the base mobile Overview with its executive shell. Watch only
+       for that one final dashboard node; mobile no longer depends on child mutations. */
+    if(desktop()){
+      var desktopObserver=new MutationObserver(function(){
+        if(completed)return;
+        if(document.getElementById('sbRefOverviewV2'))prepareFromRenderedOverview();
+      });
+      desktopObserver.observe(document.documentElement,{childList:true,subtree:true});
+    }
   }
 
   var style=document.createElement('style');
@@ -173,20 +182,5 @@
   style.textContent='[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
   document.head.appendChild(style);
 
-  if(window.MutationObserver){
-    new MutationObserver(function(){if(!start())schedule();}).observe(root,{attributes:true,attributeFilter:['class']});
-    new MutationObserver(function(mutations){
-      if(animated)return;
-      for(var i=0;i<mutations.length;i++){
-        if(mutations[i].addedNodes&&mutations[i].addedNodes.length){
-          normalisePortfolioBeforePaint();
-          if(!start())schedule();
-          return;
-        }
-      }
-    }).observe(document.documentElement,{childList:true,subtree:true});
-  }
-
-  document.addEventListener('sunbliss:overview-financial-ready',schedule);
-  start();
+  if(document.readyState!=='loading')prepareFromRenderedOverview();
 })();
