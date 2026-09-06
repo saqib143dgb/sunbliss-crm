@@ -7,18 +7,22 @@
   var DURATION=1892;
   var DESKTOP_MIN=1024;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var animated=false;
+  var started=false;
+  var completed=false;
   var queued=false;
   var rerendering=false;
+  var startTime=null;
+  var targets=null;
+  var latestProgress=0;
 
   function text(v){return v==null?'':String(v);}
   function normalise(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
   function desktop(){return window.matchMedia?window.matchMedia('(min-width:'+DESKTOP_MIN+'px)').matches:window.innerWidth>=DESKTOP_MIN;}
   function loaderReleased(){return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');}
-  function smoothStep(progress){return progress*progress*progress*(progress*(progress*6-15)+10);}
+  function ease(progress){
+    return progress<0.5?4*progress*progress*progress:1-Math.pow(-2*progress+2,3)/2;
+  }
 
-  /* Available / resale inventory must never enter the sales KPI state. Doing this
-     before the first Overview paint prevents the old 95 -> 70 second-render jump. */
   function normalisePortfolioBeforePaint(){
     if(rerendering||!window.state||!Array.isArray(state.dues))return false;
     var clean=state.dues.filter(function(c){
@@ -60,7 +64,7 @@
     var finalText=text(node.textContent).trim(),m=finalText.match(/^([+\-]?\d+(?:\.\d+)?)%$/);
     if(!m)return null;
     var dot=m[1].indexOf('.');
-    return{node:node,finalText:finalText,value:Number(m[1]),decimals:dot<0?0:m[1].length-dot-1};
+    return{finalText:finalText,value:Number(m[1]),decimals:dot<0?0:m[1].length-dot-1};
   }
 
   function formatPercent(p,value){
@@ -101,69 +105,82 @@
     return false;
   }
 
-  function animateNumber(node,p){
-    if(!node||!p||!Number.isFinite(p.value))return;
-    node.setAttribute('aria-label',p.finalText);
-    if(reduceMotion){node.textContent=p.finalText;return;}
-    node.textContent=formatValue(p,0);
-    node.setAttribute('data-sbx-kpi-counting','');
-    var started=null;
-    function frame(ts){
-      if(!node.isConnected)return;
-      if(started===null)started=ts;
-      var progress=Math.min(1,(ts-started)/DURATION),eased=smoothStep(progress);
-      node.textContent=progress===1?p.finalText:formatValue(p,p.value*eased);
-      if(progress<1)requestAnimationFrame(frame);else node.removeAttribute('data-sbx-kpi-counting');
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function animateProgress(nodes){
-    var holder=nodes&&nodes.progress;
-    if(!holder||reduceMotion)return;
-    var fill=holder.querySelector(nodes.fillSelector);
-    if(!fill)return;
-    var target=parseFloat(fill.style.width||'');
-    if(!Number.isFinite(target))return;
-    var percents=[];
-    holder.querySelectorAll(nodes.percentSelector).forEach(function(node){var p=parsePercent(node);if(p)percents.push(p);});
-    fill.style.width='0%';
-    percents.forEach(function(p){p.node.textContent=formatPercent(p,0);});
-    var started=null;
-    function frame(ts){
-      if(!fill.isConnected)return;
-      if(started===null)started=ts;
-      var progress=Math.min(1,(ts-started)/DURATION),eased=smoothStep(progress);
-      fill.style.width=(Math.max(0,Math.min(100,target))*eased)+'%';
-      percents.forEach(function(p){p.node.textContent=progress===1?p.finalText:formatPercent(p,p.value*eased);});
-      if(progress<1)requestAnimationFrame(frame);else fill.style.width=Math.max(0,Math.min(100,target))+'%';
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function start(){
-    if(animated||!loaderReleased())return false;
-    normalisePortfolioBeforePaint();
-    var nodes=overviewNodes();
-    if(!finalOverviewReady(nodes))return false;
-    var didAnimate=false;
+  function captureTargets(nodes){
+    var result={values:{},progress:null};
     for(var i=0;i<nodes.cells.length;i++){
       var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
       if(!label||!value)continue;
       var key=normalise(label.textContent);
       if(key!=='units sold'&&key!=='sales value'&&key!=='collected'&&key!=='outstanding')continue;
       var parsed=parseValue(value.textContent);
-      if(parsed){animateNumber(value,parsed);didAnimate=true;}
+      if(parsed)result.values[key]=parsed;
     }
-    if(!didAnimate)return false;
-    animated=true;
-    animateProgress(nodes);
-    root.classList.remove('sbx-overview-data-pending','sbx-kpi-pending');
+    var holder=nodes.progress;
+    if(holder){
+      var fill=holder.querySelector(nodes.fillSelector),width=fill?parseFloat(fill.style.width||''):NaN,percents=[];
+      holder.querySelectorAll(nodes.percentSelector).forEach(function(node){var p=parsePercent(node);if(p)percents.push(p);});
+      if(fill&&Number.isFinite(width))result.progress={width:Math.max(0,Math.min(100,width)),percents:percents};
+    }
+    return Object.keys(result.values).length?result:null;
+  }
+
+  function applyProgress(rawProgress){
+    if(!targets)return;
+    var nodes=overviewNodes();
+    if(!nodes)return;
+    var progress=Math.max(0,Math.min(1,rawProgress)),eased=ease(progress);
+
+    for(var i=0;i<nodes.cells.length;i++){
+      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
+      if(!label||!value)continue;
+      var key=normalise(label.textContent),target=targets.values[key];
+      if(!target)continue;
+      value.setAttribute('aria-label',target.finalText);
+      value.setAttribute('data-sbx-kpi-counting','');
+      value.textContent=progress>=1?target.finalText:formatValue(target,target.value*eased);
+      if(progress>=1)value.removeAttribute('data-sbx-kpi-counting');
+    }
+
+    if(nodes.progress&&targets.progress){
+      var fill=nodes.progress.querySelector(nodes.fillSelector);
+      if(fill)fill.style.width=(targets.progress.width*(progress>=1?1:eased))+'%';
+      var percentNodes=nodes.progress.querySelectorAll(nodes.percentSelector);
+      for(var j=0;j<percentNodes.length&&j<targets.progress.percents.length;j++){
+        var p=targets.progress.percents[j];
+        percentNodes[j].textContent=progress>=1?p.finalText:formatPercent(p,p.value*eased);
+      }
+    }
+  }
+
+  function frame(ts){
+    if(completed)return;
+    if(startTime===null)startTime=ts;
+    latestProgress=Math.min(1,(ts-startTime)/DURATION);
+    applyProgress(latestProgress);
+    if(latestProgress<1){
+      requestAnimationFrame(frame);
+    }else{
+      completed=true;
+      root.classList.remove('sbx-overview-data-pending','sbx-kpi-pending');
+    }
+  }
+
+  function start(){
+    if(started||!loaderReleased())return false;
+    normalisePortfolioBeforePaint();
+    var nodes=overviewNodes();
+    if(!finalOverviewReady(nodes))return false;
+    targets=captureTargets(nodes);
+    if(!targets)return false;
+    started=true;
+    if(reduceMotion){latestProgress=1;applyProgress(1);completed=true;return true;}
+    applyProgress(0);
+    requestAnimationFrame(frame);
     return true;
   }
 
   function schedule(){
-    if(animated||queued)return;
+    if(started||queued)return;
     queued=true;
     requestAnimationFrame(function(){queued=false;start();});
   }
@@ -174,12 +191,16 @@
   document.head.appendChild(style);
 
   if(window.MutationObserver){
-    new MutationObserver(function(){if(!start())schedule();}).observe(root,{attributes:true,attributeFilter:['class']});
+    new MutationObserver(function(){
+      if(started&&!completed){applyProgress(latestProgress);return;}
+      if(!start())schedule();
+    }).observe(root,{attributes:true,attributeFilter:['class']});
+
     new MutationObserver(function(mutations){
-      if(animated)return;
       for(var i=0;i<mutations.length;i++){
         if(mutations[i].addedNodes&&mutations[i].addedNodes.length){
           normalisePortfolioBeforePaint();
+          if(started&&!completed){applyProgress(latestProgress);return;}
           if(!start())schedule();
           return;
         }
@@ -187,6 +208,8 @@
     }).observe(document.documentElement,{childList:true,subtree:true});
   }
 
-  document.addEventListener('sunbliss:overview-financial-ready',schedule);
+  document.addEventListener('sunbliss:overview-financial-ready',function(){
+    if(started&&!completed)applyProgress(latestProgress);else schedule();
+  });
   start();
 })();
