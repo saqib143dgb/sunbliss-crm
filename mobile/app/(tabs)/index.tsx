@@ -42,7 +42,7 @@ export default function OverviewScreen() {
             <KpiCard label="Customers" value={data.customerCount} emphasis />
             <KpiCard label="Units" value={data.unitCount} />
             <KpiCard label="Open actions" value={data.openActions} />
-            <KpiCard label="Overdue installments" value={data.overdueInstallments} />
+            <KpiCard label="Overdue actions" value={data.overdueActions} />
           </View>
 
           <View style={styles.sectionHeader}>
