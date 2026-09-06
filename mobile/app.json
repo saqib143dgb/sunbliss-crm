@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Sunbliss CRM",
+    "slug": "sunbliss-crm",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "sunblisscrm",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.purvanchal.sunblisscrm"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
