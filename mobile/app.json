@@ -11,6 +11,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.purvanchal.sunblisscrm"
     },
+    "android": {
+      "package": "com.purvanchal.sunblisscrm",
+      "versionCode": 1
+    },
     "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
