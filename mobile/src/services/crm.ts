@@ -12,7 +12,7 @@ export type OverviewData = {
   customerCount: number;
   unitCount: number;
   openActions: number;
-  overdueInstallments: number;
+  overdueActions: number;
   actions: OverviewAction[];
 };
 
@@ -70,10 +70,6 @@ export type CustomerDetail = {
   }>;
 };
 
-function effectiveDueDate(row: { due_date: string | null; revised_due_date: string | null }) {
-  return row.revised_due_date || row.due_date;
-}
-
 function localIsoDate(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -83,11 +79,13 @@ function localIsoDate(date = new Date()) {
 
 export async function getOverview(): Promise<OverviewData> {
   const today = localIsoDate();
-  const [customers, units, actionsCount, schedule, actions] = await Promise.all([
+  const [customers, units, actionRows, actions] = await Promise.all([
     supabase.from('customers').select('id', { count: 'exact', head: true }),
     supabase.from('units').select('id', { count: 'exact', head: true }),
-    supabase.from('scheduled_actions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('payment_schedule').select('id,due_date,revised_due_date,due_amount,paid_amount,status'),
+    supabase
+      .from('scheduled_actions')
+      .select('id,due_date,auto_kind,status')
+      .eq('status', 'pending'),
     supabase
       .from('scheduled_actions')
       .select('id,action_label,due_date,priority,unit_id,units(unit_no)')
@@ -96,14 +94,17 @@ export async function getOverview(): Promise<OverviewData> {
       .limit(8),
   ]);
 
-  for (const result of [customers, units, actionsCount, schedule, actions]) {
+  for (const result of [customers, units, actionRows, actions]) {
     if (result.error) throw result.error;
   }
 
-  const overdueInstallments = (schedule.data ?? []).filter((row) => {
-    const dueDate = effectiveDueDate(row);
-    const remaining = Number(row.due_amount || 0) - Number(row.paid_amount || 0);
-    return Boolean(dueDate && dueDate < today && remaining > 0 && String(row.status || '').toLowerCase() !== 'paid');
+  // The web CRM already owns the extension/payment-task rules. For Phase 1 the
+  // mobile overview consumes those scheduled actions instead of re-deriving
+  // installment overdue state and risking disagreement with active extensions.
+  const pendingActionRows = actionRows.data ?? [];
+  const overdueActions = pendingActionRows.filter((row) => {
+    const dueDate = String(row.due_date || '').slice(0, 10);
+    return Boolean(dueDate && dueDate < today && row.auto_kind !== 'extension_active');
   }).length;
 
   const mappedActions: OverviewAction[] = (actions.data ?? []).map((row: any) => ({
@@ -117,8 +118,8 @@ export async function getOverview(): Promise<OverviewData> {
   return {
     customerCount: customers.count ?? 0,
     unitCount: units.count ?? 0,
-    openActions: actionsCount.count ?? 0,
-    overdueInstallments,
+    openActions: pendingActionRows.length,
+    overdueActions,
     actions: mappedActions,
   };
 }
