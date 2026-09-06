@@ -4,7 +4,7 @@
   window.__sunblissOverviewKpiCountUpInstalled=true;
 
   var root=document.documentElement;
-  var DURATION=946;
+  var DURATION=1892;
   var DESKTOP_MIN=1024;
   var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var animated=false;
@@ -15,6 +15,7 @@
   function normalise(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
   function desktop(){return window.matchMedia?window.matchMedia('(min-width:'+DESKTOP_MIN+'px)').matches:window.innerWidth>=DESKTOP_MIN;}
   function loaderReleased(){return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');}
+  function smoothStep(progress){return progress*progress*progress*(progress*(progress*6-15)+10);}
 
   /* Available / resale inventory must never enter the sales KPI state. Doing this
      before the first Overview paint prevents the old 95 -> 70 second-render jump. */
@@ -110,7 +111,7 @@
     function frame(ts){
       if(!node.isConnected)return;
       if(started===null)started=ts;
-      var progress=Math.min(1,(ts-started)/DURATION),eased=1-Math.pow(1-progress,4);
+      var progress=Math.min(1,(ts-started)/DURATION),eased=smoothStep(progress);
       node.textContent=progress===1?p.finalText:formatValue(p,p.value*eased);
       if(progress<1)requestAnimationFrame(frame);else node.removeAttribute('data-sbx-kpi-counting');
     }
@@ -132,7 +133,7 @@
     function frame(ts){
       if(!fill.isConnected)return;
       if(started===null)started=ts;
-      var progress=Math.min(1,(ts-started)/DURATION),eased=1-Math.pow(1-progress,4);
+      var progress=Math.min(1,(ts-started)/DURATION),eased=smoothStep(progress);
       fill.style.width=(Math.max(0,Math.min(100,target))*eased)+'%';
       percents.forEach(function(p){p.node.textContent=progress===1?p.finalText:formatPercent(p,p.value*eased);});
       if(progress<1)requestAnimationFrame(frame);else fill.style.width=Math.max(0,Math.min(100,target))+'%';
