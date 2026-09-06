@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/src/components/Screen';
 import { KpiCard } from '@/src/components/KpiCard';
 import { getOverview, OverviewData } from '@/src/services/crm';
@@ -10,7 +10,6 @@ export default function OverviewScreen() {
   const { profile, signOut } = useAuth();
   const [data, setData] = useState<OverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -18,8 +17,6 @@ export default function OverviewScreen() {
       setData(await getOverview());
     } catch (err: any) {
       setError(err?.message || 'Could not load CRM overview.');
-    } finally {
-      setRefreshing(false);
     }
   }, []);
 
@@ -77,14 +74,14 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 110 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
   eyebrow: { fontSize: 10.5, color: theme.colors.gold, fontWeight: '800', letterSpacing: 1.8 },
-  title: { marginTop: 5, fontSize: 31, color: theme.colors.ink, fontWeight: '750', letterSpacing: -1 },
+  title: { marginTop: 5, fontSize: 31, color: theme.colors.ink, fontWeight: '700', letterSpacing: -1 },
   welcome: { marginTop: 5, fontSize: 12, color: theme.colors.muted },
   signOut: { borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.pill, paddingHorizontal: 11, paddingVertical: 7, backgroundColor: theme.colors.card },
   signOutText: { fontSize: 11, color: theme.colors.ink, fontWeight: '700' },
   loader: { marginTop: 60 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 28, marginBottom: 10 },
-  sectionTitle: { fontSize: 17, color: theme.colors.ink, fontWeight: '750' },
+  sectionTitle: { fontSize: 17, color: theme.colors.ink, fontWeight: '700' },
   sectionMeta: { fontSize: 11, color: theme.colors.muted },
   listCard: { borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.md, backgroundColor: theme.colors.card, overflow: 'hidden' },
   actionRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, padding: 14 },

@@ -74,8 +74,15 @@ function effectiveDueDate(row: { due_date: string | null; revised_due_date: stri
   return row.revised_due_date || row.due_date;
 }
 
+function localIsoDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export async function getOverview(): Promise<OverviewData> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localIsoDate();
   const [customers, units, actionsCount, schedule, actions] = await Promise.all([
     supabase.from('customers').select('id', { count: 'exact', head: true }),
     supabase.from('units').select('id', { count: 'exact', head: true }),
@@ -116,7 +123,7 @@ export async function getOverview(): Promise<OverviewData> {
   };
 }
 
-export async function getCustomers(search = ''): Promise<CustomerListItem[]> {
+export async function getCustomers(): Promise<CustomerListItem[]> {
   const { data, error } = await supabase
     .from('customers')
     .select('id,customer_name,email,phone,nationality,units(id,unit_no,unit_type,status,total_price)')
@@ -124,17 +131,7 @@ export async function getCustomers(search = ''): Promise<CustomerListItem[]> {
     .limit(500);
 
   if (error) throw error;
-  const rows = (data ?? []) as unknown as CustomerListItem[];
-  const q = search.trim().toLowerCase();
-  if (!q) return rows;
-
-  return rows.filter((row) => {
-    const customerMatch = [row.customer_name, row.email, row.phone, row.nationality]
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(q));
-    const unitMatch = row.units?.some((unit) => unit.unit_no.toLowerCase().includes(q));
-    return customerMatch || unitMatch;
-  });
+  return (data ?? []) as unknown as CustomerListItem[];
 }
 
 export async function getCustomerDetail(customerId: number): Promise<CustomerDetail> {

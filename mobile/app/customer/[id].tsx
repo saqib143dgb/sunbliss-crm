@@ -68,7 +68,7 @@ export default function CustomerDetailScreen() {
           </View>
 
           <Text style={styles.sectionTitle}>Units & financial position</Text>
-          {summaries.map(({ unit, rows, scheduled, paid, remaining, sale }) => (
+          {summaries.map(({ unit, rows, paid, remaining, sale }) => (
             <View key={unit.id} style={styles.unitCard}>
               <View style={styles.unitHeader}>
                 <View>
@@ -81,7 +81,7 @@ export default function CustomerDetailScreen() {
               <View style={styles.moneyRow}>
                 <View style={styles.moneyCell}><Text style={styles.moneyLabel}>Sale value</Text><Text style={styles.moneyValue}>{money(unit.total_price)}</Text></View>
                 <View style={styles.moneyCell}><Text style={styles.moneyLabel}>Scheduled paid</Text><Text style={styles.moneyValue}>{money(paid)}</Text></View>
-                <View style={styles.moneyCell}><Text style={styles.moneyLabel}>Schedule remaining</Text><Text style={styles.moneyValue}>{money(remaining)}</Text></View>
+                <View style={[styles.moneyCell, styles.moneyCellLast]}><Text style={styles.moneyLabel}>Schedule remaining</Text><Text style={styles.moneyValue}>{money(remaining)}</Text></View>
               </View>
 
               <View style={styles.complianceRow}>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   loader: { marginTop: 70 },
   error: { marginTop: 20, color: theme.colors.danger, fontSize: 13 },
   eyebrow: { fontSize: 10.5, color: theme.colors.gold, fontWeight: '800', letterSpacing: 1.8 },
-  title: { marginTop: 5, fontSize: 27, lineHeight: 32, color: theme.colors.ink, fontWeight: '750', letterSpacing: -0.7 },
+  title: { marginTop: 5, fontSize: 27, lineHeight: 32, color: theme.colors.ink, fontWeight: '700', letterSpacing: -0.7 },
   coApplicant: { marginTop: 6, fontSize: 12, color: theme.colors.muted },
   contactCard: { marginTop: 18, padding: 15, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.md, backgroundColor: theme.colors.card },
   sectionLabel: { fontSize: 11, color: theme.colors.muted, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   miniButton: { borderRadius: theme.radius.pill, backgroundColor: theme.colors.goldSoft, paddingHorizontal: 9, paddingVertical: 6 },
   miniButtonText: { fontSize: 10.5, fontWeight: '800', color: theme.colors.ink },
   secondary: { marginTop: 7, fontSize: 12.5, color: theme.colors.muted },
-  sectionTitle: { marginTop: 27, marginBottom: 10, fontSize: 17, color: theme.colors.ink, fontWeight: '750' },
+  sectionTitle: { marginTop: 27, marginBottom: 10, fontSize: 17, color: theme.colors.ink, fontWeight: '700' },
   unitCard: { marginBottom: 12, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.md, backgroundColor: theme.colors.card, overflow: 'hidden' },
   unitHeader: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   unitNo: { fontSize: 19, fontWeight: '800', color: theme.colors.ink },
@@ -138,10 +138,11 @@ const styles = StyleSheet.create({
   status: { overflow: 'hidden', borderRadius: theme.radius.pill, backgroundColor: theme.colors.goldSoft, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '800', color: theme.colors.ink },
   moneyRow: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.line },
   moneyCell: { flex: 1, paddingVertical: 11, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: theme.colors.line },
+  moneyCellLast: { borderRightWidth: 0 },
   moneyLabel: { fontSize: 9.5, color: theme.colors.muted, lineHeight: 13 },
   moneyValue: { marginTop: 4, fontSize: 11.5, color: theme.colors.ink, fontWeight: '800' },
   complianceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 12 },
-  compliance: { overflow: 'hidden', borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.line, paddingHorizontal: 8, paddingVertical: 5, fontSize: 10, color: theme.colors.ink, fontWeight: '650' },
+  compliance: { overflow: 'hidden', borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.colors.line, paddingHorizontal: 8, paddingVertical: 5, fontSize: 10, color: theme.colors.ink, fontWeight: '600' },
   scheduleBlock: { borderTopWidth: 1, borderTopColor: theme.colors.line, paddingHorizontal: 13, paddingBottom: 3 },
   scheduleHeading: { paddingTop: 12, paddingBottom: 6, fontSize: 11, color: theme.colors.muted, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
   scheduleRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 10 },
@@ -151,5 +152,5 @@ const styles = StyleSheet.create({
   dueDate: { marginTop: 3, fontSize: 10.5, color: theme.colors.muted },
   scheduleAmounts: { alignItems: 'flex-end' },
   dueAmount: { fontSize: 11.5, color: theme.colors.ink, fontWeight: '800' },
-  paidAmount: { marginTop: 3, fontSize: 10.5, color: theme.colors.success, fontWeight: '650' },
+  paidAmount: { marginTop: 3, fontSize: 10.5, color: theme.colors.success, fontWeight: '600' },
 });

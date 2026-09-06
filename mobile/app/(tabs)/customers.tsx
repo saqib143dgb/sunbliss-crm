@@ -55,7 +55,11 @@ export default function CustomersScreen() {
 
       <View style={styles.list}>
         {filtered.map((customer) => (
-          <Pressable key={customer.id} onPress={() => router.push(`/customer/${customer.id}`)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+          <Pressable
+            key={customer.id}
+            onPress={() => router.push({ pathname: '/customer/[id]', params: { id: String(customer.id) } })}
+            style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+          >
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>{customer.customer_name}</Text>
               <Text style={styles.chevron}>›</Text>
@@ -76,7 +80,7 @@ export default function CustomersScreen() {
 const styles = StyleSheet.create({
   content: { paddingBottom: 110 },
   eyebrow: { fontSize: 10.5, color: theme.colors.gold, fontWeight: '800', letterSpacing: 1.8 },
-  title: { marginTop: 5, fontSize: 31, color: theme.colors.ink, fontWeight: '750', letterSpacing: -1 },
+  title: { marginTop: 5, fontSize: 31, color: theme.colors.ink, fontWeight: '700', letterSpacing: -1 },
   subtitle: { marginTop: 5, fontSize: 12.5, color: theme.colors.muted },
   search: { marginTop: 18, minHeight: 48, borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.pill, backgroundColor: theme.colors.card, paddingHorizontal: 17, color: theme.colors.ink, fontSize: 15 },
   loader: { marginTop: 44 },
@@ -85,7 +89,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: theme.colors.line, borderRadius: theme.radius.md, backgroundColor: theme.colors.card, padding: 15 },
   pressed: { opacity: 0.72 },
   nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  name: { flex: 1, fontSize: 15.5, fontWeight: '750', color: theme.colors.ink },
+  name: { flex: 1, fontSize: 15.5, fontWeight: '700', color: theme.colors.ink },
   chevron: { fontSize: 27, lineHeight: 28, color: theme.colors.gold },
   contact: { marginTop: 4, fontSize: 12, color: theme.colors.muted },
   unitsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 12 },
