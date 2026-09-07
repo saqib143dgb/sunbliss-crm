@@ -28,6 +28,10 @@
       if(!norm(sub.textContent))sub.remove();
     });
   }
+  function removeCollectionMetricSelector(){
+    var selector=document.getElementById('sbV2CollectionMode');
+    if(selector)selector.remove();
+  }
   function cleanup(){
     if(!window.state || state.view!=='overview')return;
     var emptyLabel=document.getElementById('sunblissAllTasksEmptyLabel');
@@ -37,13 +41,19 @@
     removeSectionByPrefixes(['top overdue accounts']);
     removeSectionByPrefixes(['all tasks','follow-up tasks']);
     removeRedundantFinancialPercentages();
+    removeCollectionMetricSelector();
   }
   function relevant(node){
     if(!node||node.nodeType!==1)return false;
+    if(node.id==='sbV2CollectionMode')return true;
     if(node.classList&&(node.classList.contains('section-label')||node.classList.contains('stat-hero')))return true;
-    return !!(node.querySelector&&node.querySelector('.overview .section-label,.overview .stat-hero,#sunblissAllTasksEmptyLabel,#sunblissAllTasksEmpty'));
+    return !!(node.querySelector&&node.querySelector('.overview .section-label,.overview .stat-hero,#sunblissAllTasksEmptyLabel,#sunblissAllTasksEmpty,#sbV2CollectionMode'));
   }
   function install(){
+    var style=document.createElement('style');
+    style.id='sunblissCollectionMetricSelectorCleanupStyle';
+    style.textContent='@media(min-width:1024px){body.sunbliss-ref-desktop #sbV2CollectionMode{display:none!important}}';
+    document.head.appendChild(style);
     if(typeof window.renderOverview!=='function'){setTimeout(install,50);return;}
     var base=window.renderOverview;
     window.renderOverview=function(){var out=base.apply(this,arguments);cleanup();return out;};
