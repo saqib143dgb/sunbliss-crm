@@ -119,6 +119,11 @@
         height:auto!important;
         min-height:0!important;
       }
+
+      /* Approved desktop header cleanup: keep the project name only. */
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-row .sb-desktop-project-sub{
+        display:none!important;
+      }
     }
   `;
   document.head.appendChild(style);
