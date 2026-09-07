@@ -32,6 +32,9 @@
     var selector=document.getElementById('sbV2CollectionMode');
     if(selector)selector.remove();
   }
+  function removeStatusViewAll(){
+    document.querySelectorAll('#sbRefOverviewV2 .sb-v2-status .sb-v2-view').forEach(function(button){button.remove();});
+  }
   function cleanup(){
     if(!window.state || state.view!=='overview')return;
     var emptyLabel=document.getElementById('sunblissAllTasksEmptyLabel');
@@ -42,17 +45,18 @@
     removeSectionByPrefixes(['all tasks','follow-up tasks']);
     removeRedundantFinancialPercentages();
     removeCollectionMetricSelector();
+    removeStatusViewAll();
   }
   function relevant(node){
     if(!node||node.nodeType!==1)return false;
     if(node.id==='sbV2CollectionMode')return true;
-    if(node.classList&&(node.classList.contains('section-label')||node.classList.contains('stat-hero')))return true;
-    return !!(node.querySelector&&node.querySelector('.overview .section-label,.overview .stat-hero,#sunblissAllTasksEmptyLabel,#sunblissAllTasksEmpty,#sbV2CollectionMode'));
+    if(node.classList&&(node.classList.contains('section-label')||node.classList.contains('stat-hero')||node.classList.contains('sb-v2-status')||node.classList.contains('sb-v2-status-grid')))return true;
+    return !!(node.querySelector&&node.querySelector('.overview .section-label,.overview .stat-hero,#sunblissAllTasksEmptyLabel,#sunblissAllTasksEmpty,#sbV2CollectionMode,#sbRefOverviewV2 .sb-v2-status .sb-v2-view'));
   }
   function install(){
     var style=document.createElement('style');
     style.id='sunblissCollectionMetricSelectorCleanupStyle';
-    style.textContent='@media(min-width:1024px){body.sunbliss-ref-desktop #sbV2CollectionMode{display:none!important}}';
+    style.textContent='@media(min-width:1024px){body.sunbliss-ref-desktop #sbV2CollectionMode,body.sunbliss-ref-desktop #sbRefOverviewV2 .sb-v2-status .sb-v2-view{display:none!important}}';
     document.head.appendChild(style);
     if(typeof window.renderOverview!=='function'){setTimeout(install,50);return;}
     var base=window.renderOverview;
