@@ -145,36 +145,54 @@
 
   function prepareFromRenderedOverview(){
     if(completed)return false;
+
+    /* Once animation has started, its captured target values are immutable.
+       Never recapture from the in-flight DOM because the animation itself changes
+       textContent every frame. Recapturing those mutations was the source of the
+       desktop main-thread feedback loop. */
+    if(started&&targets)return false;
+
     var nodes=overviewNodes();
     var next=captureTargets(nodes);
     if(!next)return false;
     targets=next;
-    applyProgress(started?currentProgress:0);
+    applyProgress(0);
     if(loaderReleased())startTimeline();
     return true;
   }
 
-  /* Called synchronously by the core Overview renderer immediately after it writes
-     the final KPI DOM. This makes the renderer—not an arbitrary DOM mutation—the
-     owner of animation preparation, so zero is applied before the browser can paint. */
+  /* Called by renderers that own the final Overview DOM. Keeping this explicit
+     avoids watching the whole document for child mutations. */
   window.__sunblissOverviewKpiRendered=prepareFromRenderedOverview;
 
+  /* The only observer left watches loader state on <html>. It cannot see KPI text
+     mutations, so it cannot feed back into the animation. */
   if(window.MutationObserver){
     new MutationObserver(function(){
       if(!loaderReleased()||completed)return;
       if(!targets)prepareFromRenderedOverview();
       startTimeline();
     }).observe(root,{attributes:true,attributeFilter:['class']});
+  }
 
-    /* Desktop replaces the base mobile Overview with its executive shell. Watch only
-       for that one final dashboard node; mobile no longer depends on child mutations. */
-    if(desktop()){
-      var desktopObserver=new MutationObserver(function(){
-        if(completed)return;
-        if(document.getElementById('sbRefOverviewV2'))prepareFromRenderedOverview();
-      });
-      desktopObserver.observe(document.documentElement,{childList:true,subtree:true});
+  /* Desktop shell is created by a deferred runtime patch. Detect it with a small,
+     bounded one-shot bootstrap instead of a document-wide MutationObserver.
+     The retry stops as soon as the shell/targets exist and is capped so startup
+     can never create an unbounded polling loop. */
+  function armDesktopBootstrap(){
+    if(!desktop()||completed||targets)return;
+    var attempts=0;
+    var MAX_ATTEMPTS=240;
+    function check(){
+      if(completed||targets||attempts>=MAX_ATTEMPTS)return;
+      attempts++;
+      if(document.getElementById('sbRefOverviewV2')){
+        prepareFromRenderedOverview();
+        if(targets)return;
+      }
+      requestAnimationFrame(check);
     }
+    requestAnimationFrame(check);
   }
 
   var style=document.createElement('style');
@@ -183,4 +201,5 @@
   document.head.appendChild(style);
 
   if(document.readyState!=='loading')prepareFromRenderedOverview();
+  armDesktopBootstrap();
 })();
