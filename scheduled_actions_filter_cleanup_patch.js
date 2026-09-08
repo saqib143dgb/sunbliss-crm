@@ -8,6 +8,8 @@
   var LABELS={today:'Today',overdue:'Overdue',upcoming:'Upcoming',extensions:'Extensions'};
   var observedList=null;
   var listObserver=null;
+  var observedOverview=null;
+  var overviewObserver=null;
   var queued=false;
 
   function extensionCount(){
@@ -61,17 +63,6 @@
     var select=document.getElementById('scheduledOverviewFilter');
     if(!select)return;
     var counts=sourceCounts();
-
-    /*
-      Never derive a filter count from the currently visible DOM rows. The list can
-      briefly contain a stale extension row while the extension renderer and base
-      scheduled-action renderer settle. Using that transient DOM state was the root
-      cause of Today changing from 0 to 1 only while Today was selected.
-
-      When the shared source cache is not ready yet, keep the counts already rendered
-      by scheduled_actions_patch.js. Once the cache is ready, all four labels are
-      updated together from the same source of truth.
-    */
     if(!counts)return;
 
     Object.keys(ALLOWED).forEach(function(value){
@@ -84,19 +75,22 @@
 
   function removeLeakedExtensionRows(select){
     if(!select||select.value==='extensions')return;
-    var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
-    if(!C||!Array.isArray(C.t))return;
 
+    var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
     var extensionIds={};
-    C.t.forEach(function(t){
-      if(t&&t.status==='pending'&&t.auto_kind==='extension_active')extensionIds[String(t.id)]=true;
-    });
+    if(C&&Array.isArray(C.t)){
+      C.t.forEach(function(t){
+        if(t&&t.status==='pending'&&t.auto_kind==='extension_active')extensionIds[String(t.id)]=true;
+      });
+    }
 
     var host=document.getElementById('scheduledOverviewList');
     if(!host)return;
     var removed=false;
     host.querySelectorAll('[data-task-id]').forEach(function(row){
-      if(extensionIds[String(row.getAttribute('data-task-id'))]){
+      var id=String(row.getAttribute('data-task-id')||'');
+      var marked=row.classList.contains('scheduled-extension')||!!row.querySelector('.ext-badge,.scheduled-task-state.ext');
+      if(extensionIds[id]||marked){
         row.remove();
         removed=true;
       }
@@ -107,7 +101,21 @@
     }
   }
 
+  function observeOverview(){
+    var overview=document.querySelector('.overview');
+    if(overview===observedOverview)return;
+    if(overviewObserver)overviewObserver.disconnect();
+    observedOverview=overview||null;
+    if(!overview||!window.MutationObserver)return;
+    overviewObserver=new MutationObserver(function(){
+      queueClean();
+    });
+    overviewObserver.observe(overview,{childList:true,subtree:false});
+  }
+
   function clean(){
+    observeOverview();
+
     var select=document.getElementById('scheduledOverviewFilter');
     if(!select)return;
 
@@ -193,7 +201,12 @@
       refreshExtensionView();
     },true);
 
-    window.addEventListener('pageshow',queueClean);
+    observeOverview();
+    window.addEventListener('pageshow',function(){
+      observedOverview=null;
+      observeOverview();
+      queueClean();
+    });
     queueClean();
   }
 
