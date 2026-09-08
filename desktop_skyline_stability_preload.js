@@ -45,7 +45,7 @@
           url('assets/sunbliss-mobile-header-background.webp')!important;
         background-repeat:no-repeat,no-repeat,no-repeat!important;
         background-size:auto,auto,auto 175%!important;
-        background-position:0 0,0 0,141% 66%!important;
+        background-position:0 0,0 0,96% 66%!important;
       }
 
       /* Paint the desktop skyline from the header's own pseudo-element so it is
