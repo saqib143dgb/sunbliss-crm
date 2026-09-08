@@ -27,7 +27,7 @@
         line-height:.98!important;
       }
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual{
-        background-position:81% 66%!important;
+        background-position:96% 66%!important;
       }
     }
     @media(max-width:720px){
