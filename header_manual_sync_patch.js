@@ -16,13 +16,127 @@
   ].join('');
   document.head.appendChild(style);
 
-  function makeInteractive(){
-    document.querySelectorAll('.sb-pro-sync').forEach(function(el){
+  function desktop(){
+    return window.matchMedia?window.matchMedia('(min-width:1024px)').matches:window.innerWidth>=1024;
+  }
+
+  function directChild(parent,className){
+    if(!parent)return null;
+    for(var i=0;i<parent.children.length;i++){
+      var child=parent.children[i];
+      if(child.classList&&child.classList.contains(className))return child;
+    }
+    return null;
+  }
+
+  function syncTime(){
+    var value=window.state&&state.syncedAt;
+    if(!value)return 'Just now';
+    var d=new Date(value);
+    if(isNaN(d.getTime()))return 'Just now';
+    return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  }
+
+  function syncMarkup(){
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.2l2.3 2.3 4.8-5"/></svg><span>Synced '+syncTime()+'</span>';
+  }
+
+  function makeInteractive(root){
+    (root||document).querySelectorAll('.sb-pro-sync').forEach(function(el){
       if(!el.hasAttribute('role'))el.setAttribute('role','button');
       if(!el.hasAttribute('tabindex'))el.setAttribute('tabindex','0');
       el.setAttribute('aria-label','Sync CRM data now');
       el.setAttribute('title','Tap to sync latest CRM data');
     });
+  }
+
+  /*
+    Header persistence guard.
+
+    The CRM can replace the entire .topbar node after asynchronous data/auth
+    refreshes. Older fixes observed only the old header node, so once that node
+    was replaced the Sunbliss building layer and desktop sync pill disappeared
+    until a hard refresh. This guard watches the stable #app root but reacts
+    only to mutations that actually touch the header. It never re-renders the
+    dashboard, so there is no observer feedback loop.
+  */
+  var repairQueued=false;
+  var appObserver=null;
+
+  function ensureHeaderDecorations(){
+    var header=document.querySelector('.topbar.sunbliss-professional-header');
+    if(!header)return;
+    var projectRow=header.querySelector('.sb-pro-project-row');
+    var directSync=directChild(header,'sb-pro-sync');
+    var nestedSync=projectRow?directChild(projectRow,'sb-pro-sync'):null;
+    var visual=directChild(header,'sb-desktop-project-visual');
+
+    if(desktop()){
+      if(!visual){
+        visual=document.createElement('div');
+        visual.className='sb-desktop-project-visual';
+        visual.setAttribute('aria-hidden','true');
+        header.insertBefore(visual,header.firstChild);
+      }
+
+      /* Prefer the renderer-created sync node. Moving it, rather than cloning,
+         keeps the manual-sync interaction and accessibility state intact. */
+      if(nestedSync){
+        if(directSync&&directSync!==nestedSync)directSync.remove();
+        header.appendChild(nestedSync);
+        directSync=nestedSync;
+      }else if(!directSync){
+        directSync=document.createElement('div');
+        directSync.className='sb-pro-sync';
+        directSync.innerHTML=syncMarkup();
+        header.appendChild(directSync);
+      }
+
+      if(directSync){
+        var label=directSync.querySelector('span');
+        var expected='Synced '+syncTime();
+        if(label&&label.textContent!==expected)label.textContent=expected;
+      }
+    }else{
+      if(visual)visual.remove();
+      if(directSync&&projectRow&&!nestedSync){
+        projectRow.appendChild(directSync);
+        nestedSync=directSync;
+      }
+    }
+
+    makeInteractive(header);
+  }
+
+  function queueRepair(){
+    if(repairQueued)return;
+    repairQueued=true;
+    requestAnimationFrame(function(){
+      repairQueued=false;
+      ensureHeaderDecorations();
+    });
+  }
+
+  function nodeTouchesHeader(node){
+    if(!node||node.nodeType!==1)return false;
+    if(node.matches&&node.matches('.topbar.sunbliss-professional-header'))return true;
+    if(node.closest&&node.closest('.topbar.sunbliss-professional-header'))return true;
+    return !!(node.querySelector&&node.querySelector('.topbar.sunbliss-professional-header'));
+  }
+
+  function installHeaderObserver(){
+    if(appObserver||!window.MutationObserver)return;
+    var app=document.getElementById('app');
+    if(!app)return;
+    appObserver=new MutationObserver(function(records){
+      for(var i=0;i<records.length;i++){
+        var r=records[i];
+        if(nodeTouchesHeader(r.target)){queueRepair();return;}
+        for(var a=0;a<r.addedNodes.length;a++)if(nodeTouchesHeader(r.addedNodes[a])){queueRepair();return;}
+        for(var d=0;d<r.removedNodes.length;d++)if(nodeTouchesHeader(r.removedNodes[d])){queueRepair();return;}
+      }
+    });
+    appObserver.observe(app,{childList:true,subtree:true});
   }
 
   async function runSync(el){
@@ -38,7 +152,7 @@
       if(window.state)window.state.syncedAt=new Date().toISOString();
       if(typeof window.render==='function')window.render();
       else if(label)label.textContent='Synced just now';
-      requestAnimationFrame(makeInteractive);
+      queueRepair();
     }catch(err){
       el.classList.remove('is-syncing');el.removeAttribute('aria-busy');if(label)label.textContent='Sync failed';
       setTimeout(function(){if(label&&document.body.contains(label))label.textContent=oldText;},1400);return;
@@ -49,10 +163,33 @@
   document.addEventListener('click',function(e){var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;if(!el)return;e.preventDefault();runSync(el);});
   document.addEventListener('keydown',function(e){if(e.key!=='Enter'&&e.key!==' ')return;var el=e.target&&e.target.closest?e.target.closest('.sb-pro-sync'):null;if(!el)return;e.preventDefault();runSync(el);});
 
-  var queued=false;
-  function queue(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;makeInteractive();});}
-  function wrap(name){var original=window[name];if(typeof original!=='function'||original.__sunblissHeaderSyncWrapped)return;function wrapped(){var result=original.apply(this,arguments);queue();return result;}wrapped.__sunblissHeaderSyncWrapped=true;wrapped.__sunblissOriginal=original;window[name]=wrapped;}
-  wrap('render');wrap('renderMain');wrap('renderOverview');wrap('renderDetail');
-  window.addEventListener('pageshow',queue);
-  queue();
+  function wrap(name){
+    var original=window[name];
+    if(typeof original!=='function'||original.__sunblissHeaderSyncWrapped)return;
+    function wrapped(){
+      var result;
+      try{result=original.apply(this,arguments)}finally{queueRepair();}
+      if(result&&typeof result.then==='function')result.then(queueRepair,queueRepair);
+      return result;
+    }
+    wrapped.__sunblissHeaderSyncWrapped=true;
+    wrapped.__sunblissOriginal=original;
+    window[name]=wrapped;
+  }
+
+  function install(){
+    installHeaderObserver();
+    wrap('render');wrap('renderMain');wrap('renderOverview');wrap('renderDetail');
+    queueRepair();
+  }
+
+  install();
+  document.addEventListener('DOMContentLoaded',install,{once:true});
+  window.addEventListener('pageshow',queueRepair);
+  window.addEventListener('resize',queueRepair,{passive:true});
+  /* Re-wrap only during startup because several deferred CRM patches replace
+     render functions while the UI bundle is initializing. */
+  setTimeout(install,120);
+  setTimeout(install,500);
+  setTimeout(install,1200);
 })();
