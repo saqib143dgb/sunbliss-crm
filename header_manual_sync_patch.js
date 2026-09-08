@@ -12,7 +12,8 @@
     '.sb-pro-sync:focus-visible{outline:2px solid #d5a04a!important;outline-offset:3px!important;}',
     '.sb-pro-sync.is-syncing{opacity:.72!important;pointer-events:none!important;}',
     '.sb-pro-sync.is-syncing svg{animation:sbManualSyncPulse .8s ease-in-out infinite alternate;}',
-    '@keyframes sbManualSyncPulse{from{opacity:.45}to{opacity:1}}'
+    '@keyframes sbManualSyncPulse{from{opacity:.45}to{opacity:1}}',
+    '@media(min-width:1024px){html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-row{display:none!important;width:0!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important}html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-copy{grid-template-columns:minmax(250px,1fr)!important;grid-template-areas:"welcome" "name"!important;column-gap:0!important;width:min(520px,52%)!important;min-width:0!important}}'
   ].join('');
   document.head.appendChild(style);
 
