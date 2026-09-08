@@ -125,6 +125,61 @@
         display:none!important;
       }
 
+      /* Keep the project identity on the same horizontal baseline as the user
+         name. The old rounded project card is intentionally removed so the
+         header reads as one clean, centered identity row. */
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-copy{
+        grid-template-columns:minmax(250px,1fr) max-content!important;
+        grid-template-areas:'welcome .' 'name project'!important;
+        grid-template-rows:22px 46px!important;
+        align-items:center!important;
+        column-gap:28px!important;
+        width:min(720px,72%)!important;
+        min-width:0!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-row{
+        grid-area:project!important;
+        align-self:center!important;
+        justify-self:start!important;
+        width:auto!important;
+        min-width:0!important;
+        height:46px!important;
+        min-height:46px!important;
+        margin:0!important;
+        padding:0!important;
+        border:0!important;
+        border-radius:0!important;
+        background:transparent!important;
+        box-shadow:none!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-row:before{
+        content:none!important;
+        display:none!important;
+        border:0!important;
+        background:none!important;
+        box-shadow:none!important;
+        -webkit-backdrop-filter:none!important;
+        backdrop-filter:none!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project{
+        width:auto!important;
+        gap:9px!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-icon{
+        width:34px!important;
+        height:34px!important;
+        flex:0 0 34px!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-icon svg{
+        width:30px!important;
+        height:30px!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-name,
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project>span:not(.sb-pro-project-icon):not(.sb-pro-project-sep){
+        font-size:13.5px!important;
+        line-height:1!important;
+      }
+
       /* Desktop header visual seam fix.
          The project image layer previously stopped before the right edge of the
          header, which exposed a one-pixel/contrast boundary behind Sign out and
