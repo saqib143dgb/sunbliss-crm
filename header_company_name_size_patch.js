@@ -13,14 +13,6 @@
     .sb-pro-brand-name{display:block!important;font-size:50px!important;white-space:nowrap!important;}
     .sb-pro-brand-sub{display:block!important;width:max-content!important;font-size:14px!important;letter-spacing:0;white-space:nowrap!important;text-align:left!important;text-align-last:auto!important;}
     @media(min-width:1024px){
-      /* The Sunbliss image is intentionally positioned past 100% on desktop.
-         On narrower desktop widths its bitmap can finish before the header does,
-         revealing the lighter legacy header endpoint as a hard vertical seam.
-         Make the underlying right-side surface match the image's dark navy so
-         the bitmap can end invisibly without moving or rescaling the building. */
-      html body.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header{
-        background:linear-gradient(112deg,#061521 0%,#071824 56%,#021027 84%,#021027 100%)!important;
-      }
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-name{
         font-family:'Times New Roman',Times,serif!important;
         font-size:35.1px!important;
