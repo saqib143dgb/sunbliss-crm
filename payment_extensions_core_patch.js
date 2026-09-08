@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 if(window.__sunblissPaymentExtensionsCore)return;window.__sunblissPaymentExtensionsCore=true;
-var C={e:[],s:[],c:[],t:[],u:null,loaded:false,busy:null},timer=null,pref=null;
+var C={e:[],s:[],c:[],t:[],u:null,loaded:false,busy:null},timer=null,pref=null,TOLERANCE=1000;
 function tx(v){return v==null?'':String(v)}
 function esc(v){if(typeof window.esc==='function')return window.esc(tx(v));return tx(v).replace(/[&<>"']/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]})}
 function today(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(n||0));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -16,7 +16,13 @@ function allowed(){return !!(window.state&&(state.userRole==='crm_officer'||stat
 function stageKind(r){var n=tx(r&&r.stage_name).trim().toLowerCase().replace(/instalment/g,'installment');if(!n||n.indexOf('booking')>=0)return'';if(n.indexOf('dld')>=0||n.indexOf('admin fee')>=0)return'dld';if(n.indexOf('down payment')>=0)return'dp';if(/\b(1st|first)\b/.test(n)&&n.indexOf('installment')>=0)return'first';if(n.indexOf('installment')>=0||n.indexOf('final')>=0)return'later';return''}
 function smap(){var x={};C.s.forEach(function(r){x[r.id]=r});return x}
 function cmap(){var x={};C.c.forEach(function(r){if(r.payment_schedule_id!=null)x[r.payment_schedule_id]=(x[r.payment_schedule_id]||0)+(Number(r.amount)||0)});return x}
-function rem(r,cm){var credit=stageKind(r)==='dld'?0:(cm[r.id]||0);return r?Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-credit)*100)/100:0}
+function rem(r,cm){
+  if(!r)return 0;
+  if(tx(r.status).trim().toLowerCase()==='paid')return 0;
+  var credit=stageKind(r)==='dld'?0:(cm[r.id]||0);
+  var amount=Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-credit)*100)/100;
+  return amount<=TOLERANCE?0:amount;
+}
 function pen(v){return v==='original_due_date'?'Charges from original due date':v==='extended_due_date'?'Charges after extended deadline':v==='waived_until_extension'?'Charges waived through extension':v==='no_late_charges'?'No late charges':'Penalty treatment not specified'}
 async function load(force){if(!window.sb||!allowed())return C;if(C.loaded&&!force)return C;if(C.busy&&!force)return C.busy;C.busy=(async function(){var ids=units(),ur=await sb.auth.getUser();C.u=ur&&ur.data&&ur.data.user||null;if(!ids.length){C.e=[];C.s=[];C.c=[];C.t=[];C.loaded=true;C.busy=null;return C}var q=await Promise.all([sb.from('payment_extensions').select('*').in('unit_id',ids),sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',ids),sb.from('credit_notes').select('payment_schedule_id,unit_id,amount').in('unit_id',ids),sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,created_at,updated_at,completed_at,cancelled_at')]);q.forEach(function(r){if(r.error)throw r.error});C.e=q[0].data||[];C.s=q[1].data||[];C.c=q[2].data||[];C.t=q[3].data||[];C.loaded=true;C.busy=null;return C})().catch(function(e){C.busy=null;throw e});return C.busy}
 function active(){var sm=smap(),cm=cmap(),now=today();return C.e.filter(function(e){return e.status==='active'&&tx(e.extended_due_date)>=now&&rem(sm[e.payment_schedule_id],cm)>1})}

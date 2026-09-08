@@ -74,11 +74,27 @@ function isPriceStage(stage){
   var s=norm(stage&&stage.stage_name);
   return Number(stage&&stage.due_amount)>0&&!/(dld|admin|fee)/.test(s);
 }
+function paymentText(v){return norm(v).replace(/instalment/g,'installment');}
+function paymentStageSettled(stage){
+  if(!stage)return false;
+  if(paymentText(stage.status)==='paid')return true;
+  var due=Number(stage.due_amount)||0,paid=Number(stage.paid_amount)||0;
+  return due>0&&due-paid<=1000;
+}
 function specialLifecycle(note,schedules,credits){
-  var n=norm(note);
-  if(!n||n.indexOf('credit note')<0)return {completed:false};
+  var n=paymentText(note);
+  if(!n)return {completed:false};
   schedules=schedules||[];
   credits=credits||[];
+  if(/(?:payment\s+extension|extended\s+(?:deadline|due|date)|extension\s+for)/.test(n)){
+    var extendedStages=schedules.filter(function(s){
+      var stage=paymentText(s.stage_name);if(!stage)return false;
+      var simple=stage.replace(/\s*\([^)]*\)\s*/g,' ').replace(/\s+/g,' ').trim();
+      return n.indexOf(stage)>=0||(simple&&n.indexOf(simple)>=0);
+    });
+    if(extendedStages.length)return {completed:extendedStages.every(paymentStageSettled)};
+  }
+  if(n.indexOf('credit note')<0)return {completed:false};
   var credited={};
   credits.forEach(function(c){if(c.payment_schedule_id!=null)credited[String(c.payment_schedule_id)]=true;});
   var multi=/\bcredit notes\b/.test(n)||/\b(each|every|all|future)\b.{0,45}\binstallments?\b/.test(n)||/\bagainst installments\b/.test(n)||/\binstallment-wise\b/.test(n);
@@ -146,7 +162,15 @@ async function ensureDedicatedNotice(){
     if(!window.state||state.view!=='detail'||String(state.selectedUnit)!==key)return;
     hideLegacyRemarksNotices();
     var existing=document.getElementById('customerNotesCard');
-    if(existing&&detail.contains(existing))return;
+    if(existing&&detail.contains(existing)){
+      var existingRows=Array.prototype.slice.call(existing.querySelectorAll('.customer-note-display-row'));
+      existingRows.forEach(function(row){
+        var label=paymentText((row.querySelector('.customer-note-display-label')||{}).textContent);
+        if((label.indexOf('special note')===0&&data.specialCompleted)||(label.indexOf('partial booking note')===0&&data.dpPaid))row.remove();
+      });
+      if(!existing.querySelector('.customer-note-display-row'))existing.remove();
+      return;
+    }
     var showSpecial=!!data.special&&!data.specialCompleted;
     var showPartial=!!data.partial&&!data.dpPaid;
     if(!showSpecial&&!showPartial)return;

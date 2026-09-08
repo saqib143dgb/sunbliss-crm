@@ -25,6 +25,7 @@ function parse(status,message,detail){
   if(!by){var all=[],re=/(?:Extended to|Revised to|By)\s+([0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4})/gi,x;while((x=re.exec(detail)))all.push(x[1]);if(all.length)by=all[all.length-1]}
   if(!by&&/due today/i.test(status))by='Today';
   if(!by&&/date needed/i.test(status))by='Not set';
+  if(!by&&/(?:due|payable) at handover/i.test(detail+' '+message))by='At handover';
   if(!by)by='—';
   m=detail.match(/Due in\s+([0-9]+\s+day(?:s)?)/i);if(m)due=m[1];
   if(!due){m=detail.match(/([0-9]+\s+day(?:s)?\s+overdue)/i);if(m)due=m[1]}
