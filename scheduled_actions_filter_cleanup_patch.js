@@ -29,18 +29,6 @@
     if(option.textContent!==label)option.textContent=label;
   }
 
-  function visibleListCount(){
-    var host=document.getElementById('scheduledOverviewList');
-    if(!host)return null;
-    var rows=Array.prototype.slice.call(host.children).filter(function(el){
-      if(!el||!el.classList||el.classList.contains('scheduled-empty'))return false;
-      return el.classList.contains('scheduled-overview-row')||el.hasAttribute('data-task-id');
-    });
-    if(rows.length)return rows.length;
-    if(host.querySelector('.scheduled-empty'))return 0;
-    return null;
-  }
-
   function todayIso(){
     var d=new Date();
     d.setHours(0,0,0,0);
@@ -69,31 +57,54 @@
     return counts;
   }
 
-  function syncSelectedCount(){
-    var select=document.getElementById('scheduledOverviewFilter');
-    if(!select||!ALLOWED[select.value])return;
-    var count=visibleListCount();
-    if(count===null)return;
-    var option=select.querySelector('option[value="'+select.value+'"]');
-    if(!option)return;
-    var label=LABELS[select.value]+' · '+count;
-    if(option.textContent!==label)option.textContent=label;
-  }
-
   function syncAllCounts(){
     var select=document.getElementById('scheduledOverviewFilter');
     if(!select)return;
     var counts=sourceCounts();
-    if(!counts){
-      syncSelectedCount();
-      return;
-    }
+
+    /*
+      Never derive a filter count from the currently visible DOM rows. The list can
+      briefly contain a stale extension row while the extension renderer and base
+      scheduled-action renderer settle. Using that transient DOM state was the root
+      cause of Today changing from 0 to 1 only while Today was selected.
+
+      When the shared source cache is not ready yet, keep the counts already rendered
+      by scheduled_actions_patch.js. Once the cache is ready, all four labels are
+      updated together from the same source of truth.
+    */
+    if(!counts)return;
+
     Object.keys(ALLOWED).forEach(function(value){
       var option=select.querySelector('option[value="'+value+'"]');
       if(!option)return;
       var label=LABELS[value]+' · '+counts[value];
       if(option.textContent!==label)option.textContent=label;
     });
+  }
+
+  function removeLeakedExtensionRows(select){
+    if(!select||select.value==='extensions')return;
+    var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
+    if(!C||!Array.isArray(C.t))return;
+
+    var extensionIds={};
+    C.t.forEach(function(t){
+      if(t&&t.status==='pending'&&t.auto_kind==='extension_active')extensionIds[String(t.id)]=true;
+    });
+
+    var host=document.getElementById('scheduledOverviewList');
+    if(!host)return;
+    var removed=false;
+    host.querySelectorAll('[data-task-id]').forEach(function(row){
+      if(extensionIds[String(row.getAttribute('data-task-id'))]){
+        row.remove();
+        removed=true;
+      }
+    });
+
+    if(removed&&!host.querySelector('.scheduled-overview-row,[data-task-id]')&&!host.querySelector('.scheduled-empty')){
+      host.innerHTML='<div class="scheduled-empty">No pending actions in this view.</div>';
+    }
   }
 
   function clean(){
@@ -116,6 +127,7 @@
     }
 
     if(!ALLOWED[select.value])select.value='today';
+    removeLeakedExtensionRows(select);
     syncAllCounts();
     observeList();
   }
