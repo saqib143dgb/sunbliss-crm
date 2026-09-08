@@ -26,6 +26,66 @@
       .sb-dubai-skyline .sb-sky-fill{fill:#d5a04a;fill-opacity:.28;}
       .sb-dubai-skyline .sb-sky-line{fill:none;stroke:#e1b15d;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
       .sb-dubai-skyline .sb-sky-thin{fill:none;stroke:#d5a04a;stroke-width:1.15;stroke-opacity:.8;}
+
+      /* Desktop-only skyline redesign. Keep the skyline large and architectural,
+         but line-only and low contrast so it fills the empty middle without
+         competing with the user information or the Sunbliss building visual. */
+      @media(min-width:1024px){
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-main.sb-pro-main::after{
+          content:none!important;
+          display:none!important;
+          background:none!important;
+          opacity:0!important;
+        }
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline{
+          display:block!important;
+          left:35%!important;
+          right:25%!important;
+          bottom:-12px!important;
+          width:auto!important;
+          max-width:none!important;
+          height:112%!important;
+          opacity:.22!important;
+          z-index:1!important;
+          overflow:visible!important;
+          -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.9) 10%,#000 24%,#000 84%,transparent 100%)!important;
+          mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.9) 10%,#000 24%,#000 84%,transparent 100%)!important;
+          filter:drop-shadow(0 0 10px rgba(198,151,46,.055))!important;
+        }
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline .sb-sky-fill{
+          fill:none!important;
+          fill-opacity:0!important;
+        }
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline .sb-sky-line{
+          stroke:#ddb05a!important;
+          stroke-width:1.35!important;
+          stroke-opacity:.62!important;
+        }
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline .sb-sky-thin{
+          stroke:#8199aa!important;
+          stroke-width:.9!important;
+          stroke-opacity:.32!important;
+        }
+      }
+
+      @media(min-width:1440px){
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline{
+          left:32%!important;
+          right:22%!important;
+          bottom:-15px!important;
+          height:120%!important;
+          opacity:.23!important;
+        }
+      }
+
+      @media(min-width:1800px){
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline{
+          left:31%!important;
+          right:21%!important;
+          height:124%!important;
+        }
+      }
+
       @media(max-width:720px){
         .sb-dubai-skyline{right:-22px!important;width:61%!important;height:72%!important;opacity:.14!important;}
       }
