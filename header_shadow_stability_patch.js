@@ -124,6 +124,25 @@
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-row .sb-desktop-project-sub{
         display:none!important;
       }
+
+      /* Desktop header visual seam fix.
+         The project image layer previously stopped before the right edge of the
+         header, which exposed a one-pixel/contrast boundary behind Sign out and
+         the sync pill. Extend that decorative layer to the true header edge and
+         explicitly strip any border/outline/shadow from it. */
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual{
+        right:0!important;
+        border:0!important;
+        outline:0!important;
+        box-shadow:none!important;
+        background-color:transparent!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual:after{
+        right:-2px!important;
+        border:0!important;
+        outline:0!important;
+        box-shadow:none!important;
+      }
     }
   `;
   document.head.appendChild(style);
