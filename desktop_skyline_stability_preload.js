@@ -2,6 +2,18 @@
   'use strict';
   if(document.getElementById('sunblissDesktopSkylineStabilityPreload'))return;
 
+  /* Preload the Sunbliss building asset before the deferred desktop UI bundle.
+     This prevents an image-decode flash when the professional header appears. */
+  if(!document.getElementById('sunblissDesktopBuildingImagePreload')){
+    var buildingPreload=document.createElement('link');
+    buildingPreload.id='sunblissDesktopBuildingImagePreload';
+    buildingPreload.rel='preload';
+    buildingPreload.as='image';
+    buildingPreload.href='assets/sunbliss-mobile-header-background.webp';
+    buildingPreload.fetchPriority='high';
+    document.head.appendChild(buildingPreload);
+  }
+
   var style=document.createElement('style');
   style.id='sunblissDesktopSkylineStabilityPreload';
   style.textContent=`
@@ -13,6 +25,27 @@
         display:none!important;
         visibility:hidden!important;
         opacity:0!important;
+      }
+
+      /* The Sunbliss building used to live in a DOM layer that was inserted and
+         reinserted after header renders. That created a one-frame disappear / jump.
+         Paint it permanently inside the header's own ::before background instead.
+         The same dark header gradients stay above the image, preserving the look. */
+      html body.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header .sb-desktop-project-visual{
+        display:none!important;
+        visibility:hidden!important;
+        opacity:0!important;
+        animation:none!important;
+        transition:none!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header::before{
+        background-image:
+          linear-gradient(90deg,rgba(3,13,22,.985) 0%,rgba(3,13,22,.95) 30%,rgba(3,13,22,.78) 43%,rgba(3,13,22,.27) 62%,rgba(3,13,22,.04) 82%,rgba(3,13,22,.015) 100%),
+          radial-gradient(ellipse 35% 76% at 70% 48%,rgba(198,151,46,.07),transparent 75%),
+          url('assets/sunbliss-mobile-header-background.webp')!important;
+        background-repeat:no-repeat,no-repeat,no-repeat!important;
+        background-size:auto,auto,auto 175%!important;
+        background-position:0 0,0 0,141% 66%!important;
       }
 
       /* Paint the desktop skyline from the header's own pseudo-element so it is
