@@ -1,6 +1,21 @@
 (function(){
   'use strict';
 
+  function ensureDesktopAlignment(){
+    if(document.getElementById('sunblissDesktopDetailAlignmentStyles')) return;
+    var style=document.createElement('style');
+    style.id='sunblissDesktopDetailAlignmentStyles';
+    style.textContent=[
+      '@media(min-width:1024px){',
+      'html body.sunbliss-ref-desktop #app main#main .detail{width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important;}',
+      'html body.sunbliss-ref-desktop #app main#main .detail>.field-row,html body.sunbliss-ref-desktop #app main#main .detail>.field-address{width:100%!important;max-width:none!important;box-sizing:border-box!important;}',
+      'html body.sunbliss-ref-desktop #app main#main .detail>.money-grid,html body.sunbliss-ref-desktop #app main#main .detail>.cust-progress,html body.sunbliss-ref-desktop #app main#main .detail>.reminder-actions{width:100%!important;max-width:none!important;box-sizing:border-box!important;}',
+      'html body.sunbliss-ref-desktop #app main#main .detail>.section-label{width:100%!important;max-width:none!important;box-sizing:border-box!important;}',
+      '}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
   function normalizeLabel(value){
     return String(value || '').replace(/\s+/g,' ').trim().toLowerCase();
   }
@@ -31,6 +46,7 @@
   }
 
   function install(){
+    ensureDesktopAlignment();
     if (!window.state || typeof window.renderDetail !== 'function'){
       setTimeout(install,50);
       return;
@@ -48,5 +64,6 @@
     if (state.view === 'detail') removeDeprecatedDetailActions();
   }
 
+  ensureDesktopAlignment();
   install();
 })();
