@@ -204,6 +204,142 @@
   document.head.appendChild(style);
 
   /*
+    Desktop header lifecycle ownership.
+
+    The professional header renderer owns header.innerHTML. Older desktop
+    enhancements were appended afterwards, so any later render could erase the
+    building layer and move the sync control back into the project row. A full
+    page reload happened to run the enhancement scripts again, which is why the
+    video recovered only after refresh.
+
+    Keep the final desktop-only elements owned by the render lifecycle instead:
+    restore them after render and observe only the header itself. Do NOT watch
+    the whole application subtree; that previously caused expensive feedback
+    loops elsewhere in the CRM.
+  */
+  var headerFixQueued=false;
+  var observedHeader=null;
+  var headerObserver=null;
+  var hookAttempts=0;
+
+  function desktopViewport(){
+    return window.matchMedia?window.matchMedia('(min-width:1024px)').matches:window.innerWidth>=1024;
+  }
+
+  function directChildByClass(parent,className){
+    if(!parent)return null;
+    for(var i=0;i<parent.children.length;i++){
+      var child=parent.children[i];
+      if(child.classList&&child.classList.contains(className))return child;
+    }
+    return null;
+  }
+
+  function syncTimeText(){
+    var value=window.state&&state.syncedAt;
+    if(!value)return 'Just now';
+    var d=new Date(value);
+    if(isNaN(d.getTime()))return 'Just now';
+    return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  }
+
+  function observeHeader(header){
+    if(!window.MutationObserver||header===observedHeader)return;
+    if(headerObserver)headerObserver.disconnect();
+    observedHeader=header||null;
+    if(!header){headerObserver=null;return;}
+    headerObserver=new MutationObserver(function(){queueHeaderFix();});
+    /* Header-only structural observation: enough to detect innerHTML rebuilds
+       without waking up for dashboard/KPI/table mutations. */
+    headerObserver.observe(header,{childList:true,subtree:true});
+  }
+
+  function stabilizeDesktopHeader(){
+    var header=document.querySelector('.topbar.sunbliss-professional-header');
+    if(!header){observeHeader(null);return;}
+    observeHeader(header);
+
+    var visual=directChildByClass(header,'sb-desktop-project-visual');
+    var directSync=directChildByClass(header,'sb-pro-sync');
+    var projectRow=header.querySelector('.sb-pro-project-row');
+    var nestedSync=projectRow?directChildByClass(projectRow,'sb-pro-sync'):null;
+
+    if(!desktopViewport()){
+      if(visual)visual.remove();
+      if(directSync&&projectRow&&!nestedSync)projectRow.appendChild(directSync);
+      return;
+    }
+
+    if(!visual){
+      visual=document.createElement('div');
+      visual.className='sb-desktop-project-visual';
+      visual.setAttribute('aria-hidden','true');
+      header.insertBefore(visual,header.firstChild);
+    }
+
+    /* The newest sync node wins. If the renderer has just rebuilt the header,
+       it creates a fresh nested sync; move that exact node to the desktop slot
+       instead of cloning it, preserving accessibility and delegated actions. */
+    if(nestedSync){
+      if(directSync&&directSync!==nestedSync)directSync.remove();
+      header.appendChild(nestedSync);
+      directSync=nestedSync;
+    }
+
+    if(directSync){
+      var label=directSync.querySelector('span');
+      var expected='Synced '+syncTimeText();
+      if(label&&label.textContent!==expected)label.textContent=expected;
+    }
+  }
+
+  function queueHeaderFix(){
+    if(headerFixQueued)return;
+    headerFixQueued=true;
+    requestAnimationFrame(function(){
+      headerFixQueued=false;
+      stabilizeDesktopHeader();
+    });
+  }
+
+  function wrapHeaderRender(name){
+    var fn=window[name];
+    if(typeof fn!=='function'||fn.__sunblissHeaderLifecycleStable)return;
+    function wrapped(){
+      var out;
+      try{out=fn.apply(this,arguments)}
+      finally{queueHeaderFix();}
+      if(out&&typeof out.then==='function')out.then(queueHeaderFix,queueHeaderFix);
+      return out;
+    }
+    wrapped.__sunblissHeaderLifecycleStable=true;
+    wrapped.__sunblissOriginal=fn;
+    window[name]=wrapped;
+  }
+
+  function installHeaderLifecycle(){
+    wrapHeaderRender('render');
+    wrapHeaderRender('renderMain');
+    wrapHeaderRender('renderOverview');
+    wrapHeaderRender('renderDetail');
+    queueHeaderFix();
+
+    /* Header render wrappers are installed by several deferred CRM patches.
+       Retry only during startup so we end up outside the final wrapper chain,
+       then stop; there is no permanent polling loop. */
+    hookAttempts+=1;
+    if(hookAttempts<14)window.setTimeout(installHeaderLifecycle,140);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',installHeaderLifecycle,{once:true});
+  }else{
+    installHeaderLifecycle();
+  }
+  window.addEventListener('pageshow',queueHeaderFix);
+  window.addEventListener('resize',queueHeaderFix,{passive:true});
+
+  /*
     Startup safety: the KPI reconciliation patch may temporarily add
     sbx-overview-data-pending. That state must never own the whole application
     before authentication exists, and it must never be able to hold the boot
