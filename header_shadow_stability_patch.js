@@ -180,17 +180,18 @@
         line-height:1!important;
       }
 
-      /* Desktop header visual seam fix.
-         The project image layer previously stopped before the right edge of the
-         header, which exposed a one-pixel/contrast boundary behind Sign out and
-         the sync pill. Extend that decorative layer to the true header edge and
-         explicitly strip any border/outline/shadow from it. */
+      /* Desktop header visual seam fix plus final project/building spacing.
+         Keep the decorative project layer flush to the right edge, but start it
+         slightly earlier so the Sunbliss building sits closer to the project
+         identity without changing the header structure. */
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual{
+        left:56%!important;
         right:0!important;
         border:0!important;
         outline:0!important;
         box-shadow:none!important;
         background-color:transparent!important;
+        background-position:76% 66%!important;
       }
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual:after{
         right:-2px!important;
