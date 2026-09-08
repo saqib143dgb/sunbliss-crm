@@ -15,7 +15,16 @@
     @media(min-width:1024px){
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-name{
         font-family:'Times New Roman',Times,serif!important;
-        font-size:27px!important;
+        font-size:35.1px!important;
+        line-height:1!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-sub{
+        font-size:9.1px!important;
+        line-height:1.15!important;
+      }
+      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-main .sb-pro-copy .sb-pro-name-row .sb-pro-name{
+        font-size:30.6px!important;
+        line-height:.98!important;
       }
     }
     @media(max-width:720px){
