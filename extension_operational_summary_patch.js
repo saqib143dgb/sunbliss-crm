@@ -43,11 +43,12 @@ function extensionContext(customer){
   var list=Object.keys(groups).map(function(k){return groups[k]}).sort(function(a,b){return a.due.localeCompare(b.due)});if(!list.length)return null;
   var selected=list.find(function(g){return g.items.length>1})||list[0];
   var outsideOverdue=(C.s||[]).some(function(r){if(!r||Number(r.unit_id)!==unit||!stageKind(r)||activeIds[String(r.id)])return false;var n=typeof P.remaining==='function'?P.remaining(r,cm):0;if(n<=1)return false;var d=iso(r.revised_due_date)||iso(r.due_date);return !!d&&d<td});
-  return{customer:c,unit:unit,groups:list,selected:selected,outsideOverdue:outsideOverdue,activeIds:activeIds}
+  var outsideEarlier=(C.s||[]).some(function(r){if(!r||Number(r.unit_id)!==unit||!stageKind(r)||activeIds[String(r.id)])return false;var n=typeof P.remaining==='function'?P.remaining(r,cm):0;if(n<=1)return false;var d=iso(r.revised_due_date)||iso(r.due_date);return !!d&&d<selected.due});
+  return{customer:c,unit:unit,groups:list,selected:selected,outsideOverdue:outsideOverdue,outsideEarlier:outsideEarlier,activeIds:activeIds}
 }
 function setText(node,value){if(node&&text(node.textContent)!==text(value))node.textContent=value}
 function applyActionSummary(ctx){
-  if(!ctx||ctx.outsideOverdue||!ctx.selected||ctx.selected.items.length<2)return;
+  if(!ctx||ctx.outsideOverdue||ctx.outsideEarlier||!ctx.selected||ctx.selected.items.length<2)return;
   var card=document.getElementById('actionRequiredCard');if(!card||card.hidden||card.getAttribute('aria-hidden')==='true')return;
   // Keep the deadline in detail/By only; observer refreshes must not reinsert it into the headline.
   var g=ctx.selected,d=daysUntil(g.due),count=g.items.length,stage=count+' outstanding component'+(count===1?'':'s'),dueText=formatDate(g.due),message=money(g.total)+' under extension.',detail='Stage: '+stage+' · Extended to '+dueText+(d==null?'':d===0?' · Due today.':d>0?' · Due in '+d+' day'+(d===1?'':'s')+'.':' · '+Math.abs(d)+' day'+(Math.abs(d)===1?'':'s')+' overdue.'),sig=[ctx.unit,g.due,g.total,count,d].join('|');
@@ -92,7 +93,7 @@ function install(){
 }
 window.sunblissExtensionSummaryForCustomer=function(customer){
  var ctx=extensionContext(customer);
- if(!ctx||ctx.outsideOverdue||!ctx.selected||ctx.selected.items.length<2)return null;
+ if(!ctx||ctx.outsideOverdue||ctx.outsideEarlier||!ctx.selected||ctx.selected.items.length<2)return null;
  var g=ctx.selected;
  return{amount:g.total,stage:g.items.length+' outstanding components',date:day(g.due),overdueCount:0};
 };
