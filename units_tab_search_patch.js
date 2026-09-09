@@ -162,6 +162,14 @@
     });
   }
 
+  function normalizeSpaStatusCopy(){
+    document.querySelectorAll('.list .row-meta span').forEach(function(node){
+      if (String(node.textContent || '').trim() === 'SPA Not Signed'){
+        node.textContent = 'SPA Not Started';
+      }
+    });
+  }
+
   function relabelExport(){
     var button = document.getElementById('btnExportList');
     if (!button) return;
@@ -197,6 +205,7 @@
       }
 
       restoreRenderedCustomerNames(originalNames);
+      normalizeSpaStatusCopy();
       var internal = document.getElementById('searchInput');
       if (internal){
         internal.placeholder = 'Search unit, customer, broker or RM';
@@ -217,6 +226,7 @@
       try {
         setDockSearchCopy();
         relabelExport();
+        normalizeSpaStatusCopy();
       } finally {
         observer.observe(app,{childList:true,subtree:true});
       }
