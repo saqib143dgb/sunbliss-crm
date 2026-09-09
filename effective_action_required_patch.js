@@ -53,7 +53,10 @@ function build(data,c){
  rows.sort(function(a,b){return text(a.e.date||'9999-12-31').localeCompare(text(b.e.date||'9999-12-31'))||Number(a.r.id)-Number(b.r.id)});
  if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule, including DLD and Admin Fees, is fully settled.'};
  var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',current=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data);
- current=current.filter(function(x){return!cov[String(x.r.id)]});
+ // A follow-up task does not settle an overdue installment. Keep overdue
+ // balances visible; retain scheduled-action deduplication for future payments.
+ var actionToday=today();
+ current=current.filter(function(x){var due=day(x.e.date);return(due&&due<actionToday)||!cov[String(x.r.id)]});
  if(!current.length)return{hidden:true,reason:'scheduled'};
  if(!current[0].e.date){
   var pending=current[0],pendingStage=text(pending.r.stage_name)||'Final Installment (Handover)';
