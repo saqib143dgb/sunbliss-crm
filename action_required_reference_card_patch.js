@@ -8,7 +8,7 @@ function ensureHeadlineSize(){
   if(document.getElementById('actionRequiredHeadlineSizeRefine'))return;
   var style=document.createElement('style');
   style.id='actionRequiredHeadlineSizeRefine';
-  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}}';
+  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}.action-required-card .action-required-meta{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.8fr)!important;padding:0 10px!important;}.action-required-card .action-required-meta-block{display:block!important;min-width:0!important;min-height:auto!important;padding:10px 7px!important;text-align:center!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:7px!important;}.action-required-card .action-required-meta-icon{display:none!important;}.action-required-card .action-required-meta-label{margin:0 0 3px!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;}.action-required-card .action-required-meta-value{display:block!important;font-size:10.4px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;word-break:normal!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}.action-required-card .action-required-meta{padding:0 7px!important;}.action-required-card .action-required-meta-block{padding:9px 5px!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:5px!important;}.action-required-card .action-required-meta-label{font-size:8.5px!important;}.action-required-card .action-required-meta-value{font-size:9.6px!important;}}';
   document.head.appendChild(style);
 }
 function parse(status,message,detail){
@@ -33,6 +33,14 @@ function parse(status,message,detail){
   if(!due&&/overdue/i.test(status))due='Overdue';
   if(!due)due='—';
   return{stage:stage,by:by,due:due};
+}
+function compactDate(value){
+  var raw=text(value).trim(),m=raw.match(/^([0-9]{1,2})\s+([A-Za-z]{3})\s+([0-9]{4})$/);
+  return m?m[1]+' '+m[2]+' '+m[3].slice(-2):raw;
+}
+function compactDue(value){
+  var raw=text(value).trim(),m=raw.match(/^([0-9]+\s+day(?:s)?)\s+overdue$/i);
+  return m?m[1]:raw;
 }
 function escapeRegExp(value){return text(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function cleanHeadline(value,by){
@@ -61,13 +69,13 @@ function sync(){
   var card=document.getElementById('actionRequiredCard');if(!card)return;
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value');
   if(!status||!message||values.length<3)return;
-  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),headline=cleanHeadline(message.textContent,meta.by);
+  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),headline=cleanHeadline(message.textContent,meta.by),byDisplay=compactDate(meta.by),dueDisplay=compactDue(meta.due);
   syncing=true;
   if(observer)observer.disconnect();
   try{
     if(text(values[0].textContent)!==meta.stage)values[0].textContent=meta.stage;
-    if(text(values[1].textContent)!==meta.by)values[1].textContent=meta.by;
-    if(text(values[2].textContent)!==meta.due)values[2].textContent=meta.due;
+    if(text(values[1].textContent)!==byDisplay)values[1].textContent=byDisplay;
+    if(text(values[2].textContent)!==dueDisplay)values[2].textContent=dueDisplay;
     if(headline&&text(message.textContent).trim()!==headline)message.textContent=headline;
   }finally{
     syncing=false;
