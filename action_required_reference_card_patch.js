@@ -34,13 +34,21 @@ function parse(status,message,detail){
   if(!due)due='—';
   return{stage:stage,by:by,due:due};
 }
-function cleanHeadline(value){
-  var out=text(value).trim();
+function escapeRegExp(value){return text(value).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function cleanHeadline(value,by){
+  var out=text(value).trim(),exact=text(by).trim();
   if(!out)return out;
-  out=out.replace(/\s*It was due on\s+[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\.?\s*$/i,'');
-  out=out.replace(/\s+due on\s+[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\.?\s*$/i,'.');
-  out=out.replace(/\s*[—–-]\s*due\s+[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\.?\s*$/i,'.');
-  out=out.replace(/\s{2,}/g,' ').replace(/\.\.+$/,'.').trim();
+  if(/^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/.test(exact)){
+    var d=escapeRegExp(exact);
+    out=out.replace(new RegExp('\\s+(?:It|They)\\s+(?:was|were)\\s+due\\s+on\\s+'+d+'\\.?','gi'),'');
+    out=out.replace(new RegExp('\\s+was\\s+due\\s+on\\s+'+d,'gi'),' is overdue');
+    out=out.replace(new RegExp('\\s+were\\s+due\\s+on\\s+'+d,'gi'),' are overdue');
+    out=out.replace(new RegExp('\\s+by\\s+'+d+'(?=\\s+before\\s+SPA\\s+signing)','gi'),'');
+    out=out.replace(new RegExp('\\s*[—–-]\\s*due\\s+'+d,'gi'),'');
+    out=out.replace(new RegExp('\\s+due\\s+on\\s+'+d,'gi'),'');
+    out=out.replace(new RegExp('\\s+due\\s+'+d,'gi'),'');
+  }
+  out=out.replace(/\s+([,.!?])/g,'$1').replace(/\.\s*\./g,'.').replace(/\s{2,}/g,' ').trim();
   if(out&&!/[.!?]$/.test(out))out+='.';
   return out;
 }
@@ -53,7 +61,7 @@ function sync(){
   var card=document.getElementById('actionRequiredCard');if(!card)return;
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value');
   if(!status||!message||values.length<3)return;
-  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),headline=cleanHeadline(message.textContent);
+  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),headline=cleanHeadline(message.textContent,meta.by);
   syncing=true;
   if(observer)observer.disconnect();
   try{
