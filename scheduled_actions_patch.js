@@ -13,6 +13,16 @@
   }
   function todayIso(offset){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(offset||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
   function formatDate(v){if(!v)return'';var d=new Date(text(v).slice(0,10)+'T00:00:00');if(isNaN(d.getTime()))return text(v);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+  function escapeRegExp(v){return text(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+  function displayNote(t){
+    var note=text(t&&t.note).trim();if(!note)return'';
+    if(text(t&&t.source).toLowerCase()==='manual')return note;
+    var due=formatDate(t&&t.due_date);if(!due)return note;
+    var d=escapeRegExp(due);
+    note=note.replace(new RegExp('\\s*[·•-]?\\s*(?:payment\\s+)?due\\s+(?:on\\s+)?'+d+'\\.?','gi'),'');
+    note=note.replace(new RegExp('\\s*[·•-]?\\s*due\\s+(?:on\\s+)?'+d+'\\.?','gi'),'');
+    return note.replace(/\s{2,}/g,' ').replace(/\s+[·•-]\s*$/,'').trim();
+  }
   function currentCustomer(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit);})||null;}
   function customerForUnit(unitId){if(!window.state||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return Number(c&&c.sno)===Number(unitId);})||null;}
   function canUse(){return !!(window.state&&(state.userRole==='crm_officer'||state.userRole==='manager'));}
@@ -101,7 +111,7 @@
     var tasks=pendingForUnit(c.sno);if(!tasks.length)return;
     var section=document.createElement('section');section.id='scheduledActionsDetail';section.className='scheduled-actions-detail';
     section.innerHTML='<div class="scheduled-actions-heading"><p class="section-label">Scheduled Action'+(tasks.length>1?'s':'')+'</p><span class="scheduled-actions-count">'+tasks.length+' pending</span></div>'+
-      tasks.map(function(t){var st=stateForTask(t);return '<div class="scheduled-task-card" data-task-id="'+t.id+'" data-priority="'+safe(t.priority)+'"><div class="scheduled-task-top"><div><div class="scheduled-task-title">'+safe(t.action_label)+'</div><div class="scheduled-task-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span><span>'+safe(t.priority)+' priority</span><span>'+safe(formatDate(t.due_date))+'</span></div></div><div class="scheduled-task-date">'+safe(formatDate(t.due_date))+'</div></div>'+(t.note?'<p class="scheduled-task-note">'+safe(t.note)+'</p>':'')+'<div class="scheduled-task-actions"><button type="button" class="btn btn-gold scheduled-mark-done" data-task-id="'+t.id+'">Mark Done</button><button type="button" class="btn-paper scheduled-edit" data-task-id="'+t.id+'">Edit / Reschedule</button></div></div>';}).join('');
+      tasks.map(function(t){var st=stateForTask(t),note=displayNote(t);return '<div class="scheduled-task-card" data-task-id="'+t.id+'" data-priority="'+safe(t.priority)+'"><div class="scheduled-task-top"><div><div class="scheduled-task-title">'+safe(t.action_label)+'</div><div class="scheduled-task-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span><span>'+safe(t.priority)+' priority</span></div></div><div class="scheduled-task-date">'+safe(formatDate(t.due_date))+'</div></div>'+(note?'<p class="scheduled-task-note">'+safe(note)+'</p>':'')+'<div class="scheduled-task-actions"><button type="button" class="btn btn-gold scheduled-mark-done" data-task-id="'+t.id+'">Mark Done</button><button type="button" class="btn-paper scheduled-edit" data-task-id="'+t.id+'">Edit / Reschedule</button></div></div>';}).join('');
     var anchor=document.getElementById('actionRequiredCard');
     if(anchor&&anchor.parentNode)anchor.insertAdjacentElement('afterend',section);else{var badges=detail.querySelector('.badges');if(badges)badges.insertAdjacentElement('afterend',section);else detail.insertBefore(section,detail.firstChild);}
     bindTaskButtons(section);
