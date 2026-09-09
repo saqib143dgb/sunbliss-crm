@@ -34,19 +34,43 @@ function parse(status,message,detail){
   if(!due)due='—';
   return{stage:stage,by:by,due:due};
 }
+function cleanHeadline(value){
+  var out=text(value).trim();
+  if(!out)return out;
+  out=out.replace(/\s*It was due on\s+[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\.?\s*$/i,'');
+  out=out.replace(/\s+due on\s+[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\.?\s*$/i,'.');
+  out=out.replace(/\s*[—–-]\s*due\s+[0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4}\.?\s*$/i,'.');
+  out=out.replace(/\s{2,}/g,' ').replace(/\.\.+$/,'.').trim();
+  if(out&&!/[.!?]$/.test(out))out+='.';
+  return out;
+}
+function observeTargets(targets){
+  if(!observer)return;
+  targets.forEach(function(node){observer.observe(node,{childList:true,characterData:true,subtree:true})});
+}
 function sync(){
   if(syncing||!window.state||state.view!=='detail')return;
   var card=document.getElementById('actionRequiredCard');if(!card)return;
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value');
   if(!status||!message||values.length<3)return;
-  var meta=parse(status.textContent,message.textContent,detail&&detail.textContent);syncing=true;
-  try{if(text(values[0].textContent)!==meta.stage)values[0].textContent=meta.stage;if(text(values[1].textContent)!==meta.by)values[1].textContent=meta.by;if(text(values[2].textContent)!==meta.due)values[2].textContent=meta.due;}finally{syncing=false}
+  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),headline=cleanHeadline(message.textContent);
+  syncing=true;
+  if(observer)observer.disconnect();
+  try{
+    if(text(values[0].textContent)!==meta.stage)values[0].textContent=meta.stage;
+    if(text(values[1].textContent)!==meta.by)values[1].textContent=meta.by;
+    if(text(values[2].textContent)!==meta.due)values[2].textContent=meta.due;
+    if(headline&&text(message.textContent).trim()!==headline)message.textContent=headline;
+  }finally{
+    syncing=false;
+    observeTargets(targets);
+  }
 }
 function attach(){
   if(observer){observer.disconnect();observer=null}
   var card=document.getElementById('actionRequiredCard');if(!card)return;
   var targets=[card.querySelector('.action-required-status'),card.querySelector('.action-required-message'),card.querySelector('.action-required-detail')].filter(Boolean);if(!targets.length)return;
-  observer=new MutationObserver(sync);targets.forEach(function(node){observer.observe(node,{childList:true,characterData:true,subtree:true})});sync();
+  observer=new MutationObserver(sync);observeTargets(targets);sync();
 }
 function install(){
   if(!window.state||typeof window.renderDetail!=='function'||typeof window.sunblissRenderActionRequiredCard!=='function'){setTimeout(install,60);return}
