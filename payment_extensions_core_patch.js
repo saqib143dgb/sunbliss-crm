@@ -44,6 +44,7 @@ function genuineOverdue(id){var a={};active().forEach(function(e){a[e.payment_sc
 function actionCard(){return}
 // List-only projection: never overwrite contractual dates or shared customer data.
 function listEntry(customer){
+  if(typeof window.sunblissEffectiveActionListEntry==='function')return window.sunblissEffectiveActionListEntry(customer);
   if(!C.loaded||!customer)return null;
   var extensions={},now=today(),cm=cmap(),managed={};
   active().forEach(function(e){if(Number(e.unit_id)!==Number(customer.sno))return;var old=extensions[e.payment_schedule_id];if(!old||e.extended_due_date>old.extended_due_date)extensions[e.payment_schedule_id]=e});

@@ -40,7 +40,7 @@ function effective(row,ext){var e=ext[String(row.id)];if(e&&iso(e.extended_due_d
 function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[1].split(',').map(String):[]}
 function coverage(data){var exact={};(data.tasks||[]).forEach(function(t){if(t.status!=='pending'||t.auto_kind==='extension_active')return;var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);ids.forEach(function(id){exact[id]=1})});return exact}
 function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.push('By '+date(x.e.contractual));if(x.e.revised&&x.e.revised!==x.e.contractual)p.push('Revised to '+date(x.e.revised));p.push('Extended to '+date(x.e.date));return p.join(' · ')}if(x.e.kind==='revised')return 'By '+date(x.e.contractual)+' · Revised to '+date(x.e.date);return 'By '+date(x.e.date)}
-function build(data,c){
+function build(data,c,selection){
  var managed=carryManaged(c),rows=[];
  data.rows.forEach(function(r){
   var kind=stageKind(r);if(!kind||managed[String(r.id)])return;
@@ -57,12 +57,14 @@ function build(data,c){
  if(!current.length)return{hidden:true,reason:'scheduled'};
  if(!current[0].e.date){
   var pending=current[0],pendingStage=text(pending.r.stage_name)||'Final Installment (Handover)';
+  if(selection)Object.assign(selection,{amount:pending.remaining,stage:pendingStage,date:null,overdueCount:0});
   return{status:'Upcoming',tone:'neutral',message:'Next installment is '+money(pending.remaining)+' for '+pendingStage+', payable at handover.',detail:'Stage: '+pendingStage+' · Due at handover.'};
  }
  var td=today(),over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
  if(over.length)focus=over;
  else{var firstDate=current[0].e.date;focus=current.filter(function(x){return x.e.date===firstDate})}
  var firstKinds={};focus.forEach(function(x){firstKinds[x.kind]=1});
+ if(selection)Object.assign(selection,{amount:Math.round(focus.reduce(function(n,x){return n+x.remaining},0)*100)/100,stage:focus.map(function(x){return text(x.r.stage_name)}).join(' + '),date:day(focus[0].e.date),overdueCount:over.length});
  var gate=firstKinds.dp?'dp':(firstKinds.first||firstKinds.dld)?'pre_spa':'later';
  var sum=Math.round(focus.reduce(function(s,x){return s+x.remaining},0)*100)/100,first=focus[0],labels=focus.map(function(x){return text(x.r.stage_name)}),stage=labels.join(' + '),d=day(first.e.date),delta=Math.round((d-td)/86400000),kind=first.e.kind,status=over.length?'Overdue':kind==='extension'?'Extension Active':kind==='revised'?'Revised Schedule':delta===0?'Due today':delta<=7?'Due soon':'Upcoming',tone=over.length||delta===0?'danger':(kind==='extension'||kind==='revised'||delta<=7?'warn':'neutral'),msg,detail;
  if(gate==='pre_spa'){
@@ -84,6 +86,17 @@ async function render(force){if(!window.state||!window.sb||state.view!=='detail'
 function schedule(force,ms){clearTimeout(timer);if(ms===0){render(!!force);return}timer=setTimeout(function(){render(!!force)},ms==null?30:ms)}
 function invalidateCurrent(){var c=current();if(c&&Number(c.sno)){delete cache[String(Number(c.sno))];persist()}}
 function install(){if(!window.state||!window.sb||typeof window.renderDetail!=='function'){setTimeout(install,60);return}hydrate();preloadAll(false);setTimeout(function(){preloadAll(false)},350);var rd=window.renderDetail;window.renderDetail=function(){var x=rd.apply(this,arguments);markPending();var key=text(state.selectedUnit);armGuard(key);if(!prepare())schedule(false,0);return x};if(typeof window.loadFromSupabase==='function'){var ld=window.loadFromSupabase;window.loadFromSupabase=async function(){var x=await ld.apply(this,arguments);preloadAll(true);return x}}document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#extSave,#ieSave,#scSave,#extCancel,#saSave,#saComplete,#saCancelTask')){invalidateCurrent();markPending();armGuard(text(state.selectedUnit));schedule(true,220)}},true);observer=new MutationObserver(function(m){if(rendering||!window.state||state.view!=='detail')return;for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&(t.id==='actionRequiredCard'||(t.closest&&t.closest('#actionRequiredCard')))){schedule(false,0);break}}});observer.observe(document.body,{subtree:true,childList:true,characterData:true});window.addEventListener('pageshow',function(){markPending();armGuard(text(state.selectedUnit));preloadAll(false);schedule(false,40)});if(state.view==='detail'){markPending();armGuard(text(state.selectedUnit));if(!prepare())schedule(false,0)}}
+// Project the same action calculation into list rows without changing customer records.
+window.sunblissEffectiveActionListEntry=function(c){
+ var P=window.PaymentExtensionsCore,C=P&&P.cache;
+ if(!c||!C||!C.loaded)return null;
+ var uid=Number(c.sno),data=assemble(C.s.filter(function(r){return Number(r.unit_id)===uid}),C.c.filter(function(r){return Number(r.unit_id)===uid}),C.e.filter(function(r){return Number(r.unit_id)===uid}),C.t.filter(function(r){return Number(r.unit_id)===uid})),selection={amount:null,stage:'',date:null,overdueCount:0};
+ var action=build(data,c,selection);
+ var summary=window.sunblissExtensionSummaryForCustomer&&window.sunblissExtensionSummaryForCustomer(c);
+ if(summary){selection=summary;action={status:'Extension Active'};}
+ var copy=Object.assign({},c,{upAmt:selection.amount,upStage:selection.stage,upDate:selection.date,extensionListStatus:{overdue:selection.overdueCount>0}});
+ return{c:copy,d:{overdueCount:selection.overdueCount}};
+};
 ensureGuardStyle();
 install();
 })();

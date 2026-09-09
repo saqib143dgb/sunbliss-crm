@@ -32,8 +32,8 @@ function ensureStyles(){
     '@media(prefers-reduced-motion:reduce){.extension-collapse-chevron{transition:none}}'
   ].join('');document.head.appendChild(s)
 }
-function extensionContext(){
-  var P=window.PaymentExtensionsCore,C=P&&P.cache,c=currentCustomer();if(!P||!C||!c)return null;
+function extensionContext(customer){
+  var P=window.PaymentExtensionsCore,C=P&&P.cache,c=customer||currentCustomer();if(!P||!C||!c)return null;
   var unit=Number(c.sno),sm=typeof P.scheduleMap==='function'?P.scheduleMap():{},cm=typeof P.creditMap==='function'?P.creditMap():{},groups={},activeIds={},td=today();
   (C.e||[]).forEach(function(e){
     if(!e||e.status!=='active'||Number(e.unit_id)!==unit||!iso(e.extended_due_date)||iso(e.extended_due_date)<td)return;
@@ -90,5 +90,11 @@ function install(){
   if(typeof P.load==='function')P.load(false).then(function(){queue(0)}).catch(function(){});else queue(0);
   window.addEventListener('pageshow',function(){queue(40)})
 }
+window.sunblissExtensionSummaryForCustomer=function(customer){
+ var ctx=extensionContext(customer);
+ if(!ctx||ctx.outsideOverdue||!ctx.selected||ctx.selected.items.length<2)return null;
+ var g=ctx.selected;
+ return{amount:g.total,stage:g.items.length+' outstanding components',date:day(g.due),overdueCount:0};
+};
 install();
 })();
