@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV6';
+var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV7';
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
@@ -10,7 +10,7 @@ function day(v){var s=iso(v),d=s?new Date(s+'T00:00:00'):null;return d&&!isNaN(d
 function today(){var d=new Date();d.setHours(0,0,0,0);return d}
 function date(v){var d=day(v);return d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):text(v)}
 function money(v){var n=Math.max(0,Number(v)||0);return typeof window.fmtAED==='function'?window.fmtAED(n):'AED '+n.toLocaleString('en-AE',{maximumFractionDigits:2})}
-function safe(v){return typeof window.esc==='function'?window.esc(text(v)):text(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function safe(v){return typeof window.esc==='function'?window.esc(text(v)):text(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
 function ensureGuardStyle(){if(document.getElementById('effectiveActionFirstPaintGuard'))return;var s=document.createElement('style');s.id='effectiveActionFirstPaintGuard';s.textContent='.detail #actionRequiredCard:not([data-effective-ready="true"]){visibility:hidden!important;pointer-events:none!important}';document.head.appendChild(s)}
 function markPending(){if(!window.state||state.view!=='detail')return;var card=document.getElementById('actionRequiredCard');if(!card)return;card.hidden=false;card.removeAttribute('aria-hidden');delete card.dataset.scheduledCovered;delete card.dataset.effectiveActionSig;card.removeAttribute('data-effective-ready')}
 function revealFallback(key){if(!window.state||state.view!=='detail'||text(state.selectedUnit)!==key)return;var card=document.getElementById('actionRequiredCard');if(!card)return;card.hidden=false;card.removeAttribute('aria-hidden');delete card.dataset.scheduledCovered;card.dataset.effectiveReady='true'}
@@ -52,11 +52,8 @@ function build(data,c){
  });
  rows.sort(function(a,b){return text(a.e.date||'9999-12-31').localeCompare(text(b.e.date||'9999-12-31'))||Number(a.r.id)-Number(b.r.id)});
  if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule, including DLD and Admin Fees, is fully settled.'};
- var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),gate=dp.length?'dp':pre.length?'pre_spa':'later',current=gate==='dp'?dp:gate==='pre_spa'?pre:rows.filter(function(x){return x.kind==='later'}),cov=coverage(data);
- // A follow-up task does not settle an overdue installment. Keep overdue
- // balances visible; retain scheduled-action deduplication for future payments.
- var actionToday=today();
- current=current.filter(function(x){var due=day(x.e.date);return(due&&due<actionToday)||!cov[String(x.r.id)]});
+ var cov=coverage(data),actionToday=today();
+ var current=rows.filter(function(x){var due=day(x.e.date);return(due&&due<actionToday)||!cov[String(x.r.id)]});
  if(!current.length)return{hidden:true,reason:'scheduled'};
  if(!current[0].e.date){
   var pending=current[0],pendingStage=text(pending.r.stage_name)||'Final Installment (Handover)';
@@ -65,6 +62,8 @@ function build(data,c){
  var td=today(),over=current.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus;
  if(over.length)focus=over;
  else{var firstDate=current[0].e.date;focus=current.filter(function(x){return x.e.date===firstDate})}
+ var firstKinds={};focus.forEach(function(x){firstKinds[x.kind]=1});
+ var gate=firstKinds.dp?'dp':(firstKinds.first||firstKinds.dld)?'pre_spa':'later';
  var sum=Math.round(focus.reduce(function(s,x){return s+x.remaining},0)*100)/100,first=focus[0],labels=focus.map(function(x){return text(x.r.stage_name)}),stage=labels.join(' + '),d=day(first.e.date),delta=Math.round((d-td)/86400000),kind=first.e.kind,status=over.length?'Overdue':kind==='extension'?'Extension Active':kind==='revised'?'Revised Schedule':delta===0?'Due today':delta<=7?'Due soon':'Upcoming',tone=over.length||delta===0?'danger':(kind==='extension'||kind==='revised'||delta<=7?'warn':'neutral'),msg,detail;
  if(gate==='pre_spa'){
   if(over.length)msg='Collect '+money(sum)+' for '+stage+' now. '+(focus.length===1?'It was':'They were')+' due on '+date(first.e.date)+'.';
