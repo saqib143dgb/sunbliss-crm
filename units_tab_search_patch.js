@@ -170,6 +170,15 @@
     });
   }
 
+  function normalizeCustomerListAmountColors(){
+    document.querySelectorAll('.list .row-btn').forEach(function(row){
+      var amount = row.querySelector('.row-amt-val');
+      if (!amount) return;
+      var overdue = /\boverdue\b|\bwas due\b/i.test(String(row.textContent || ''));
+      amount.style.color = overdue ? 'var(--rust)' : 'var(--sage)';
+    });
+  }
+
   function relabelExport(){
     var button = document.getElementById('btnExportList');
     if (!button) return;
@@ -206,6 +215,7 @@
 
       restoreRenderedCustomerNames(originalNames);
       normalizeSpaStatusCopy();
+      normalizeCustomerListAmountColors();
       var internal = document.getElementById('searchInput');
       if (internal){
         internal.placeholder = 'Search unit, customer, broker or RM';
@@ -227,6 +237,7 @@
         setDockSearchCopy();
         relabelExport();
         normalizeSpaStatusCopy();
+        normalizeCustomerListAmountColors();
       } finally {
         observer.observe(app,{childList:true,subtree:true});
       }
