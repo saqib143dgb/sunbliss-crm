@@ -60,6 +60,11 @@ function cleanHeadline(value,by){
   if(out&&!/[.!?]$/.test(out))out+='.';
   return out;
 }
+function upcomingHeadline(value,meta,isOverdue){
+  if(isOverdue||!/^[0-9]+\s+day(?:s)?$/i.test(text(meta&&meta.due).trim())||!/^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/.test(text(meta&&meta.by).trim()))return'';
+  var m=text(value).match(/\bAED\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?/i);if(!m)return'';
+  return 'Next installment is '+m[0]+' due on '+text(meta.by).trim()+'.';
+}
 function observeTargets(targets){
   if(!observer)return;
   targets.forEach(function(node){observer.observe(node,{childList:true,characterData:true,subtree:true})});
@@ -69,7 +74,7 @@ function sync(){
   var card=document.getElementById('actionRequiredCard');if(!card)return;
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value'),labels=card.querySelectorAll('.action-required-meta-label');
   if(!status||!message||values.length<3)return;
-  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),headline=cleanHeadline(message.textContent,meta.by),byDisplay=compactDate(meta.by),dueDisplay=compactDue(meta.due),isOverdue=/overdue/i.test(text(status.textContent))||/overdue/i.test(text(meta.due));
+  var targets=[status,message,detail].filter(Boolean),meta=parse(status.textContent,message.textContent,detail&&detail.textContent),byDisplay=compactDate(meta.by),dueDisplay=compactDue(meta.due),isOverdue=/overdue/i.test(text(status.textContent))||/overdue/i.test(text(meta.due)),headline=upcomingHeadline(message.textContent,meta,isOverdue)||cleanHeadline(message.textContent,meta.by);
   syncing=true;
   if(observer)observer.disconnect();
   try{
