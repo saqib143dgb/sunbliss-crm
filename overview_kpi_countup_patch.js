@@ -14,6 +14,14 @@
   var currentProgress=0;
   var frameId=0;
 
+  /*
+    The preload script runs before the CRM renderer. Keep KPI values hidden until
+    the authoritative rendered snapshot has been captured and reset to the start
+    of the count-up. This prevents a final-value -> intermediate-value flash on
+    refresh while preserving the one-shot count-up animation.
+  */
+  root.classList.add('sbx-kpi-pending');
+
   function text(v){return v==null?'':String(v);}
   function normalise(v){return text(v).replace(/\s+/g,' ').trim().toLowerCase();}
   function desktop(){return window.matchMedia?window.matchMedia('(min-width:'+DESKTOP_MIN+'px)').matches:window.innerWidth>=DESKTOP_MIN;}
@@ -39,11 +47,6 @@
     if(!m)return null;
     var dot=m[1].indexOf('.');
     return{finalText:finalText,value:Number(m[1]),decimals:dot<0?0:m[1].length-dot-1};
-  }
-
-  function formatPercent(p,value){
-    var factor=Math.pow(10,p.decimals),rounded=Math.round(value*factor)/factor;
-    return rounded.toFixed(p.decimals)+'%';
   }
 
   function overviewNodes(){
@@ -111,13 +114,18 @@
       if(raw<1)value.setAttribute('data-sbx-kpi-counting','');else value.removeAttribute('data-sbx-kpi-counting');
       value.textContent=raw>=1?target.finalText:formatValue(target,target.value*eased);
     }
+
+    /*
+      Collection percentage and bar are ratios, not count-up counters. Keep them at
+      their final authoritative values throughout the number animation so the UI
+      never displays mathematically misleading percentages such as 19.3% + 41.6%.
+    */
     if(nodes.progress&&targets.progress){
       var fill=nodes.progress.querySelector(nodes.fillSelector);
-      if(fill)fill.style.width=(targets.progress.width*(raw>=1?1:eased))+'%';
+      if(fill)fill.style.width=targets.progress.width+'%';
       var percentNodes=nodes.progress.querySelectorAll(nodes.percentSelector);
       for(var j=0;j<percentNodes.length&&j<targets.progress.percents.length;j++){
-        var p=targets.progress.percents[j];
-        percentNodes[j].textContent=raw>=1?p.finalText:formatPercent(p,p.value*eased);
+        percentNodes[j].textContent=targets.progress.percents[j].finalText;
       }
     }
     return true;
@@ -131,6 +139,7 @@
     if(currentProgress<1){frameId=requestAnimationFrame(frame);return;}
     completed=true;
     frameId=0;
+    root.classList.remove('sbx-kpi-pending');
   }
 
   function startTimeline(){
@@ -138,6 +147,7 @@
     started=true;
     currentProgress=0;
     applyProgress(0);
+    root.classList.remove('sbx-kpi-pending');
     if(reduceMotion){currentProgress=1;applyProgress(1);completed=true;return true;}
     frameId=requestAnimationFrame(frame);
     return true;
@@ -156,6 +166,10 @@
     var next=captureTargets(nodes);
     if(!next)return false;
     targets=next;
+
+    /* Reset before exposure. Because this hook runs synchronously from the owning
+       renderer, the browser cannot paint the final KPI snapshot and then reverse
+       into the animation on the next frame. */
     applyProgress(0);
     if(loaderReleased())startTimeline();
     return true;
@@ -197,7 +211,11 @@
 
   var style=document.createElement('style');
   style.id='sunblissOverviewKpiCountUpStyle';
-  style.textContent='[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}';
+  style.textContent=[
+    '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
+    'html.sbx-kpi-pending .overview>.stat-hero .stat-value,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-kpi-value{visibility:hidden!important;}',
+    'html.sbx-kpi-pending .overview>.stat-hero .bar-fill,html.sbx-kpi-pending .overview>.stat-hero .bar-caption,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar-cap{visibility:hidden!important;}'
+  ].join('');
   document.head.appendChild(style);
 
   if(document.readyState!=='loading')prepareFromRenderedOverview();
