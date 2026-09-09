@@ -8,7 +8,7 @@ function ensureHeadlineSize(){
   if(document.getElementById('actionRequiredHeadlineSizeRefine'))return;
   var style=document.createElement('style');
   style.id='actionRequiredHeadlineSizeRefine';
-  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n.action-required-card[data-tone="danger"] .action-required-status-wrap{color:var(--rust,#B44732)!important;border-color:var(--rust,#B44732)!important;background:rgba(180,71,50,.07)!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}.action-required-card .action-required-meta{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.8fr)!important;padding:0 10px!important;}.action-required-card .action-required-meta-block{display:block!important;min-width:0!important;min-height:auto!important;padding:10px 7px!important;text-align:center!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:7px!important;}.action-required-card .action-required-meta-icon{display:none!important;}.action-required-card .action-required-meta-label{margin:0 0 3px!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;}.action-required-card .action-required-meta-value{display:block!important;font-size:10.4px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;word-break:normal!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}.action-required-card .action-required-meta{padding:0 7px!important;}.action-required-card .action-required-meta-block{padding:9px 5px!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:5px!important;}.action-required-card .action-required-meta-label{font-size:8.5px!important;}.action-required-card .action-required-meta-value{font-size:9.6px!important;}}';
+  style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n.action-required-card[data-tone="danger"] .action-required-status-wrap{color:var(--rust,#B44732)!important;border-color:var(--rust,#B44732)!important;background:rgba(180,71,50,.07)!important;}\n.action-required-card .action-required-amount{font-weight:800!important;}\n.action-required-card .action-required-amount.is-overdue{color:var(--rust,#B44732)!important;}\n.action-required-card .action-required-amount.is-current{color:var(--sage,#4F6F52)!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}.action-required-card .action-required-meta{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.8fr)!important;padding:0 10px!important;}.action-required-card .action-required-meta-block{display:block!important;min-width:0!important;min-height:auto!important;padding:10px 7px!important;text-align:center!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:7px!important;}.action-required-card .action-required-meta-icon{display:none!important;}.action-required-card .action-required-meta-label{margin:0 0 3px!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;}.action-required-card .action-required-meta-value{display:block!important;font-size:10.4px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;word-break:normal!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}.action-required-card .action-required-meta{padding:0 7px!important;}.action-required-card .action-required-meta-block{padding:9px 5px!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:5px!important;}.action-required-card .action-required-meta-label{font-size:8.5px!important;}.action-required-card .action-required-meta-value{font-size:9.6px!important;}}';
   document.head.appendChild(style);
 }
 function parse(status,message,detail){
@@ -60,6 +60,14 @@ function cleanHeadline(value,by){
   if(out&&!/[.!?]$/.test(out))out+='.';
   return out;
 }
+function colorAmount(message,isOverdue){
+  if(!message)return;
+  var raw=text(message.textContent),m=raw.match(/\bAED\s*[0-9][0-9,]*(?:\.[0-9]{1,2})?/i);if(!m)return;
+  var cls='action-required-amount '+(isOverdue?'is-overdue':'is-current'),existing=message.querySelector('.action-required-amount');
+  if(existing&&text(existing.textContent)===m[0]&&existing.className===cls)return;
+  var before=raw.slice(0,m.index),after=raw.slice(m.index+m[0].length),span=document.createElement('span');span.className=cls;span.textContent=m[0];
+  message.textContent='';if(before)message.appendChild(document.createTextNode(before));message.appendChild(span);if(after)message.appendChild(document.createTextNode(after));
+}
 function observeTargets(targets){
   if(!observer)return;
   targets.forEach(function(node){observer.observe(node,{childList:true,characterData:true,subtree:true})});
@@ -79,6 +87,7 @@ function sync(){
     if(labels.length>=3&&text(labels[2].textContent)!==(isOverdue?'Overdue':'Due In'))labels[2].textContent=isOverdue?'Overdue':'Due In';
     if(isOverdue)card.setAttribute('data-tone','danger');
     if(headline&&text(message.textContent).trim()!==headline)message.textContent=headline;
+    colorAmount(message,isOverdue);
   }finally{
     syncing=false;
     observeTargets(targets);
