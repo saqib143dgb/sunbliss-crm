@@ -47,7 +47,7 @@ function applySummaryLayout(summary,isDesktop){
   summary.setAttribute('data-sb-dld-layout','summary');
 
   setImportant(summary,'display','grid');
-  setImportant(summary,'grid-template-columns',isDesktop?'repeat(2,minmax(0,1fr))':'repeat(auto-fit,minmax(220px,1fr))');
+  setImportant(summary,'grid-template-columns','repeat(2,minmax(0,1fr))');
   setImportant(summary,'width','100%');
   setImportant(summary,'max-width','none');
   setImportant(summary,'height','auto');
@@ -76,7 +76,7 @@ function applyStatusLayout(status,isDesktop){
   status.setAttribute('data-sb-dld-layout','status');
 
   setImportant(status,'display','grid');
-  setImportant(status,'grid-template-columns',isDesktop?'repeat(3,minmax(0,1fr))':'repeat(auto-fit,minmax(180px,1fr))');
+  setImportant(status,'grid-template-columns','repeat(2,minmax(0,1fr))');
   setImportant(status,'width','100%');
   setImportant(status,'max-width','none');
   setImportant(status,'height','auto');
