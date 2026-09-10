@@ -61,6 +61,7 @@
       id:row.id,
       due:row.due_amount === null || row.due_amount === undefined ? null : Number(row.due_amount),
       dueDate:jsDate(row.due_date),
+      revisedDueDate:jsDate(row.revised_due_date),
       paid:row.paid_amount === null || row.paid_amount === undefined ? 0 : Number(row.paid_amount),
       paidDate:jsDate(row.paid_date),
       outAmt:(Number(row.due_amount) || 0) - (Number(row.paid_amount) || 0),
@@ -78,13 +79,15 @@
     if (stage.extraInstallment) return 9000;
     return 9500;
   }
+  function effectiveStageDate(stage){ return stage && (stage.revisedDueDate || stage.dueDate) ? (stage.revisedDueDate || stage.dueDate) : null; }
   function recalcCustomer(c){
     if (!c || !Array.isArray(c.stages)) return;
     c.stages.sort(function(a,b){
       var diff = stageRank(a) - stageRank(b);
       if (diff) return diff;
-      var ad = a.dueDate ? a.dueDate.getTime() : Number.MAX_SAFE_INTEGER;
-      var bd = b.dueDate ? b.dueDate.getTime() : Number.MAX_SAFE_INTEGER;
+      var ae = effectiveStageDate(a), be = effectiveStageDate(b);
+      var ad = ae ? ae.getTime() : Number.MAX_SAFE_INTEGER;
+      var bd = be ? be.getTime() : Number.MAX_SAFE_INTEGER;
       return ad - bd;
     });
 
@@ -98,12 +101,17 @@
     c.received = schedulePaid;
     c.outstanding = schedulePaid - scheduleDue;
 
-    var next = c.stages.find(function(stage){
+    var open = c.stages.filter(function(stage){
       return stage.due !== null && stage.due !== undefined && Number(stage.due || 0) - Number(stage.paid || 0) > 1;
+    }).sort(function(a,b){
+      var ae=effectiveStageDate(a),be=effectiveStageDate(b);
+      var ad=ae?ae.getTime():Number.MAX_SAFE_INTEGER,bd=be?be.getTime():Number.MAX_SAFE_INTEGER;
+      return ad-bd || stageRank(a)-stageRank(b);
     });
+    var next = open[0] || null;
     c.upStage = next ? next.label : '';
     c.upAmt = next ? Number(next.due || 0) - Number(next.paid || 0) : null;
-    c.upDate = next ? next.dueDate : null;
+    c.upDate = next ? effectiveStageDate(next) : null;
 
     if (next && next.code === '1ST'){
       var dld = c.stages.find(function(stage){ return stage.code === 'DLD'; });
@@ -121,7 +129,7 @@
   function enrichExtraInstallments(){
     if (enrichInFlight) return enrichInFlight;
     enrichInFlight = (async function(){
-      var result = await sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,due_date,paid_amount,paid_date,status,remarks');
+      var result = await sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,paid_date,status,remarks');
       if (result.error) throw result.error;
       var byUnit = {};
       (result.data || []).forEach(function(row){
@@ -146,7 +154,8 @@
   function nextInstallmentNumber(c){
     var max = 7;
     (c.stages || []).forEach(function(stage){
-      var number = installmentNumber(stage.label);
+      var order = installmentOrder(stage.label);
+      var number = order ? order.installment : installmentNumber(stage.label);
       if (number !== null && number > max) max = number;
     });
     return max + 1;
