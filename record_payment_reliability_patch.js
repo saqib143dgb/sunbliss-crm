@@ -5,6 +5,7 @@ window.__sunblissRecordPaymentReliabilityInstalled=true;
 window.__sunblissRecordPaymentFixV4=true;
 
 var cache={customer:null,rows:[],credits:{},loading:false,saving:false,lastResult:null};
+var returningToCustomer=false;
 function text(v){return v==null?'':String(v)}
 function safe(v){if(typeof window.esc==='function')return window.esc(text(v));return text(v).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function money(v){return typeof window.fmtAED==='function'?window.fmtAED(Number(v)||0):'AED '+(Number(v)||0).toLocaleString('en-AE',{maximumFractionDigits:2})}
@@ -27,6 +28,7 @@ function resetState(){
 }
 function closePanel(){
   var p=document.getElementById('recordPaymentReliablePanel');if(p)p.remove();
+  returningToCustomer=false;
   resetState();
 }
 function errorText(err){
@@ -150,15 +152,15 @@ function pendingTaskIdsForUnit(uid){
   if(!window.sb||!uid)return Promise.resolve([]);
   return sb.from('scheduled_actions').select('id').eq('unit_id',uid).eq('status','pending').then(function(r){if(r.error)throw r.error;return(r.data||[]).map(function(x){return Number(x.id)}).filter(Boolean).sort(function(a,b){return a-b})});
 }
-function visibleScheduledTaskIds(){
+function scheduledTaskIds(){
   var section=document.getElementById('scheduledActionsDetail');if(!section)return[];
-  return Array.prototype.slice.call(section.querySelectorAll('.scheduled-task-card[data-task-id]')).filter(function(el){return window.getComputedStyle(el).display!=='none'}).map(function(el){return Number(el.getAttribute('data-task-id'))}).filter(Boolean).sort(function(a,b){return a-b});
+  return Array.prototype.slice.call(section.querySelectorAll('.scheduled-task-card[data-task-id]')).map(function(el){return Number(el.getAttribute('data-task-id'))}).filter(Boolean).sort(function(a,b){return a-b});
 }
 function sameIds(a,b){if(a.length!==b.length)return false;for(var i=0;i<a.length;i++)if(Number(a[i])!==Number(b[i]))return false;return true}
 function waitForScheduledActions(expected,timeout){
   var started=Date.now();
   return new Promise(function(resolve){
-    function check(){if(sameIds(visibleScheduledTaskIds(),expected)||Date.now()-started>(timeout||1800)){resolve();return}setTimeout(check,35)}
+    function check(){if(sameIds(scheduledTaskIds(),expected)||Date.now()-started>(timeout||1800)){resolve();return}setTimeout(check,35)}
     check();
   });
 }
@@ -173,6 +175,7 @@ async function refreshBeforeReturn(key,from){
 }
 function returnToCustomer(key,from){
   var panel=document.getElementById('recordPaymentReliablePanel'),btn=panel&&panel.querySelector('#pfReturn');
+  returningToCustomer=true;
   if(btn){btn.disabled=true;btn.textContent='Returning…'}
   refreshBeforeReturn(key,from).catch(function(e){
     console.error('[Sunbliss] post-payment refresh failed',e);
@@ -241,7 +244,7 @@ function targetFromEvent(e){if(!e||!e.target||!e.target.closest)return null;retu
 document.addEventListener('click',function(e){var target=targetFromEvent(e);if(!target)return;if(!window.state||state.userRole!=='crm_officer')return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openPanel()},true);
 document.addEventListener('click',function(e){var toggle=e&&e.target&&e.target.closest?e.target.closest('#recordPaymentReliablePanel #pfCreditToggle'):null;if(!toggle)return;e.preventDefault();e.stopPropagation();toggleCreditFields()},true);
 window.addEventListener('popstate',closePanel);
-window.addEventListener('pageshow',function(){if(document.getElementById('recordPaymentReliablePanel'))closePanel()});
+window.addEventListener('pageshow',function(){if(!returningToCustomer&&document.getElementById('recordPaymentReliablePanel'))closePanel()});
 window.__sunblissOpenRecordPayment=openPanel;
 window.__sunblissRecordPaymentSave=savePayment;
 ensureStyles();
