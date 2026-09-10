@@ -126,7 +126,7 @@
   function cleanCarryCard(c){
     var card=document.getElementById('carryForwardCard');
     if(!card)return;
-    if(!c||Math.abs(round2(c.carryForward||0))<=0.01)card.remove();
+    if(!c||Math.abs(round2(c.carryForward||0))<1)card.remove();
   }
 
   function install(){
