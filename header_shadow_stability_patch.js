@@ -54,10 +54,9 @@
 
     /* DLD tracker first-paint guard.
        This stylesheet is preloaded in <head>, so the tracker is born in its
-       final desktop composition instead of painting the old stacked layout
+       final two-column composition instead of painting the old stacked layout
        for one frame and then being reorganized by deferred UI JavaScript. */
-    @media(min-width:1024px){
-      .overview > div:has(> #btnDldPaid){
+      html body #app .overview > div:has(> #btnDldPaid){
         display:grid!important;
         grid-template-columns:repeat(2,minmax(0,1fr))!important;
         width:100%!important;
@@ -66,7 +65,7 @@
         min-height:0!important;
         align-items:stretch!important;
       }
-      .overview > div:has(> #btnDldPaid) > .stat-cell{
+      html body #app .overview > div:has(> #btnDldPaid) > .stat-cell{
         display:flex!important;
         flex-direction:column!important;
         justify-content:center!important;
@@ -78,9 +77,9 @@
         padding:15px 14px!important;
         box-sizing:border-box!important;
       }
-      .overview > .pipeline:has(> #btnDldFullyPaid){
+      html body #app .overview > .pipeline:has(> #btnDldFullyPaid){
         display:grid!important;
-        grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
         width:100%!important;
         max-width:none!important;
         gap:9px!important;
@@ -90,7 +89,7 @@
         align-items:stretch!important;
         flex-wrap:nowrap!important;
       }
-      .overview > .pipeline:has(> #btnDldFullyPaid) > .pill-stat{
+      html body #app .overview > .pipeline:has(> #btnDldFullyPaid) > .pill-stat{
         display:flex!important;
         flex-direction:column!important;
         justify-content:center!important;
@@ -103,7 +102,7 @@
         padding:11px 12px!important;
         box-sizing:border-box!important;
       }
-      .overview > .pipeline:has(> #btnDldFullyPaid) > .pill-stat > .pill-stat-num{
+      html body #app .overview > .pipeline:has(> #btnDldFullyPaid) > .pill-stat > .pill-stat-num{
         display:flex!important;
         align-items:center!important;
         visibility:visible!important;
@@ -112,7 +111,7 @@
         min-height:0!important;
         overflow:visible!important;
       }
-      .overview > .pipeline:has(> #btnDldFullyPaid) > .pill-stat > .pill-stat-lbl{
+      html body #app .overview > .pipeline:has(> #btnDldFullyPaid) > .pill-stat > .pill-stat-lbl{
         display:block!important;
         visibility:visible!important;
         opacity:1!important;
@@ -120,6 +119,7 @@
         min-height:0!important;
       }
 
+    @media(min-width:1024px){
       /* Approved desktop header cleanup: keep the project name only. */
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-project-row .sb-desktop-project-sub{
         display:none!important;
