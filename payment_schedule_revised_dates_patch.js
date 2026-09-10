@@ -16,9 +16,10 @@ function byRow(card){var rows=card.querySelectorAll('.stage-row');for(var i=0;i<
 function addRow(after,label,value,cls){var r=document.createElement('div');r.className='stage-date-adjustment '+cls;r.innerHTML='<span></span><span></span>';r.children[0].textContent=label;r.children[1].textContent=date(value);after.insertAdjacentElement('afterend',r);return r}
 function syncStamp(card,stage,effective){
  var stamp=card&&card.querySelector('.stamp');if(!stamp||!stage)return;
- var due=Number(stage.due||0),paid=Number(stage.paid||0),status='pending';
+ var isDld=String(stage.code||'').toUpperCase()==='DLD';
+ var due=Number(stage.due||0),paid=isDld?dldSettledAmount(stage):Number(stage.settledAmount!==undefined?stage.settledAmount:stage.paid||0),status='pending';
  if(!isFinite(due)||due<=0)status='na';
- else if(paid>=due-1)status='paid';
+ else if(isDld?dldPaidWithinTolerance(due,paid):paid>=due-1)status='paid';
  else if(paid>0.01)status='partial';
  else{
   var ed=dateObject(effective),today=new Date();today.setHours(0,0,0,0);
