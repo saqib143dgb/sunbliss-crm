@@ -39,13 +39,13 @@ function errorText(err){
   return parts.filter(Boolean).join(' · ')||'Could not save that payment.';
 }
 function setError(msg){
-  var e=document.getElementById('recordPaymentReliableError');
+  var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('#recordPaymentReliableError');
   if(e){e.textContent=msg;e.style.display='block';window.setTimeout(function(){try{e.scrollIntoView({block:'center',behavior:'smooth'})}catch(_err){}},0)}
   cache.saving=false;
   if(window.state)state.paymentFormSaving=false;
-  var b=document.getElementById('pfSave');if(b){b.disabled=false;b.textContent='Save payment'}
+  var b=panel&&panel.querySelector('#pfSave');if(b){b.disabled=false;b.textContent='Save payment'}
 }
-function clearError(){var e=document.getElementById('recordPaymentReliableError');if(e){e.textContent='';e.style.display='none'}}
+function clearError(){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('#recordPaymentReliableError');if(e){e.textContent='';e.style.display='none'}}
 
 function ensureStyles(){
   if(document.getElementById('recordPaymentReliableStyles'))return;
@@ -77,7 +77,7 @@ function ensureStyles(){
 function optionLabel(r){var rem=Math.max(0,remaining(r)),stage=text(r.stage_name).trim();if(isDld(r))stage='DLD + Admin Fees';return stage+' · '+(rem<=1?'Fully settled':money(rem))}
 
 function toggleCreditFields(){
-  var toggle=document.getElementById('pfCreditToggle'),box=document.getElementById('pfCreditFields');if(!toggle||!box)return;
+  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box)return;
   var opening=box.hasAttribute('hidden')||box.hidden||window.getComputedStyle(box).display==='none';
   if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.setProperty('display','block','important');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note'}
   else{box.setAttribute('hidden','');box.hidden=true;box.style.setProperty('display','none','important');toggle.setAttribute('aria-expanded','false');toggle.textContent='+ Add credit note (optional)'}
@@ -108,12 +108,12 @@ function renderForm(){
     body='<div class="record-payment-empty">No payment schedule is available for this unit. Review the installment ledger before recording a payment.</div><div class="brand-editor-actions"><button class="btn-paper" type="button" id="pfCancel" style="justify-content:center;margin-bottom:0">Close</button></div>';
   }
   p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c&&c.unit||'')+' · '+safe(c&&c.name||'')+'</p><p class="brand-error" id="recordPaymentReliableError" style="display:none"></p>'+body;
-  var cancel=document.getElementById('pfCancel');if(cancel)cancel.onclick=closePanel;
-  var form=document.getElementById('recordPaymentReliableForm');
+  var cancel=p.querySelector('#pfCancel');if(cancel)cancel.onclick=closePanel;
+  var form=p.querySelector('#recordPaymentReliableForm');
   if(form)form.addEventListener('submit',function(e){e.preventDefault();e.stopPropagation();savePayment()},true);
-  var save=document.getElementById('pfSave');
+  var save=p.querySelector('#pfSave');
   if(save)save.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();savePayment()},true);
-  var amount=document.getElementById('pfAmount');if(amount)setTimeout(function(){try{amount.focus()}catch(_e){}},0);
+  var amount=p.querySelector('#pfAmount');if(amount)setTimeout(function(){try{amount.focus()}catch(_e){}},0);
 }
 
 async function loadRows(c){
@@ -137,23 +137,47 @@ async function openPanel(){
   p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c.unit||'')+' · '+safe(c.name||'')+'</p><p class="stat-sub">Loading payment schedule…</p>';
   document.body.appendChild(p);
   try{await loadRows(c);cache.loading=false;renderForm()}
-  catch(e){cache.loading=false;p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c.unit||'')+' · '+safe(c.name||'')+'</p><p class="brand-error">'+safe(errorText(e))+'</p><div class="brand-editor-actions"><button class="btn-paper" type="button" id="pfCancel" style="justify-content:center;margin-bottom:0">Close</button></div>';var close=document.getElementById('pfCancel');if(close)close.onclick=closePanel}
+  catch(e){cache.loading=false;p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c.unit||'')+' · '+safe(c.name||'')+'</p><p class="brand-error">'+safe(errorText(e))+'</p><div class="brand-editor-actions"><button class="btn-paper" type="button" id="pfCancel" style="justify-content:center;margin-bottom:0">Close</button></div>';var close=p.querySelector('#pfCancel');if(close)close.onclick=closePanel}
 }
-function val(id){var e=document.getElementById(id);return e?text(e.value).trim():''}
+function val(id){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('[id="'+id+'"]');return e?text(e.value).trim():''}
 
 function renderCurrentDetail(key,from){
   if(!window.state)return;
   state.selectedUnit=key;state.detailFrom=from||'list';state.view='detail';
   try{if(typeof window.renderMain==='function')window.renderMain();else if(typeof window.renderDetail==='function')window.renderDetail()}catch(e){console.error('[Sunbliss] detail render failed',e)}
 }
-function refreshAfterConfirmedSave(key,from){
-  if(typeof window.loadFromSupabase!=='function')return Promise.resolve();
-  return Promise.resolve(window.loadFromSupabase()).then(function(){renderCurrentDetail(key,from)}).catch(function(e){console.error('[Sunbliss] post-payment refresh failed',e)});
+function pendingTaskIdsForUnit(uid){
+  if(!window.sb||!uid)return Promise.resolve([]);
+  return sb.from('scheduled_actions').select('id').eq('unit_id',uid).eq('status','pending').then(function(r){if(r.error)throw r.error;return(r.data||[]).map(function(x){return Number(x.id)}).filter(Boolean).sort(function(a,b){return a-b})});
 }
-function returnToCustomer(key,from){
+function visibleScheduledTaskIds(){
+  var section=document.getElementById('scheduledActionsDetail');if(!section)return[];
+  return Array.prototype.slice.call(section.querySelectorAll('.scheduled-task-card[data-task-id]')).filter(function(el){return window.getComputedStyle(el).display!=='none'}).map(function(el){return Number(el.getAttribute('data-task-id'))}).filter(Boolean).sort(function(a,b){return a-b});
+}
+function sameIds(a,b){if(a.length!==b.length)return false;for(var i=0;i<a.length;i++)if(Number(a[i])!==Number(b[i]))return false;return true}
+function waitForScheduledActions(expected,timeout){
+  var started=Date.now();
+  return new Promise(function(resolve){
+    function check(){if(sameIds(visibleScheduledTaskIds(),expected)||Date.now()-started>(timeout||1800)){resolve();return}setTimeout(check,35)}
+    check();
+  });
+}
+async function refreshBeforeReturn(key,from){
+  var c=currentCustomer(),uid=unitId(c);
+  if(typeof window.loadFromSupabase==='function')await window.loadFromSupabase();
+  var expected=[];
+  try{expected=await pendingTaskIdsForUnit(uid)}catch(e){console.warn('[Sunbliss] could not verify scheduled actions after payment',e)}
+  try{window.dispatchEvent(new Event('pageshow'));await waitForScheduledActions(expected,1800)}catch(e){console.warn('[Sunbliss] scheduled action refresh wait failed',e)}
   closePanel();
   renderCurrentDetail(key,from);
-  window.setTimeout(function(){refreshAfterConfirmedSave(key,from)},0);
+}
+function returnToCustomer(key,from){
+  var panel=document.getElementById('recordPaymentReliablePanel'),btn=panel&&panel.querySelector('#pfReturn');
+  if(btn){btn.disabled=true;btn.textContent='Returning…'}
+  refreshBeforeReturn(key,from).catch(function(e){
+    console.error('[Sunbliss] post-payment refresh failed',e);
+    closePanel();renderCurrentDetail(key,from);
+  });
 }
 function showSuccess(result,row,cash,credit,key,from){
   cache.saving=false;cache.lastResult=result||{};
@@ -170,7 +194,7 @@ function showSuccess(result,row,cash,credit,key,from){
     '<p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?' · '+safe(summary.join(' + ')):'')+'</p>'+ 
     (refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>'+ 
     '<div class="brand-editor-actions"><button class="btn btn-gold" type="button" id="pfReturn" style="justify-content:center">Return to customer</button></div>';
-  var back=document.getElementById('pfReturn');if(back)back.onclick=function(){returnToCustomer(key,from)};
+  var back=p.querySelector('#pfReturn');if(back)back.onclick=function(){returnToCustomer(key,from)};
 }
 
 async function savePayment(){
@@ -178,7 +202,7 @@ async function savePayment(){
   clearError();
   var sid=Number(val('pfStage'))||0,row=cache.rows.find(function(r){return Number(r.id)===sid})||null,
       cash=val('pfAmount')===''?0:Number(val('pfAmount')),date=val('pfDate'),ref=val('pfRef'),remarks=val('pfRemarks'),
-      box=document.getElementById('pfCreditFields'),creditOpen=!!(box&&!box.hidden&&window.getComputedStyle(box).display!=='none'),
+      panel=document.getElementById('recordPaymentReliablePanel'),box=panel&&panel.querySelector('#pfCreditFields'),creditOpen=!!(box&&!box.hidden&&window.getComputedStyle(box).display!=='none'),
       credit=creditOpen&&val('pfCreditAmount')!==''?Number(val('pfCreditAmount')):0,creditDate=creditOpen?val('pfCreditDate'):'',
       creditReason=creditOpen?val('pfCreditReason'):'',creditRef=creditOpen?val('pfCreditRef'):'';
   if(!row){setError('Select an installment.');return}
@@ -190,7 +214,7 @@ async function savePayment(){
   if(credit>0&&!creditReason){setError('Enter the credit note reason.');return}
   if(isDld(row)&&credit>0){setError('DLD + Admin Fees must be settled in cash. Credit notes cannot be applied to this stage.');return}
 
-  var btn=document.getElementById('pfSave'),key=state.selectedUnit,from=state.detailFrom||'list';
+  var btn=panel&&panel.querySelector('#pfSave'),key=state.selectedUnit,from=state.detailFrom||'list';
   cache.saving=true;state.paymentFormSaving=true;
   if(btn){btn.disabled=true;btn.textContent='Recording…'}
   try{
