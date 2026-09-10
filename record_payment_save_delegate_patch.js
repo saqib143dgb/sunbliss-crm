@@ -8,11 +8,10 @@ var paymentFieldIds=['recordPaymentReliableForm','recordPaymentReliableError','p
 function reliablePanel(){return document.getElementById('recordPaymentReliablePanel')}
 function isSaveButton(target){return !!(target&&target.closest&&target.closest('#recordPaymentReliablePanel #pfSave'))}
 function isReliableForm(target){return !!(target&&target.matches&&target.matches('#recordPaymentReliableForm'))}
-function escapeSelector(value){return String(value).replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/@])/g,'\\$1')}
 function isolateReliableForm(panel){
   var changed=[];
   paymentFieldIds.forEach(function(id){
-    var selector='[id="'+escapeSelector(id)+'"]';
+    var selector='[id="'+id+'"]';
     document.querySelectorAll(selector).forEach(function(node){
       if(node===panel||panel.contains(node))return;
       changed.push({node:node,id:id});
