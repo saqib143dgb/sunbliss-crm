@@ -5,7 +5,7 @@
   function safe(value){
     if (typeof window.esc === 'function') return window.esc(text(value));
     return text(value).replace(/[&<>"']/g,function(ch){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch];
     });
   }
   function normalize(value){ return text(value).replace(/\s+/g,' ').trim().toLowerCase(); }
@@ -32,6 +32,11 @@
   function installmentNumber(label){
     var match = text(label).trim().match(/^(\d+)(?:st|nd|rd|th)\s+Installment$/i);
     return match ? parseInt(match[1],10) : null;
+  }
+  function installmentOrder(label){
+    var match = text(label).replace(/instalment/ig,'Installment').replace(/\s+/g,' ').trim().match(/^(\d+)(?:st|nd|rd|th)\s+Installment(?:\s+Partial\s*[-–—]?\s*(\d+))?$/i);
+    if (!match) return null;
+    return { installment:parseInt(match[1],10), partial:match[2] ? parseInt(match[2],10) : 0 };
   }
   function fixedStageNames(){
     var names = {};
@@ -65,6 +70,8 @@
   }
   function stageRank(stage){
     var fixed = {DP:0,'1ST':10,DLD:15,'2ND':20,'3RD':30,'4TH':40,'5TH':50,'6TH':60,'7TH':70,FIN:10000};
+    var ordered = installmentOrder(stage && stage.label);
+    if (ordered) return ordered.installment * 10 + ordered.partial / 100;
     if (Object.prototype.hasOwnProperty.call(fixed,stage.code)) return fixed[stage.code];
     var number = installmentNumber(stage.label);
     if (number !== null) return number * 10;
