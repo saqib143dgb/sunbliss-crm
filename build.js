@@ -48,15 +48,15 @@ function simplifyDldTracker(source){
   return source;
 }
 function applyDldPaidTolerance(source,file){
-  const helper='function dldPaidWithinTolerance(due,paid){return (Number(paid)>0||Number(due)<=0)&&Math.round((Number(due)-Number(paid||0))*100)<=20000;}';
+  const helpers='function dldCashPaid(stage){return Number(stage.cashPaid!==undefined?stage.cashPaid:stage.paid)||0;}function dldSettledAmount(stage){return dldCashPaid(stage)+(Number(stage.creditNoteTotal)||0);}function dldPaidWithinTolerance(due,paid){return (Number(paid)>0||Number(due)<=0)&&Math.round((Number(due)-Number(paid||0))*100)<=20000;}';
   if(file==='chunk_01.js'){
-    const before='return u<=1?"paid":t>0?"partial":"notstarted"';
+    const before='var t=a.paid||0,u=a.due-t;return u<=1?"paid":t>0?"partial":"notstarted"';
     if(!source.includes(before))throw new Error('DLD status tolerance marker not found');
-    return helper+source.replace(before,'return dldPaidWithinTolerance(a.due,t)?"paid":t>0?"partial":"notstarted"');
+    return helpers+source.replace(before,'var t=dldSettledAmount(a);return dldPaidWithinTolerance(a.due,t)?"paid":t>0?"partial":"notstarted"');
   }
   if(file==='chunk_02.js'){
-    const before='s<=1?r++:f>0?u++:n++,stageStatus(c.due,c.paid,c.dueDate,a)==="overdue"&&(i++,d+=s)';
-    const after='dldPaidWithinTolerance(c.due,f)?r++:f>0?u++:n++,!dldPaidWithinTolerance(c.due,f)&&stageStatus(c.due,c.paid,c.dueDate,a)==="overdue"&&(i++,d+=s)';
+    const before='var f=c.paid||0;o+=f;var s=c.due-f;t+=Math.max(0,s),s<=1?r++:f>0?u++:n++,stageStatus(c.due,c.paid,c.dueDate,a)==="overdue"&&(i++,d+=s)';
+    const after='var f=dldCashPaid(c),settled=dldSettledAmount(c);o+=f;var s=c.due-settled;t+=Math.max(0,s),dldPaidWithinTolerance(c.due,settled)?r++:settled>0?u++:n++,!dldPaidWithinTolerance(c.due,settled)&&stageStatus(c.due,settled,c.dueDate,a)==="overdue"&&(i++,d+=s)';
     if(!source.includes(before))throw new Error('DLD tracker tolerance marker not found');
     return source.replace(before,after);
   }
