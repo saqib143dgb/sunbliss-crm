@@ -38,7 +38,7 @@
         padding:0 10px!important;
         border:1px solid rgba(224,170,78,.18)!important;
         border-radius:12px!important;
-        background:rgba(7,21,32,1)!important;
+        background:linear-gradient(90deg,rgba(7,21,32,.61),rgba(3,12,22,.31))!important;
         -webkit-backdrop-filter:blur(6px)!important;
         backdrop-filter:blur(6px)!important;
         color:#f1d28a!important;
@@ -56,7 +56,7 @@
         padding:0 7px!important;
         border:1px solid rgba(224,170,78,.18)!important;
         border-radius:10px!important;
-        background:rgba(7,21,32,1)!important;
+        background:linear-gradient(90deg,rgba(7,21,32,.61),rgba(3,12,22,.31))!important;
         color:#f1d28a!important;
         font:600 7.5px/1 Inter,system-ui,sans-serif!important;
         white-space:nowrap!important;
@@ -72,11 +72,11 @@
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-sync{
-        background:rgba(7,21,32,1)!important;
+        background:linear-gradient(90deg,rgba(7,21,32,.61),rgba(3,12,22,.31))!important;
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-project-row::before{
-        background:rgba(7,21,32,1)!important;
+        background:linear-gradient(90deg,rgba(7,21,32,.61),rgba(3,12,22,.31))!important;
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-brand,
