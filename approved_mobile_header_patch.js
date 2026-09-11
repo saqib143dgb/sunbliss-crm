@@ -47,6 +47,30 @@
         box-shadow:inset 0 1px 0 rgba(255,231,184,.055),0 10px 28px rgba(1,8,14,.16)!important;
       }
 
+      html body #app .topbar.sunbliss-professional-header .sb-pro-signout{
+        height:27px!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        gap:5px!important;
+        padding:0 7px!important;
+        border:1px solid rgba(224,170,78,.18)!important;
+        border-radius:10px!important;
+        background:linear-gradient(90deg,rgba(5,18,29,.46),rgba(5,18,29,.16))!important;
+        color:#f1d28a!important;
+        font:600 7.5px/1 Inter,system-ui,sans-serif!important;
+        white-space:nowrap!important;
+        box-shadow:inset 0 1px 0 rgba(255,231,184,.055),0 10px 28px rgba(1,8,14,.16)!important;
+        -webkit-backdrop-filter:blur(6px)!important;
+        backdrop-filter:blur(6px)!important;
+      }
+
+      html body #app .topbar.sunbliss-professional-header .sb-pro-signout svg{
+        width:12px!important;
+        height:12px!important;
+        stroke:#f1d28a!important;
+      }
+
       html body #app .topbar.sunbliss-professional-header .sb-pro-brand,
       html body #app .topbar.sunbliss-professional-header .sb-pro-main,
       html body #app .topbar.sunbliss-professional-header .sb-pro-signout{
