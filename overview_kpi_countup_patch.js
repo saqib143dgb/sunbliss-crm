@@ -28,6 +28,45 @@
   function loaderReleased(){return !root.classList.contains('sbx-booting')&&!root.classList.contains('sbx-loading');}
   function ease(progress){return 1-Math.pow(1-progress,4);}
 
+  var KPI_META={
+    'units sold':{
+      kind:'units',
+      icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l8-4 8 4v13M2 21h20M8 10h1M8 14h1M15 10h1M15 14h1M9 21v-4h6v4"/></svg>'
+    },
+    'sales value':{
+      kind:'sales',
+      icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="10" cy="6" rx="6" ry="3"/><path d="M4 6v6c0 1.7 2.7 3 6 3 1 0 1.9-.1 2.7-.3M4 12v5c0 1.7 2.7 3 6 3 1.1 0 2.1-.1 3-.4"/><circle cx="17" cy="14" r="4"/><path d="M15.6 14h2.8M17 12.6v2.8"/></svg>'
+    },
+    'collected':{
+      kind:'collected',
+      icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="16" cy="7" r="4"/><path d="M14.5 7h3M16 5.5v3M3 14h4l2.2 3H16a4 4 0 0 0 4-4v-1h-7l-2-2H7M3 14v6"/></svg>'
+    },
+    'outstanding':{
+      kind:'outstanding',
+      icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><circle cx="17.5" cy="17.5" r="3.2"/><path d="M17.5 15.9v2M17.5 19.4h.01"/></svg>'
+    }
+  };
+
+  function decorateKpis(nodes){
+    if(!nodes||desktop())return false;
+    for(var i=0;i<nodes.cells.length;i++){
+      var cell=nodes.cells[i],label=cell.querySelector(nodes.label);
+      if(!label)continue;
+      var key=normalise(label.textContent),meta=KPI_META[key];
+      if(!meta)continue;
+      cell.classList.add('sbx-kpi-card');
+      cell.setAttribute('data-sbx-kpi-kind',meta.kind);
+      if(!label.querySelector('.sbx-kpi-header-icon')){
+        var icon=document.createElement('span');
+        icon.className='sbx-kpi-header-icon';
+        icon.setAttribute('aria-hidden','true');
+        icon.innerHTML=meta.icon;
+        label.insertBefore(icon,label.firstChild);
+      }
+    }
+    return true;
+  }
+
   function parseValue(value){
     var finalText=text(value).replace(/\u00a0/g,' ').trim();
     var m=finalText.match(/^([^0-9+\-]*)([+\-]?(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?)(\s*[KMBT]?)$/i);
@@ -104,6 +143,7 @@
     if(!targets)return false;
     var nodes=overviewNodes();
     if(!nodes)return false;
+    decorateKpis(nodes);
     var raw=Math.max(0,Math.min(1,progress)),eased=ease(raw);
     for(var i=0;i<nodes.cells.length;i++){
       var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
@@ -154,6 +194,8 @@
   }
 
   function prepareFromRenderedOverview(){
+    var nodes=overviewNodes();
+    decorateKpis(nodes);
     if(completed)return false;
 
     /* Once animation has started, its captured target values are immutable.
@@ -162,7 +204,6 @@
        desktop main-thread feedback loop. */
     if(started&&targets)return false;
 
-    var nodes=overviewNodes();
     var next=captureTargets(nodes);
     if(!next)return false;
     targets=next;
@@ -214,7 +255,20 @@
   style.textContent=[
     '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
     'html.sbx-kpi-pending .overview>.stat-hero .stat-value,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-kpi-value{visibility:hidden!important;}',
-    'html.sbx-kpi-pending .overview>.stat-hero .bar-fill,html.sbx-kpi-pending .overview>.stat-hero .bar-caption,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar-cap{visibility:hidden!important;}'
+    'html.sbx-kpi-pending .overview>.stat-hero .bar-fill,html.sbx-kpi-pending .overview>.stat-hero .bar-caption,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar-cap{visibility:hidden!important;}',
+    '@media(max-width:1023px){',
+      '.overview>.stat-hero .stat-cell.sbx-kpi-card{padding:12px 12px 15px!important;}',
+      '.overview>.stat-hero .sbx-kpi-card .stat-label{display:flex!important;align-items:center!important;gap:10px!important;min-height:46px!important;width:100%!important;margin:0 0 11px!important;padding:5px 10px 5px 7px!important;border-radius:11px!important;font-size:9.5px!important;letter-spacing:.075em!important;color:#625f56!important;box-sizing:border-box!important;}',
+      '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="units"] .stat-label{background:linear-gradient(90deg,rgba(214,224,202,.78),rgba(226,232,216,.58))!important;}',
+      '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="sales"] .stat-label{background:linear-gradient(90deg,rgba(236,225,202,.78),rgba(242,234,217,.58))!important;}',
+      '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="collected"] .stat-label{background:linear-gradient(90deg,rgba(210,225,205,.82),rgba(227,235,221,.60))!important;}',
+      '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="outstanding"] .stat-label{background:linear-gradient(90deg,rgba(235,211,205,.82),rgba(242,225,221,.60))!important;}',
+      '.overview>.stat-hero .sbx-kpi-header-icon{align-self:stretch;display:flex;align-items:center;justify-content:flex-start;flex:0 0 42px;width:42px;padding-right:8px;border-right:1px solid rgba(115,108,92,.24);color:var(--gold-deep);}',
+      '.overview>.stat-hero .sbx-kpi-header-icon svg{width:30px;height:30px;padding:5px;border-radius:50%;background:rgba(255,255,255,.46);fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;box-sizing:border-box;}',
+      '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="collected"] .sbx-kpi-header-icon{color:var(--sage);}',
+      '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="outstanding"] .sbx-kpi-header-icon{color:#9b655b;}',
+      '.overview>.stat-hero .sbx-kpi-card .stat-value{padding-left:2px;}',
+    '}'
   ].join('');
   document.head.appendChild(style);
 
