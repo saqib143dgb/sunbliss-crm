@@ -47,35 +47,6 @@
     }
   };
 
-  var STATUS_SECTIONS={
-    'spa status':{
-      section:'spa',title:'SPA Status',items:[
-        {kind:'good',label:'Signed',icon:'<svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><circle cx="17" cy="17" r="3.2"/><path d="m15.7 17 1 1 1.8-2"/></svg>'},
-        {kind:'warn',label:'Drafted',icon:'<svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><path d="m14.5 18 4.2-4.2 1.5 1.5-4.2 4.2-2.1.6z"/></svg>'},
-        {kind:'neutral',label:'Not Started',icon:'<svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><circle cx="17" cy="17" r="3.2"/><path d="m15.8 15.8 2.4 2.4M18.2 15.8l-2.4 2.4"/></svg>'}
-      ]
-    },
-    'oqood status':{
-      section:'oqood',title:'OQOOD Status',items:[
-        {kind:'good',label:'Completed',icon:'<svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><circle cx="17" cy="17" r="3.2"/><path d="m15.7 17 1 1 1.8-2"/></svg>'},
-        {kind:'warn',label:'Pending',icon:'<svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><circle cx="17" cy="17" r="3.2"/><path d="M17 15.2v2l1.3.8"/></svg>'},
-        {kind:'neutral',label:'Not Started',icon:'<svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6zM14 2v5h5M9 11h6M9 15h4"/><circle cx="17" cy="17" r="3.2"/><path d="m15.8 15.8 2.4 2.4M18.2 15.8l-2.4 2.4"/></svg>'}
-      ]
-    },
-    'furniture status':{
-      section:'furnishing',title:'Furnishing Type',items:[
-        {kind:'good',label:'Fully Furnished',icon:'<svg viewBox="0 0 24 24"><path d="M5 12V9a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3M4 12h16a2 2 0 0 1 2 2v5H2v-5a2 2 0 0 1 2-2zM5 19v2M19 19v2"/></svg>'},
-        {kind:'neutral',label:'Semi Furnished',icon:'<svg viewBox="0 0 24 24"><path d="M5 12V9a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3M4 12h16a2 2 0 0 1 2 2v5H2v-5a2 2 0 0 1 2-2zM5 19v2M19 19v2"/></svg>'}
-      ]
-    },
-    'furnishing type':{
-      section:'furnishing',title:'Furnishing Type',items:[
-        {kind:'good',label:'Fully Furnished',icon:'<svg viewBox="0 0 24 24"><path d="M5 12V9a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3M4 12h16a2 2 0 0 1 2 2v5H2v-5a2 2 0 0 1 2-2zM5 19v2M19 19v2"/></svg>'},
-        {kind:'neutral',label:'Semi Furnished',icon:'<svg viewBox="0 0 24 24"><path d="M5 12V9a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3M4 12h16a2 2 0 0 1 2 2v5H2v-5a2 2 0 0 1 2-2zM5 19v2M19 19v2"/></svg>'}
-      ]
-    }
-  };
-
   function decorateKpis(nodes){
     if(!nodes||desktop())return false;
     for(var i=0;i<nodes.cells.length;i++){
@@ -91,39 +62,6 @@
         icon.setAttribute('aria-hidden','true');
         icon.innerHTML=meta.icon;
         label.insertBefore(icon,label.firstChild);
-      }
-    }
-    return true;
-  }
-
-  function decorateStatusCards(){
-    if(desktop())return false;
-    var headings=document.querySelectorAll('.overview .section-label');
-    for(var i=0;i<headings.length;i++){
-      var heading=headings[i],key=normalise(heading.textContent),section=STATUS_SECTIONS[key];
-      if(!section)continue;
-      var pipeline=heading.nextElementSibling;
-      if(!pipeline||!pipeline.classList.contains('pipeline'))continue;
-      heading.textContent=section.title;
-      heading.classList.add('sbx-status-section-label');
-      pipeline.classList.add('sbx-status-pipeline');
-      pipeline.setAttribute('data-sbx-status-section',section.section);
-      var cards=pipeline.querySelectorAll('.pill-stat');
-      for(var j=0;j<cards.length&&j<section.items.length;j++){
-        var card=cards[j],item=section.items[j],label=card.querySelector('.pill-stat-lbl');
-        card.classList.add('sbx-status-card');
-        card.setAttribute('data-sbx-status-kind',item.kind);
-        if(label)label.textContent=item.label;
-        var head=card.querySelector('.sbx-status-head');
-        if(!head){
-          head=document.createElement('span');
-          head.className='sbx-status-head';
-          head.innerHTML='<span class="sbx-status-icon" aria-hidden="true">'+item.icon+'</span><span class="sbx-status-head-label">'+item.label+'</span>';
-          card.insertBefore(head,card.firstChild);
-        }else{
-          var headLabel=head.querySelector('.sbx-status-head-label');
-          if(headLabel)headLabel.textContent=item.label;
-        }
       }
     }
     return true;
@@ -258,7 +196,6 @@
   function prepareFromRenderedOverview(){
     var nodes=overviewNodes();
     decorateKpis(nodes);
-    decorateStatusCards();
     if(completed)return false;
 
     /* Once animation has started, its captured target values are immutable.
@@ -331,26 +268,6 @@
       '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="collected"] .sbx-kpi-header-icon{color:var(--sage);}',
       '.overview>.stat-hero .sbx-kpi-card[data-sbx-kpi-kind="outstanding"] .sbx-kpi-header-icon{color:#9b655b;}',
       '.overview>.stat-hero .sbx-kpi-card .stat-value{padding-left:2px;}',
-      '.overview .section-label.sbx-status-section-label{display:flex!important;align-items:center!important;gap:12px!important;margin:25px 2px 11px!important;color:#655f55!important;white-space:nowrap!important;}',
-      '.overview .section-label.sbx-status-section-label:after{content:"";display:block;flex:1;height:1px;background:rgba(220,210,182,.9);}',
-      '.overview .pipeline.sbx-status-pipeline{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important;margin:2px 0 20px!important;align-items:stretch!important;}',
-      '.overview .pipeline.sbx-status-pipeline[data-sbx-status-section="furnishing"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;}',
-      '.overview .pipeline.sbx-status-pipeline .pill-stat.sbx-status-card{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;min-width:0!important;min-height:124px!important;padding:0 0 12px!important;overflow:hidden!important;border-radius:13px!important;border:1px solid rgba(220,210,182,.95)!important;background:var(--paper)!important;box-shadow:0 2px 8px rgba(15,26,38,.025)!important;text-align:left!important;}',
-      '.overview .pipeline.sbx-status-pipeline .pill-stat.sbx-status-card:hover,.overview .pipeline.sbx-status-pipeline .pill-stat.sbx-status-card:active{background:var(--paper)!important;}',
-      '.overview .pipeline.sbx-status-pipeline .sbx-status-head{height:47px;display:flex;align-items:center;gap:7px;padding:6px 7px;box-sizing:border-box;}',
-      '.overview .pipeline.sbx-status-pipeline [data-sbx-status-kind="good"] .sbx-status-head{background:linear-gradient(90deg,rgba(210,226,205,.82),rgba(228,235,222,.62));}',
-      '.overview .pipeline.sbx-status-pipeline [data-sbx-status-kind="warn"] .sbx-status-head{background:linear-gradient(90deg,rgba(238,223,196,.83),rgba(245,235,217,.63));}',
-      '.overview .pipeline.sbx-status-pipeline [data-sbx-status-kind="neutral"] .sbx-status-head{background:linear-gradient(90deg,rgba(226,223,216,.85),rgba(238,235,229,.64));}',
-      '.overview .pipeline.sbx-status-pipeline .sbx-status-icon{align-self:stretch;display:flex;align-items:center;justify-content:flex-start;flex:0 0 35px;width:35px;padding-right:6px;border-right:1px solid rgba(115,108,92,.22);box-sizing:border-box;color:#655f55;}',
-      '.overview .pipeline.sbx-status-pipeline [data-sbx-status-kind="good"] .sbx-status-icon{color:var(--sage);}',
-      '.overview .pipeline.sbx-status-pipeline [data-sbx-status-kind="warn"] .sbx-status-icon{color:var(--amber);}',
-      '.overview .pipeline.sbx-status-pipeline .sbx-status-icon svg{width:28px;height:28px;padding:5px;border-radius:50%;background:rgba(255,255,255,.52);fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;box-sizing:border-box;}',
-      '.overview .pipeline.sbx-status-pipeline .sbx-status-head-label{min-width:0;font:600 8.35px/1 IBM Plex Mono,monospace;letter-spacing:.055em;text-transform:uppercase;color:#625f56;white-space:nowrap;}',
-      '.overview .pipeline.sbx-status-pipeline .pill-stat-num{margin:15px 13px 0!important;font:600 29px/1 Fraunces,serif!important;color:var(--ink)!important;display:block!important;}',
-      '.overview .pipeline.sbx-status-pipeline .pill-stat-num .pill-dot{display:none!important;}',
-      '.overview .pipeline.sbx-status-pipeline .pill-stat-lbl{display:none!important;}',
-      '.overview .pipeline.sbx-status-pipeline[data-sbx-status-section="furnishing"] .sbx-status-head-label{font-size:8.8px!important;}',
-      '.overview .pipeline.sbx-status-pipeline[data-sbx-status-section="furnishing"] .pill-stat-num{font-size:30px!important;}',
     '}'
   ].join('');
   document.head.appendChild(style);
