@@ -7,7 +7,7 @@
   style.textContent=`
     @media(max-width:720px){
       .topbar.sunbliss-professional-header{
-        min-height:220px!important;
+        min-height:198px!important;
         box-sizing:border-box!important;
         padding:14px 16px 20px!important;
         border:0!important;
