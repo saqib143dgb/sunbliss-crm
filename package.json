@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "build": "node build.js && node scripts/apply-approved-mobile-header.js && node scripts/apply-mobile-status-cards.js",
+    "build": "node build.js && node scripts/apply-approved-mobile-header.js",
     "vendor:base": "node scripts/vendor-base.js"
   },
   "dependencies": {
