@@ -13,47 +13,21 @@
         border:0!important;
         border-radius:0!important;
         background-color:#071520!important;
-        background-image:url('assets/sunbliss-mobile-header-background.webp')!important;
+        background-image:url('assets/sunbliss-mobile-skyline-6bf2fc29.jpeg')!important;
         background-repeat:no-repeat!important;
-        background-size:auto 124%!important;
-        background-position:64% 82%!important;
+        background-size:cover!important;
+        background-position:center center!important;
         box-shadow:
           inset 0 0 0 1px rgba(224,170,78,.16),
           inset 0 -34px 54px rgba(1,8,14,.20),
           0 14px 34px rgba(2,9,15,.24)!important;
       }
 
-      .topbar.sunbliss-professional-header::before{
-        content:''!important;
-        display:block!important;
-        position:absolute!important;
-        inset:0!important;
-        width:auto!important;
-        height:auto!important;
-        border:0!important;
-        border-radius:0!important;
-        box-shadow:none!important;
-        background:
-          linear-gradient(90deg,rgba(3,12,20,.91) 0%,rgba(3,12,20,.76) 45%,rgba(3,12,20,.20) 82%,rgba(3,12,20,.08) 100%),
-          linear-gradient(180deg,rgba(3,12,20,.12) 0%,transparent 42%,rgba(3,12,20,.28) 100%)!important;
-        pointer-events:none!important;
-        z-index:1!important;
-      }
-
+      .topbar.sunbliss-professional-header::before,
       .topbar.sunbliss-professional-header::after{
-        content:''!important;
-        display:block!important;
-        position:absolute!important;
-        inset:0!important;
-        width:auto!important;
-        height:auto!important;
-        border:0!important;
-        border-radius:0!important;
-        background:
-          radial-gradient(ellipse 58% 38% at 82% 98%,rgba(214,162,70,.14),transparent 72%),
-          radial-gradient(ellipse 34% 24% at 18% 0%,rgba(214,162,70,.08),transparent 76%)!important;
-        pointer-events:none!important;
-        z-index:2!important;
+        content:none!important;
+        display:none!important;
+        background:none!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-top,
