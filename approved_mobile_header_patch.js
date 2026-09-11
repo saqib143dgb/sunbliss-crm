@@ -36,7 +36,7 @@
       html body #app .topbar.sunbliss-professional-header .sb-pro-role{
         min-height:26px!important;
         padding:0 10px!important;
-        border:1px solid rgba(244,204,126,.60)!important;
+        border:1px solid rgba(214,162,70,.52)!important;
         border-radius:999px!important;
         background:rgba(18,33,49,.50)!important;
         -webkit-backdrop-filter:blur(10px) saturate(140%)!important;
