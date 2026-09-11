@@ -9,7 +9,7 @@
       .topbar.sunbliss-professional-header{
         min-height:198px!important;
         box-sizing:border-box!important;
-        padding:14px 16px 20px!important;
+        padding:10px 16px 12px!important;
         border:0!important;
         border-radius:0!important;
         background-color:#071520!important;
@@ -187,7 +187,7 @@
       }
 
       .topbar.sunbliss-professional-header .sb-pro-main{
-        margin-top:24px!important;
+        margin-top:18px!important;
       }
 
       .topbar.sunbliss-professional-header .sb-pro-main::before{
@@ -242,7 +242,7 @@
 
       .topbar.sunbliss-professional-header .sb-pro-project-row{
         min-width:0!important;
-        margin-top:35px!important;
+        margin-top:31px!important;
         position:relative!important;
         isolation:isolate!important;
         display:flex!important;
