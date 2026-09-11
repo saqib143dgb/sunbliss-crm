@@ -7,6 +7,8 @@ const OUT = path.join(ROOT, 'dist');
 const SOURCE_PATCH = path.join(ROOT, 'approved_mobile_header_patch.js');
 const DIST_PATCH = path.join(OUT, 'approved_mobile_header_patch.js');
 const DIST_IMAGE = path.join(OUT, 'assets', 'sunbliss-mobile-header-background.webp');
+const CLEAN_SOURCE = path.join(ROOT, 'assets', 'sunbliss-mobile-header-clean.avif');
+const CLEAN_DIST = path.join(OUT, 'assets', 'sunbliss-mobile-header-clean.avif');
 const INDEX = path.join(OUT, 'index.html');
 const EXPECTED_BASE64_LENGTH = 45812;
 const EXPECTED_BYTES = 34358;
@@ -28,6 +30,7 @@ const chunkFiles = [
 ];
 chunkFiles.forEach((file,idx)=>required(file,`Approved header chunk ${idx+1}`));
 required(SOURCE_PATCH,'Approved header patch');
+required(CLEAN_SOURCE,'Clean mobile header background');
 required(INDEX,'Built index');
 
 const encoded = chunkFiles.map(file=>fs.readFileSync(file,'utf8').trim()).join('');
@@ -50,6 +53,7 @@ if(
 
 fs.mkdirSync(path.dirname(DIST_IMAGE),{recursive:true});
 fs.writeFileSync(DIST_IMAGE,image);
+fs.copyFileSync(CLEAN_SOURCE,CLEAN_DIST);
 fs.copyFileSync(SOURCE_PATCH,DIST_PATCH);
 
 let html = fs.readFileSync(INDEX,'utf8');
@@ -57,4 +61,4 @@ html = html.replace(/<script[^>]+src=["']approved_mobile_header_patch\.js(?:\?[^
 html = html.replace(/<head([^>]*)>/i,`<head$1>\n<script src="approved_mobile_header_patch.js?v=${version()}"></script>`);
 fs.writeFileSync(INDEX,html);
 
-console.log(`Applied exact approved mobile CRM header (${image.length} bytes, sha256 ${sha256}) to ${path.relative(ROOT,DIST_IMAGE)}`);
+console.log(`Applied live CRM mobile header with clean background asset ${path.relative(ROOT,CLEAN_DIST)}`);
