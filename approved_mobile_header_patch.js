@@ -36,14 +36,16 @@
       html body #app .topbar.sunbliss-professional-header .sb-pro-role{
         min-height:26px!important;
         padding:0 10px!important;
-        border:1px solid rgba(244,204,126,.90)!important;
+        border:1px solid rgba(244,204,126,.60)!important;
         border-radius:999px!important;
-        background:linear-gradient(180deg,rgba(75,87,100,.97) 0%,rgba(37,51,66,.98) 46%,rgba(10,24,39,.98) 51%,rgba(23,38,53,.98) 100%)!important;
+        background:rgba(18,33,49,.50)!important;
+        -webkit-backdrop-filter:blur(10px) saturate(140%)!important;
+        backdrop-filter:blur(10px) saturate(140%)!important;
         color:#ffe2a3!important;
         font:700 10px/1 Inter,system-ui,sans-serif!important;
         white-space:nowrap!important;
         flex-shrink:0!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(0,0,0,.30),0 2px 7px rgba(0,0,0,.28)!important;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(0,0,0,.12),0 2px 7px rgba(0,0,0,.18)!important;
         text-shadow:0 1px 2px rgba(0,0,0,.85)!important;
       }
 
