@@ -41,12 +41,9 @@
         background:rgba(18,33,49,.50)!important;
         -webkit-backdrop-filter:blur(10px) saturate(140%)!important;
         backdrop-filter:blur(10px) saturate(140%)!important;
-        color:#ffe2a3!important;
-        font:700 10px/1 Inter,system-ui,sans-serif!important;
         white-space:nowrap!important;
         flex-shrink:0!important;
         box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(0,0,0,.12),0 2px 7px rgba(0,0,0,.18)!important;
-        text-shadow:0 1px 2px rgba(0,0,0,.85)!important;
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-brand,
