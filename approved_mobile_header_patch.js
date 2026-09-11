@@ -41,7 +41,7 @@
         background:linear-gradient(90deg,rgba(5,18,29,.46),rgba(5,18,29,.16))!important;
         -webkit-backdrop-filter:blur(6px)!important;
         backdrop-filter:blur(6px)!important;
-        color:#fff!important;
+        color:#f1d28a!important;
         white-space:nowrap!important;
         flex-shrink:0!important;
         box-shadow:inset 0 1px 0 rgba(255,231,184,.055),0 10px 28px rgba(1,8,14,.16)!important;
