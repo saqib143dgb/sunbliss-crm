@@ -38,7 +38,7 @@
         padding:0 10px!important;
         border:1px solid rgba(214,162,70,.52)!important;
         border-radius:999px!important;
-        background:linear-gradient(125deg,rgba(91,107,123,.65) 0%,rgba(57,75,94,.65) 20%,rgba(28,45,63,.65) 39%,rgba(18,33,49,.65) 53%,rgba(18,33,49,.65) 100%)!important;
+        background:rgba(18,33,49,.80)!important;
         -webkit-backdrop-filter:blur(10px) saturate(140%)!important;
         backdrop-filter:blur(10px) saturate(140%)!important;
         white-space:nowrap!important;
