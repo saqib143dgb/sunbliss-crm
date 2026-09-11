@@ -36,14 +36,14 @@
       html body #app .topbar.sunbliss-professional-header .sb-pro-role{
         min-height:26px!important;
         padding:0 10px!important;
-        border:1px solid rgba(214,162,70,.52)!important;
-        border-radius:999px!important;
-        background:rgba(18,33,49,.80)!important;
-        -webkit-backdrop-filter:blur(10px) saturate(140%)!important;
-        backdrop-filter:blur(10px) saturate(140%)!important;
+        border:1px solid rgba(224,170,78,.18)!important;
+        border-radius:12px!important;
+        background:linear-gradient(90deg,rgba(5,18,29,.46),rgba(5,18,29,.16))!important;
+        -webkit-backdrop-filter:blur(6px)!important;
+        backdrop-filter:blur(6px)!important;
         white-space:nowrap!important;
         flex-shrink:0!important;
-        box-shadow:none!important;
+        box-shadow:inset 0 1px 0 rgba(255,231,184,.055),0 10px 28px rgba(1,8,14,.16)!important;
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-brand,
