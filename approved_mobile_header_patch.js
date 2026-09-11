@@ -38,7 +38,7 @@
         padding:0 10px!important;
         border:1px solid rgba(214,162,70,.52)!important;
         border-radius:999px!important;
-        background:rgba(18,33,49,.50)!important;
+        background:rgba(18,33,49,.65)!important;
         -webkit-backdrop-filter:blur(10px) saturate(140%)!important;
         backdrop-filter:blur(10px) saturate(140%)!important;
         white-space:nowrap!important;
