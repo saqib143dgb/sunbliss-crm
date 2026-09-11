@@ -43,7 +43,7 @@
         backdrop-filter:blur(10px) saturate(140%)!important;
         white-space:nowrap!important;
         flex-shrink:0!important;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.30),inset 0 -1px 0 rgba(0,0,0,.12),0 2px 7px rgba(0,0,0,.18)!important;
+        box-shadow:none!important;
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-brand,
