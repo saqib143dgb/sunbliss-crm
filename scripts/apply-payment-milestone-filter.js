@@ -3,8 +3,8 @@ const path=require('path');
 
 const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist');
-const SOURCE=path.join(ROOT,'payment_milestone_filter_export_patch.js');
-const TARGET=path.join(OUT,'payment_milestone_filter_export_patch.js');
+const SOURCE=path.join(ROOT,'payment_milestone_filter_export_v2_patch.js');
+const TARGET=path.join(OUT,'payment_milestone_filter_export_v2_patch.js');
 const INDEX=path.join(OUT,'index.html');
 
 function required(file,label){
@@ -22,9 +22,10 @@ fs.copyFileSync(SOURCE,TARGET);
 
 let html=fs.readFileSync(INDEX,'utf8');
 html=html.replace(/<script[^>]+src=["']payment_milestone_filter_export_patch\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-const tag=`<script defer src="payment_milestone_filter_export_patch.js?v=${version()}"></script>`;
+html=html.replace(/<script[^>]+src=["']payment_milestone_filter_export_v2_patch\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
+const tag=`<script defer src="payment_milestone_filter_export_v2_patch.js?v=${version()}"></script>`;
 if(/<\/body>/i.test(html))html=html.replace(/<\/body>/i,`${tag}\n</body>`);
 else html+=`\n${tag}\n`;
 fs.writeFileSync(INDEX,html);
 
-console.log('Applied payment milestone filter and export patch');
+console.log('Applied refined payment milestone filter and export patch');
