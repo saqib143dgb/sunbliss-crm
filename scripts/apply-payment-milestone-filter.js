@@ -22,7 +22,7 @@ fs.copyFileSync(SOURCE,TARGET);
 
 let html=fs.readFileSync(INDEX,'utf8');
 html=html.replace(/<script[^>]+src=["']payment_milestone_filter_export_patch\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-const tag=`<script src="payment_milestone_filter_export_patch.js?v=${version()}"></script>`;
+const tag=`<script defer src="payment_milestone_filter_export_patch.js?v=${version()}"></script>`;
 if(/<\/body>/i.test(html))html=html.replace(/<\/body>/i,`${tag}\n</body>`);
 else html+=`\n${tag}\n`;
 fs.writeFileSync(INDEX,html);
