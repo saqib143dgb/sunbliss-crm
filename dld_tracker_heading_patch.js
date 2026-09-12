@@ -6,7 +6,7 @@
   style.id='sunblissDldTrackerHeadingStyle';
   style.textContent=[
     '@media(max-width:1023px){',
-      '/* DLD tracker — match the approved generated reference. Typography sizes stay inherited. */',
+      '/* DLD tracker — match the approved mobile Insights header tones. Typography sizes stay inherited. */',
       '.section-label.sunbliss-dld-heading{',
         'display:flex!important;',
         'align-items:center!important;',
@@ -15,7 +15,7 @@
         'padding:0 14px!important;',
         'border:1px solid var(--paper-line)!important;',
         'border-radius:12px!important;',
-        'background:var(--paper)!important;',
+        'background:linear-gradient(180deg,rgba(235,227,206,.72),rgba(235,227,206,.56))!important;',
         'box-shadow:0 2px 8px rgba(15,26,38,.025)!important;',
         'color:var(--muted)!important;',
       '}',
@@ -27,7 +27,7 @@
       '}',
       '.sunbliss-dld-summary>.stat-cell{',
         'padding:12px 14px!important;',
-        'background:linear-gradient(to bottom,rgba(235,227,206,.42) 0 35px,var(--paper) 35px 100%)!important;',
+        'background:linear-gradient(to bottom,rgba(235,227,206,.72) 0 35px,var(--paper) 35px 100%)!important;',
       '}',
       '.sunbliss-dld-pipeline{',
         'display:grid!important;',
