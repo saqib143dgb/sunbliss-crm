@@ -2,16 +2,17 @@
   'use strict';
   if(document.getElementById('sunblissDesktopSkylineStabilityPreload'))return;
 
-  /* Public-domain / CC0 Dubai skyline source:
-     https://commons.wikimedia.org/wiki/File:Dubai-Skyline-2019.jpg */
-  var SKYLINE_URL='https://upload.wikimedia.org/wikipedia/commons/0/07/Dubai-Skyline-2019.jpg';
+  /* Exact approved desktop header artwork already stored in this repository.
+     Keep it as the visual background only; all company/user/project/sync/sign-out
+     content remains live CRM HTML rendered above it. */
+  var APPROVED_DESKTOP_BG='https://raw.githubusercontent.com/saqib143dgb/sunbliss-crm/main/assets/sunbliss-desktop-header-night.webp?v=6e607ff6fbef8f319ae56aeb2e268b2d4100edd7';
 
-  if(!document.getElementById('sunblissDesktopSkylineImagePreload')){
+  if(!document.getElementById('sunblissDesktopApprovedHeaderPreload')){
     var preload=document.createElement('link');
-    preload.id='sunblissDesktopSkylineImagePreload';
+    preload.id='sunblissDesktopApprovedHeaderPreload';
     preload.rel='preload';
     preload.as='image';
-    preload.href=SKYLINE_URL;
+    preload.href=APPROVED_DESKTOP_BG;
     preload.fetchPriority='high';
     document.head.appendChild(preload);
   }
@@ -20,8 +21,7 @@
   style.id='sunblissDesktopSkylineStabilityPreload';
   style.textContent=`
     @media(min-width:1024px){
-      /* Desktop header now has one visual source only: the Dubai skyline photo.
-         Disable the former Sunbliss-building layer and both old skyline layers. */
+      /* One desktop visual source only. Mobile remains untouched. */
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual,
       html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline{
         display:none!important;
@@ -38,8 +38,8 @@
         background:#06131f!important;
       }
 
-      /* Full-width skyline photo with a restrained dark veil so the existing
-         Purvanchal/user/actions typography stays readable. */
+      /* Approved artwork is background-only. The restrained dark veil keeps the
+         live CRM text/buttons readable while preserving the image itself. */
       html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header::before{
         content:''!important;
         display:block!important;
@@ -55,14 +55,14 @@
         outline:0!important;
         box-shadow:none!important;
         background-image:
-          linear-gradient(90deg,rgba(2,10,17,.84) 0%,rgba(2,10,17,.72) 30%,rgba(2,10,17,.50) 55%,rgba(2,10,17,.34) 78%,rgba(2,10,17,.28) 100%),
-          url('${SKYLINE_URL}')!important;
+          linear-gradient(90deg,rgba(2,10,17,.82) 0%,rgba(2,10,17,.69) 29%,rgba(2,10,17,.44) 54%,rgba(2,10,17,.22) 77%,rgba(2,10,17,.13) 100%),
+          url('${APPROVED_DESKTOP_BG}')!important;
         background-repeat:no-repeat,no-repeat!important;
         background-size:cover,cover!important;
-        background-position:center center,center 54%!important;
+        background-position:center center,center center!important;
       }
 
-      /* Remove the previous line-art skyline ornament completely. */
+      /* Remove the former line-art/duplicate skyline ornaments. */
       html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header .sb-pro-main.sb-pro-main::after{
         content:none!important;
         display:none!important;
