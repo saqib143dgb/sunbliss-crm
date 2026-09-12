@@ -6,8 +6,8 @@
   style.id='sunblissDldTrackerHeadingStyle';
   style.textContent=[
     '@media(max-width:1023px){',
-      '/* DLD tracker: approved boxed heading, while preserving all existing text sizes. */',
-      '.overview>.section-label:has(+ div[style*="grid-template-columns:1fr 1fr"]){',
+      '/* DLD tracker: approved boxed heading. Text size intentionally inherited unchanged. */',
+      '.section-label.sunbliss-dld-heading{',
         'display:flex!important;',
         'align-items:center!important;',
         'min-height:44px!important;',
@@ -19,22 +19,32 @@
         'box-shadow:0 2px 8px rgba(15,26,38,.025)!important;',
         'color:var(--muted)!important;',
       '}',
-      '.overview>.section-label:has(+ div[style*="grid-template-columns:1fr 1fr"])+div{',
-        'border-radius:14px!important;',
-        'margin-bottom:8px!important;',
-        'box-shadow:0 2px 8px rgba(15,26,38,.02)!important;',
-      '}',
-      '.overview>.section-label:has(+ div[style*="grid-template-columns:1fr 1fr"])+div+.pipeline{',
-        'display:grid!important;',
-        'grid-template-columns:repeat(2,minmax(0,1fr))!important;',
-        'gap:8px!important;',
-        'margin:0 0 10px!important;',
-      '}',
-      '.overview>.section-label:has(+ div[style*="grid-template-columns:1fr 1fr"])+div+.pipeline .pill-stat{',
-        'min-width:0!important;',
-        'border-radius:14px!important;',
-      '}',
     '}'
   ].join('');
   document.head.appendChild(style);
+
+  function normalize(text){
+    return String(text||'').replace(/\s+/g,' ').trim().toUpperCase();
+  }
+
+  function applyHeading(){
+    if(window.innerWidth>1023)return;
+    var labels=document.querySelectorAll('.section-label');
+    for(var i=0;i<labels.length;i++){
+      var el=labels[i];
+      if(normalize(el.textContent)==='DLD & REGISTRATION FEE TRACKER'){
+        el.classList.add('sunbliss-dld-heading');
+      }
+    }
+  }
+
+  applyHeading();
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',applyHeading,{once:true});
+  }
+  var root=document.getElementById('app')||document.documentElement;
+  if(window.MutationObserver){
+    new MutationObserver(applyHeading).observe(root,{childList:true,subtree:true,characterData:true});
+  }
+  window.addEventListener('resize',applyHeading,{passive:true});
 })();
