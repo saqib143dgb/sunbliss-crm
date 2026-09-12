@@ -6,8 +6,8 @@
   style.id='sunblissDldTrackerHeadingStyle';
   style.textContent=[
     '@media(max-width:1023px){',
-      '/* DLD tracker — keep the approved tint only on the DLD heading box. Typography sizes stay inherited. */',
-      '.section-label.sunbliss-dld-heading{',
+      '/* Approved mobile heading box shared by DLD tracker and Cancelled Units. Typography sizes stay inherited. */',
+      '.section-label.sunbliss-dld-heading,.section-label.sunbliss-cancelled-heading{',
         'display:flex!important;',
         'align-items:center!important;',
         'min-height:34px!important;',
@@ -53,16 +53,23 @@
     var labels=document.querySelectorAll('.section-label');
     for(var i=0;i<labels.length;i++){
       var heading=labels[i];
-      if(normalize(heading.textContent)!=='DLD & REGISTRATION FEE TRACKER')continue;
+      var text=normalize(heading.textContent);
 
-      heading.classList.add('sunbliss-dld-heading');
-      var summary=heading.nextElementSibling;
-      if(summary){
-        summary.classList.add('sunbliss-dld-summary');
-        var pipeline=summary.nextElementSibling;
-        if(pipeline && pipeline.classList.contains('pipeline')){
-          pipeline.classList.add('sunbliss-dld-pipeline');
+      if(text==='DLD & REGISTRATION FEE TRACKER'){
+        heading.classList.add('sunbliss-dld-heading');
+        var summary=heading.nextElementSibling;
+        if(summary){
+          summary.classList.add('sunbliss-dld-summary');
+          var pipeline=summary.nextElementSibling;
+          if(pipeline && pipeline.classList.contains('pipeline')){
+            pipeline.classList.add('sunbliss-dld-pipeline');
+          }
         }
+        continue;
+      }
+
+      if(text.indexOf('CANCELLED UNITS')===0 && text.indexOf('TAP FOR FULL HISTORY')!==-1){
+        heading.classList.add('sunbliss-cancelled-heading');
       }
     }
   }
