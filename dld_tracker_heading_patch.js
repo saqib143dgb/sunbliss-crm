@@ -6,7 +6,7 @@
   style.id='sunblissDldTrackerHeadingStyle';
   style.textContent=[
     '@media(max-width:1023px){',
-      '/* DLD tracker — match the approved mobile Insights header tones. Typography sizes stay inherited. */',
+      '/* DLD tracker — keep the approved tint only on the DLD heading box. Typography sizes stay inherited. */',
       '.section-label.sunbliss-dld-heading{',
         'display:flex!important;',
         'align-items:center!important;',
@@ -27,7 +27,7 @@
       '}',
       '.sunbliss-dld-summary>.stat-cell{',
         'padding:12px 14px!important;',
-        'background:linear-gradient(to bottom,rgba(235,227,206,.72) 0 35px,var(--paper) 35px 100%)!important;',
+        'background:var(--paper)!important;',
       '}',
       '.sunbliss-dld-pipeline{',
         'display:grid!important;',
