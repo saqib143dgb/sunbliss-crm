@@ -5,6 +5,8 @@ const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist');
 const SOURCE=path.join(ROOT,'mobile_insights_cards_patch.js');
 const TARGET=path.join(OUT,'mobile_insights_cards_patch.js');
+const DLD_SOURCE=path.join(ROOT,'dld_tracker_heading_patch.js');
+const DLD_TARGET=path.join(OUT,'dld_tracker_heading_patch.js');
 const INDEX=path.join(OUT,'index.html');
 
 function required(file,label){
@@ -17,12 +19,15 @@ function version(){
 }
 
 required(SOURCE,'Mobile insights card patch');
+required(DLD_SOURCE,'DLD tracker heading patch');
 required(INDEX,'Built index');
 fs.copyFileSync(SOURCE,TARGET);
+fs.copyFileSync(DLD_SOURCE,DLD_TARGET);
 
 let html=fs.readFileSync(INDEX,'utf8');
 html=html.replace(/<script[^>]+src=["']mobile_insights_cards_patch\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
-html=html.replace(/<head([^>]*)>/i,`<head$1>\n<script src="mobile_insights_cards_patch.js?v=${version()}"></script>`);
+html=html.replace(/<script[^>]+src=["']dld_tracker_heading_patch\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
+html=html.replace(/<head([^>]*)>/i,`<head$1>\n<script src="dld_tracker_heading_patch.js?v=${version()}"></script>\n<script src="mobile_insights_cards_patch.js?v=${version()}"></script>`);
 fs.writeFileSync(INDEX,html);
 
-console.log('Applied approved mobile insights card styling');
+console.log('Applied approved mobile insights and DLD tracker styling');
