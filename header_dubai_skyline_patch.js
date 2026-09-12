@@ -3,6 +3,11 @@
   if(window.__sunblissDubaiSkylinePatchInstalled)return;
   window.__sunblissDubaiSkylinePatchInstalled=true;
 
+  var DESKTOP_MQ='(min-width:1024px)';
+  var APPROVED_DESKTOP_BG='https://raw.githubusercontent.com/saqib143dgb/sunbliss-crm/3bd49b6efe227932e1f5db3968b4e8582b588232/assets/sunbliss-desktop-header-night.webp';
+
+  function desktop(){return window.matchMedia?window.matchMedia(DESKTOP_MQ).matches:window.innerWidth>=1024;}
+
   function ensureStyles(){
     if(document.getElementById('sunblissDubaiSkylineStyles'))return;
     var style=document.createElement('style');
@@ -27,63 +32,47 @@
       .sb-dubai-skyline .sb-sky-detail{fill:none;stroke:#7f9aaa;stroke-width:1.05;stroke-linecap:round;stroke-linejoin:round;}
       .sb-dubai-skyline .sb-sky-ground{fill:none;stroke:#c99740;stroke-width:1.2;stroke-linecap:round;}
 
-      /* Desktop skyline: deliberately large and recognisable. The previous
-         version was stretched too thin, which made it read as random vertical
-         lines instead of a skyline. Keep the native SVG proportions and let
-         Burj Khalifa / Burj Al Arab anchor the empty center of the header. */
+      /* Desktop has one source of truth only: the approved night header artwork.
+         The legacy line-art skyline is never allowed to paint or reinsert here. */
       @media(min-width:1024px){
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-main.sb-pro-main::after{
+        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header{
+          --sb-desktop-header-h:166px!important;
+          position:relative!important;
+          height:166px!important;
+          min-height:166px!important;
+          max-height:166px!important;
+          overflow:hidden!important;
+          isolation:isolate!important;
+          background-color:#06131f!important;
+          background-image:
+            linear-gradient(90deg,rgba(2,12,22,.80) 0%,rgba(2,12,22,.55) 25%,rgba(2,12,22,.14) 53%,rgba(2,12,22,.20) 77%,rgba(2,12,22,.36) 100%),
+            url('${APPROVED_DESKTOP_BG}')!important;
+          background-repeat:no-repeat,no-repeat!important;
+          background-size:100% 100%,100% 100%!important;
+          background-position:center center,center center!important;
+          border-bottom:1px solid rgba(214,162,70,.50)!important;
+        }
+        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline,
+        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual{
+          display:none!important;
+          visibility:hidden!important;
+          opacity:0!important;
+          pointer-events:none!important;
+        }
+        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header::before,
+        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header::after,
+        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-main.sb-pro-main::after{
           content:none!important;
           display:none!important;
-          background:none!important;
+          visibility:hidden!important;
           opacity:0!important;
+          background:none!important;
         }
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline{
-          display:block!important;
-          left:27%!important;
-          right:20%!important;
-          bottom:-24px!important;
-          width:auto!important;
-          max-width:none!important;
-          height:148%!important;
-          opacity:.34!important;
-          z-index:1!important;
-          overflow:visible!important;
-          -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.92) 8%,#000 18%,#000 88%,transparent 100%)!important;
-          mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.92) 8%,#000 18%,#000 88%,transparent 100%)!important;
-          filter:drop-shadow(0 0 11px rgba(198,151,46,.07))!important;
-        }
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline .sb-sky-main{
-          stroke:#dfad50!important;
-          stroke-width:2.15!important;
-          stroke-opacity:.78!important;
-        }
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline .sb-sky-detail{
-          stroke:#839dab!important;
-          stroke-width:1.05!important;
-          stroke-opacity:.42!important;
-        }
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline .sb-sky-ground{
-          stroke:#c99a43!important;
-          stroke-opacity:.44!important;
-        }
-      }
-
-      @media(min-width:1440px){
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline{
-          left:25%!important;
-          right:18%!important;
-          bottom:-29px!important;
-          height:158%!important;
-          opacity:.35!important;
-        }
-      }
-
-      @media(min-width:1800px){
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline.sb-dubai-skyline{
-          left:24%!important;
-          right:17%!important;
-          height:164%!important;
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header>.sb-pro-top,
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header>.sb-pro-main,
+        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header>.sb-pro-sync{
+          position:relative!important;
+          z-index:5!important;
         }
       }
 
@@ -125,8 +114,12 @@
     ensureStyles();
     var header=document.querySelector('.topbar.sunbliss-professional-header');
     if(!header)return;
-    if(header.querySelector('.sb-dubai-skyline'))return;
-    header.insertAdjacentHTML('afterbegin',skylineMarkup());
+    var skyline=header.querySelector('.sb-dubai-skyline');
+    if(desktop()){
+      if(skyline)skyline.remove();
+      return;
+    }
+    if(!skyline)header.insertAdjacentHTML('afterbegin',skylineMarkup());
   }
 
   var queued=false;
@@ -147,6 +140,7 @@
   schedule();
   setTimeout(apply,80);
   setTimeout(apply,300);
+  window.addEventListener('resize',schedule,{passive:true});
 
   var app=document.getElementById('app');
   if(app&&window.MutationObserver){
