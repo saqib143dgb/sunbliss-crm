@@ -35,3 +35,4 @@ else html+=`\n${tag}\n`;
 fs.writeFileSync(INDEX,html);
 
 console.log('Applied corrected 40/60 and 50/50 construction deadline report');
+// Production build trigger: corrected construction-deadline report v3.
