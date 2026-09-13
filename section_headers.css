@@ -1,0 +1,80 @@
+/* Mobile-only section headers matching the approved CRM reference.
+   Summary tiles keep their existing heading treatment. */
+@media screen and (max-width: 1023px) {
+  html body #app main#main .section-label {
+    box-sizing: border-box;
+    background: #f1e8d3 !important;
+    border: 1px solid #dcd2b6 !important;
+    border-left: 4px solid #a47b28 !important;
+    border-radius: 5px !important;
+    padding: 7px 10px !important;
+    color: #16232f !important;
+    font-family: Fraunces, Georgia, serif !important;
+    font-size: 12.6px !important;
+    font-weight: 400 !important;
+    line-height: 1.4 !important;
+    letter-spacing: .025em !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    text-align: left !important;
+    min-width: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    min-height: 34px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    box-shadow: none !important;
+  }
+
+  html body #app main#main .section-label::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  html body #app main#main .section-label:has(.section-heading-subtitle) {
+    display: flex !important;
+  }
+
+  html body #app main#main .section-label .section-heading-subtitle {
+    flex: 0 0 auto;
+    display: inline-block;
+    white-space: nowrap;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: .06em;
+    color: #736c5c;
+  }
+
+  html body #app main#main .section-heading-separator {
+    display: block !important;
+    flex: 0 0 1px;
+    align-self: center;
+    width: 1px;
+    height: 12px !important;
+    margin: 0 10px;
+    background: #a19883;
+    color: transparent;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  @media (max-width: 380px) {
+    html body #app main#main .section-label {
+      font-size: 10.8px !important;
+    }
+
+    html body #app main#main .section-heading-separator {
+      margin: 0 5px;
+    }
+
+    html body #app main#main .section-heading-subtitle {
+      font-size: 9px !important;
+      letter-spacing: .025em;
+    }
+  }
+}
