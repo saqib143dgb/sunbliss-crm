@@ -18,7 +18,7 @@
     text-transform: uppercase !important;
     white-space: nowrap !important;
     overflow-wrap: normal;
-    text-align: center !important;
+    text-align: left !important;
     min-width: 0;
     box-shadow: none !important;
   }
@@ -28,7 +28,7 @@
     min-height: 34px !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     flex-wrap: nowrap !important;
   }
   html body #app main#main .section-label::before {
@@ -45,8 +45,8 @@
     font-weight: 400 !important;
     white-space: nowrap !important;
     overflow-wrap: normal !important;
-    text-align: center !important;
-    justify-content: center !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
   }
   html body #app #sbRefOverviewV2 .sb-v2-head {
     gap: 10px;
