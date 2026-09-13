@@ -68,12 +68,13 @@
     font-weight: 400;
     letter-spacing: .06em;
     color: #736c5c;
-    white-space: normal;
+    display: inline-block;
+    white-space: nowrap;
   }
   html body #app main#main .section-heading-separator {
     display: inline-block;
     width: 1px;
-    height: 1em;
+    height: 12px;
     margin: 0 10px;
     background: #a19883;
     color: transparent;
