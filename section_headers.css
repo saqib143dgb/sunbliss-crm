@@ -14,8 +14,8 @@
     padding: 7px 10px !important;
     color: #16232f !important;
     font-family: Fraunces, Georgia, serif !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
+    font-size: 12.6px !important;
+    font-weight: 400 !important;
     line-height: 1.4 !important;
     letter-spacing: .025em !important;
     text-transform: uppercase !important;
@@ -36,7 +36,7 @@
   }
   html body #app main#main #creditNotePortfolio .credit-note-mini-label {
     color: #16232f !important;
-    font: 700 14px/1.4 Fraunces, Georgia, serif !important;
+    font: 400 12.6px/1.4 Fraunces, Georgia, serif !important;
     letter-spacing: .025em !important;
   }
   html body #app main#main #creditNotePortfolio .credit-note-mini-toggle {
@@ -48,7 +48,7 @@
   html body #app main#main .stat-label,
   html body #app main#main .kpi-label,
   html body #app #sbRefOverviewV2 .sb-v2-kpi-label {
-    font-size: 12px !important;
+    font-size: 10.8px !important;
     padding: 5px 8px !important;
     margin-bottom: 9px !important;
   }
@@ -82,7 +82,7 @@
     vertical-align: -.1em;
   }
   @media (max-width: 380px) {
-    html body #app main#main .section-label {font-size: 13px !important;}
+    html body #app main#main .section-label {font-size: 11.7px !important;}
     html body #app main#main .section-heading-separator {margin: 0 6px;}
   }
 }
