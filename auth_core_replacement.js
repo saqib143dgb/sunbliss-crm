@@ -243,6 +243,7 @@ async function boot(preloadedSession){
 
       state.userName=profile.full_name||user.email;
       state.userRole=role;
+      try{if(typeof window.crmVisitTrackSignIn==='function')window.crmVisitTrackSignIn(session,user,profile);}catch(_visitError){}
       var loaded=false,lastError=null;
       for(var attempt=0;attempt<3&&!loaded;attempt++){
         try{
