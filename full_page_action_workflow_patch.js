@@ -16,6 +16,10 @@
       '@keyframes crmActionPageReveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}',
       'body.crm-full-page-action-open{overflow:hidden!important;overscroll-behavior:none!important}',
       'body.crm-full-page-action-open .detail-top-actions-sticky{visibility:hidden!important;pointer-events:none!important}',
+      /* Layout containment traps fixed inline editors below the body-level dock.
+         Release it only while a mobile action page is open; keep normal-page
+         containment and the desktop layout intact. */
+      '@media(max-width:1023px){body.crm-full-page-action-open #app{contain:none!important}body.crm-full-page-action-open>.tabs,body.crm-full-page-action-open>#sunblissDockSearchPanel{display:none!important}body.crm-full-page-action-open.cancel-unit-render-safe #unitCancellationPanel.crm-full-page-inline{position:fixed!important;z-index:12000!important}}',
       '.crm-action-awaiting-ready{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:none!important;animation:none!important}',
       '.crm-action-page-ready{animation:crmActionPageReveal .14s ease-out both}',
       '.crm-full-page-inline{position:fixed!important;inset:0!important;z-index:12000!important;width:100%!important;max-width:none!important;height:100dvh!important;max-height:none!important;margin:0!important;padding:calc(18px + env(safe-area-inset-top)) 16px calc(26px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--paper,#F6F1E4)!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;box-sizing:border-box!important;scroll-padding-bottom:110px!important}',
