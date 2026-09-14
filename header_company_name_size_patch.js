@@ -12,24 +12,6 @@
     .sb-pro-brand{width:max-content!important;max-width:72%!important;}
     .sb-pro-brand-name{display:block!important;font-size:50px!important;white-space:nowrap!important;}
     .sb-pro-brand-sub{display:block!important;width:max-content!important;font-size:14px!important;letter-spacing:0;white-space:nowrap!important;text-align:left!important;text-align-last:auto!important;}
-    @media(min-width:1024px){
-      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-name{
-        font-family:'Times New Roman',Times,serif!important;
-        font-size:35.1px!important;
-        line-height:1!important;
-      }
-      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-sub{
-        font-size:9.1px!important;
-        line-height:1.15!important;
-      }
-      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-main .sb-pro-copy .sb-pro-name-row .sb-pro-name{
-        font-size:30.6px!important;
-        line-height:.98!important;
-      }
-      html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual{
-        background-position:96% 66%!important;
-      }
-    }
     @media(max-width:720px){
       .topbar.sunbliss-professional-header{min-height:208px!important;padding-bottom:10px!important;}
       .sb-pro-signout{height:30px!important;padding:0 8px!important;gap:5px!important;border-radius:9px!important;font-size:9.2px!important;}

@@ -1,0 +1,217 @@
+/* Approved 14 September desktop artwork. Keep the original PNG unchanged:
+   its centered banner is framed here, excluding the white outer margins.
+   All visible labels and controls remain the existing live CRM DOM nodes. */
+@media (min-width: 1024px) {
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header {
+    --sb-desktop-header-h: calc(100vw * 396 / 1983) !important;
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: 1983 / 396 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #071520 url('assets/sunbliss-desktop-header-approved-20260914.png') center 50.252% / 100% auto no-repeat !important;
+    box-shadow: 0 8px 24px rgba(2, 9, 15, .13) !important;
+    isolation: isolate !important;
+    container-type: inline-size;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header::before,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header::after,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-main::before,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-main::after,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-desktop-project-visual,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-dubai-skyline,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-brand-logo-frame,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-project-row {
+    display: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-top {
+    position: static !important;
+    display: block !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand {
+    position: absolute !important;
+    z-index: 3 !important;
+    top: 26% !important;
+    left: 3% !important;
+    display: block !important;
+    width: max-content !important;
+    max-width: 52% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy {
+    display: block !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-name {
+    margin: 0 !important;
+    color: #da963d !important;
+    font: 500 clamp(20px, 2.08cqw, 40px) / 1.05 Georgia, 'Times New Roman', serif !important;
+    letter-spacing: .07em !important;
+    white-space: nowrap !important;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, .25) !important;
+    transform: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-top .sb-pro-brand .sb-pro-brand-copy .sb-pro-brand-sub {
+    display: block !important;
+    width: 100% !important;
+    margin: clamp(5px, .4vw, 8px) 0 0 !important;
+    padding: 0 !important;
+    color: #f1f1f0 !important;
+    font: 500 clamp(6px, .47vw, 9px) / 1.2 Inter, system-ui, sans-serif !important;
+    letter-spacing: 0 !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-main {
+    position: absolute !important;
+    z-index: 3 !important;
+    top: max(48%, calc(26% + 46px)) !important;
+    left: 3% !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: block !important;
+    width: 56% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-main .sb-pro-copy {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-welcome {
+    margin: 0 0 4px !important;
+    color: #edbc59 !important;
+    font: 500 clamp(10px, .73vw, 14px) / 1.25 Inter, system-ui, sans-serif !important;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, .5) !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-name-row {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px 12px !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-main .sb-pro-copy .sb-pro-name-row .sb-pro-name {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    color: #fff !important;
+    font: 500 clamp(22px, 1.95cqw, 38px) / 1.1 Georgia, 'Times New Roman', serif !important;
+    letter-spacing: .01em !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, .5) !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-role {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    min-height: 26px !important;
+    padding: 0 11px !important;
+    border: 1px solid #bd8c36 !important;
+    border-radius: 999px !important;
+    background: rgba(5, 18, 29, .48) !important;
+    color: #edbc59 !important;
+    font: 600 clamp(9px, .66vw, 12px) / 1 Inter, system-ui, sans-serif !important;
+    box-shadow: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-actions {
+    position: absolute !important;
+    z-index: 4 !important;
+    top: 21% !important;
+    right: 1.2% !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-signout {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 34px !important;
+    min-width: 100px !important;
+    gap: 7px !important;
+    padding: 0 12px !important;
+    border: 1px solid #bd8c36 !important;
+    border-radius: 11px !important;
+    background: rgba(3, 13, 22, .48) !important;
+    color: #fff !important;
+    font: 500 11px / 1 Inter, system-ui, sans-serif !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-signout svg {
+    width: 16px !important;
+    height: 16px !important;
+    stroke: #dca044 !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header > .sb-pro-sync {
+    position: absolute !important;
+    z-index: 4 !important;
+    top: calc(21% + 46px) !important;
+    right: 1.2% !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    height: 24px !important;
+    padding: 0 2px !important;
+    border: 0 !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+    color: #fff !important;
+    font: 500 11px / 1 Inter, system-ui, sans-serif !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header > .sb-pro-sync svg {
+    width: 13px !important;
+    height: 13px !important;
+    stroke: #42d673 !important;
+  }
+
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header .sb-pro-signout:focus-visible,
+  html body.sunbliss-ref-desktop #app header.topbar.sunbliss-professional-header > .sb-pro-sync:focus-visible {
+    outline: 2px solid #f4cc7a !important;
+    outline-offset: 3px !important;
+  }
+}

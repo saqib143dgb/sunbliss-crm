@@ -4,7 +4,6 @@
   window.__sunblissDubaiSkylinePatchInstalled=true;
 
   var DESKTOP_MQ='(min-width:1024px)';
-  var APPROVED_DESKTOP_BG='https://raw.githubusercontent.com/saqib143dgb/sunbliss-crm/3bd49b6efe227932e1f5db3968b4e8582b588232/assets/sunbliss-desktop-header-night.webp';
 
   function desktop(){return window.matchMedia?window.matchMedia(DESKTOP_MQ).matches:window.innerWidth>=1024;}
 
@@ -32,49 +31,7 @@
       .sb-dubai-skyline .sb-sky-detail{fill:none;stroke:#7f9aaa;stroke-width:1.05;stroke-linecap:round;stroke-linejoin:round;}
       .sb-dubai-skyline .sb-sky-ground{fill:none;stroke:#c99740;stroke-width:1.2;stroke-linecap:round;}
 
-      /* Desktop has one source of truth only: the approved night header artwork.
-         The legacy line-art skyline is never allowed to paint or reinsert here. */
-      @media(min-width:1024px){
-        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header{
-          --sb-desktop-header-h:166px!important;
-          position:relative!important;
-          height:166px!important;
-          min-height:166px!important;
-          max-height:166px!important;
-          overflow:hidden!important;
-          isolation:isolate!important;
-          background-color:#06131f!important;
-          background-image:
-            linear-gradient(90deg,rgba(2,12,22,.80) 0%,rgba(2,12,22,.55) 25%,rgba(2,12,22,.14) 53%,rgba(2,12,22,.20) 77%,rgba(2,12,22,.36) 100%),
-            url('${APPROVED_DESKTOP_BG}')!important;
-          background-repeat:no-repeat,no-repeat!important;
-          background-size:100% 100%,100% 100%!important;
-          background-position:center center,center center!important;
-          border-bottom:1px solid rgba(214,162,70,.50)!important;
-        }
-        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-dubai-skyline,
-        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-desktop-project-visual{
-          display:none!important;
-          visibility:hidden!important;
-          opacity:0!important;
-          pointer-events:none!important;
-        }
-        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header::before,
-        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.topbar.sunbliss-professional-header.sunbliss-professional-header::after,
-        html body.sunbliss-ref-desktop.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header .sb-pro-main.sb-pro-main::after{
-          content:none!important;
-          display:none!important;
-          visibility:hidden!important;
-          opacity:0!important;
-          background:none!important;
-        }
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header>.sb-pro-top,
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header>.sb-pro-main,
-        html body.sunbliss-ref-desktop #app .topbar.sunbliss-professional-header>.sb-pro-sync{
-          position:relative!important;
-          z-index:5!important;
-        }
-      }
+      /* Desktop artwork and layout are owned by desktop_header_approved.css. */
 
       @media(max-width:720px){
         .sb-dubai-skyline{right:-22px!important;width:61%!important;height:72%!important;opacity:.14!important;}
