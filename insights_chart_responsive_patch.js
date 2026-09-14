@@ -61,19 +61,17 @@
         '.overview>.section-label+svg[width="520"]{display:block!important;width:calc(100vw - 36px)!important;max-width:calc(100vw - 36px)!important;height:auto!important;}',
       '}',
       '@media(min-width:1024px){',
-        'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview{padding:18px 25px 36px!important;background:#f8f6ef!important;overflow:visible!important;}',
+        'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview{padding:20px 25px 36px!important;background:#f8f6ef!important;overflow:visible!important;}',
         'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>*:not(#sbRefOverviewV2):not(#sbRefOverview){display:block!important;}',
         'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>#sbRefOverviewV2,body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>#sbRefOverview{display:none!important;}',
         'body.sunbliss-ref-desktop.sunbliss-desktop-insights #sbDesktopInsightSummary{display:block!important;}',
         '#sbDesktopInsightSummary{font-family:Inter,sans-serif;color:var(--ink);margin:0 0 20px;}',
-        '.sb-di-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:1px 0 13px;}',
-        '.sb-di-kicker{display:flex;align-items:center;gap:7px;margin:0 0 5px;color:var(--gold-deep);font:700 8.5px/1 "IBM Plex Mono",monospace;letter-spacing:.13em;text-transform:uppercase;}',
+        '.sb-di-intro{display:block;margin:0 0 16px;padding-left:1px;}',
+        '.sb-di-kicker{display:flex;align-items:center;gap:7px;margin:0 0 6px;color:var(--gold-deep);font:700 8.5px/1 "IBM Plex Mono",monospace;letter-spacing:.13em;text-transform:uppercase;}',
         '.sb-di-kicker svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;}',
-        '.sb-di-title{margin:0;font:650 22px/1.08 Fraunces,serif;letter-spacing:-.02em;color:var(--ink);}',
-        '.sb-di-sub{margin:5px 0 0;color:var(--muted);font:500 10px/1.4 Inter,sans-serif;}',
-        '.sb-di-asof{text-align:right;color:var(--muted);font:500 8.5px/1.4 "IBM Plex Mono",monospace;white-space:nowrap;}',
+        '.sb-di-title{margin:0;font:650 24px/1.08 Fraunces,serif;letter-spacing:-.02em;color:var(--ink);}',
         '.sb-di-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}',
-        '.sb-di-card{background:#fff;border:1px solid var(--paper-line);border-radius:11px;box-shadow:0 3px 14px rgba(15,26,38,.05);}',
+        '.sb-di-card{background:#fbf8ef!important;border:1px solid var(--paper-line);border-radius:11px;box-shadow:0 3px 14px rgba(15,26,38,.045);}',
         '.sb-di-kpi{min-height:105px;padding:14px 15px;display:grid;grid-template-columns:38px minmax(0,1fr);gap:11px;align-items:start;}',
         '.sb-di-kpi[data-insights-filter]{cursor:pointer;transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease;}',
         '.sb-di-kpi[data-insights-filter]:hover{transform:translateY(-1px);border-color:rgba(198,151,46,.55);box-shadow:0 7px 18px rgba(15,26,38,.07);}',
@@ -83,21 +81,23 @@
         '.sb-di-label{margin:1px 0 7px;color:var(--muted);font:700 8px/1 "IBM Plex Mono",monospace;letter-spacing:.09em;text-transform:uppercase;}',
         '.sb-di-value{margin:0;color:var(--ink);font:750 20px/1 Inter,sans-serif;letter-spacing:-.03em;white-space:nowrap;}',
         '.sb-di-meta{margin:7px 0 0;color:var(--muted);font:500 9px/1.3 Inter,sans-serif;}',
-        '.sb-di-lower{display:grid;grid-template-columns:1.18fr .82fr;gap:12px;margin-top:12px;}',
-        '.sb-di-panel{padding:13px 15px 14px;}',
+        '.sb-di-lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px;align-items:stretch;}',
+        '.sb-di-panel{padding:13px 15px 14px;min-width:0;}',
         '.sb-di-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:9px;margin-bottom:2px;border-bottom:1px solid rgba(220,210,182,.62);}',
         '.sb-di-head strong{display:flex;align-items:center;gap:7px;font:700 10.5px/1 Inter,sans-serif;color:var(--ink);}.sb-di-head strong svg{width:16px;height:16px;fill:none;stroke:var(--gold-deep);stroke-width:1.8;}',
-        '.sb-di-link{border:0;background:transparent;color:#3972a5;padding:2px 0;font:650 8.5px/1 Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;}.sb-di-link svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;}',
+        '.sb-di-link{border:0;background:transparent;color:#3972a5;padding:2px 0;font:650 8.5px/1 Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;}.sb-di-link svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;}',
         '.sb-di-signal{min-height:45px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border-bottom:1px solid rgba(220,210,182,.52);}.sb-di-signal:last-child{border-bottom:0;}',
         '.sb-di-signal strong{display:block;font:650 9.5px/1.2 Inter,sans-serif;color:var(--ink);}.sb-di-signal span{display:block;margin-top:3px;color:var(--muted);font:500 8.5px/1.25 Inter,sans-serif;}.sb-di-signal b{font:750 10px/1 Inter,sans-serif;color:var(--ink);white-space:nowrap;}',
         '.sb-di-signal.risk b{color:var(--rust);}.sb-di-signal.good b{color:var(--sage);}',
-        '.sb-di-exposure-row{width:100%;min-height:45px;display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:8px;border:0;border-bottom:1px solid rgba(220,210,182,.52);background:transparent;padding:0;text-align:left;cursor:pointer;color:var(--ink);}.sb-di-exposure-row:last-child{border-bottom:0;}.sb-di-exposure-row:hover{background:rgba(198,151,46,.045);}',
+        '.sb-di-exposure-cols{min-height:27px;display:grid;grid-template-columns:78px minmax(0,1fr) 108px;align-items:center;gap:10px;color:var(--muted);font:700 7.5px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid rgba(220,210,182,.52);}',
+        '.sb-di-exposure-cols span:last-child{text-align:right;}',
+        '.sb-di-exposure-row{width:100%;min-height:45px;display:grid;grid-template-columns:78px minmax(0,1fr) 108px;align-items:center;gap:10px;border:0;border-bottom:1px solid rgba(220,210,182,.52);background:transparent;padding:0;text-align:left;cursor:pointer;color:var(--ink);}.sb-di-exposure-row:last-child{border-bottom:0;}.sb-di-exposure-row:hover{background:rgba(198,151,46,.045);}',
         '.sb-di-unit{font:700 9px/1 "IBM Plex Mono",monospace;color:var(--gold-deep);}.sb-di-person{min-width:0;font:600 9.5px/1.2 Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.sb-di-amount{text-align:right;font:700 9.5px/1 Inter,sans-serif;color:var(--rust);}',
         'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.section-label{margin-top:20px!important;margin-bottom:9px!important;color:var(--ink)!important;font-size:9px!important;letter-spacing:.11em!important;}',
-        'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.stage-scroll,body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.list{background:#fff!important;border:1px solid var(--paper-line)!important;border-radius:11px!important;box-shadow:0 3px 14px rgba(15,26,38,.045)!important;overflow:hidden!important;}',
-        'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.pipeline{background:#fff!important;border:1px solid var(--paper-line)!important;border-radius:11px!important;padding:6px!important;box-shadow:0 3px 14px rgba(15,26,38,.045)!important;}',
+        'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.stage-scroll,body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.list{background:#fbf8ef!important;border:1px solid var(--paper-line)!important;border-radius:11px!important;box-shadow:0 3px 14px rgba(15,26,38,.04)!important;overflow:hidden!important;}',
+        'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.pipeline{background:#fbf8ef!important;border:1px solid var(--paper-line)!important;border-radius:11px!important;padding:6px!important;box-shadow:0 3px 14px rgba(15,26,38,.04)!important;}',
         'body.sunbliss-ref-desktop.sunbliss-desktop-insights main#main .overview>.footnote{margin-top:22px!important;}',
-        '@media(max-width:1180px){.sb-di-kpi{grid-template-columns:32px minmax(0,1fr);gap:9px;padding-left:12px;padding-right:12px}.sb-di-icon{width:32px;height:32px}.sb-di-value{font-size:17px}.sb-di-meta{font-size:8.5px}}',
+        '@media(max-width:1180px){.sb-di-kpi{grid-template-columns:32px minmax(0,1fr);gap:9px;padding-left:12px;padding-right:12px}.sb-di-icon{width:32px;height:32px}.sb-di-value{font-size:17px}.sb-di-meta{font-size:8.5px}.sb-di-exposure-cols,.sb-di-exposure-row{grid-template-columns:60px minmax(0,1fr) 92px;}}',
       '}'
     ].join('');
     document.head.appendChild(style);
@@ -142,7 +142,6 @@
     try { if (typeof window.topOverdueAccounts === 'function') return window.topOverdueAccounts(3) || []; } catch(e){}
     return [];
   }
-
   function signals(k,a,u){
     var spa = k.spaCounts || {}, oq = k.oqoodCounts || {};
     var spaOpen = n(spa.drafted) + n(spa.none);
@@ -193,9 +192,8 @@
       var old = document.getElementById('sbDesktopInsightSummary'); if (old) old.remove();
 
       var k = stats(), a = aging(), u = next30(), tm = thisMonth(), top = exposure(), sig = signals(k,a,u);
-      var asOf = new Date().toLocaleString('en-AE',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
       var html = '<section id="sbDesktopInsightSummary">'+
-        '<div class="sb-di-intro"><div><p class="sb-di-kicker">'+icon('spark')+'Portfolio intelligence</p><h2 class="sb-di-title">Management Insights</h2><p class="sb-di-sub">A decision-focused snapshot of collections, upcoming cash flow, sales and compliance risk.</p></div><div class="sb-di-asof">LIVE CRM SNAPSHOT<br>'+esc(asOf)+'</div></div>'+
+        '<div class="sb-di-intro"><p class="sb-di-kicker">'+icon('spark')+'Portfolio intelligence</p><h2 class="sb-di-title">Management Insights</h2></div>'+
         '<div class="sb-di-kpis">'+
           '<article class="sb-di-card sb-di-kpi" data-insights-filter="collected"><span class="sb-di-icon green">'+icon('wallet')+'</span><div><p class="sb-di-label">Collection rate</p><p class="sb-di-value">'+esc(pct(k.collectedPct))+'</p><p class="sb-di-meta">'+esc(money(k.totalReceived))+' received of '+esc(money(k.totalSales))+'</p></div></article>'+
           '<article class="sb-di-card sb-di-kpi" data-insights-filter="overdue"><span class="sb-di-icon red">'+icon('alert')+'</span><div><p class="sb-di-label">Overdue exposure</p><p class="sb-di-value">'+esc(money(a.total))+'</p><p class="sb-di-meta">Open collection risk across overdue stages</p></div></article>'+
@@ -205,6 +203,7 @@
         '<div class="sb-di-lower">'+
           '<div class="sb-di-card sb-di-panel"><div class="sb-di-head"><strong>'+icon('shield')+'Management signals</strong><button class="sb-di-link" data-insights-filter="outstanding">Open outstanding '+icon('arrow')+'</button></div>'+sig.map(function(s){return '<div class="sb-di-signal '+esc(s.cls)+'"><div><strong>'+esc(s.title)+'</strong><span>'+esc(s.sub)+'</span></div><b>'+esc(s.value)+'</b></div>';}).join('')+'</div>'+
           '<div class="sb-di-card sb-di-panel"><div class="sb-di-head"><strong>'+icon('alert')+'Priority overdue exposure</strong><button class="sb-di-link" data-insights-filter="overdue">View overdue '+icon('arrow')+'</button></div>'+
+            '<div class="sb-di-exposure-cols"><span>Unit No.</span><span>Customer Name</span><span>Overdue Amount</span></div>'+
             (top.length ? top.map(function(x){var c=x.c||x.customer||{};return '<button class="sb-di-exposure-row" data-unit="'+esc(c.unit)+'" data-sno="'+esc(c.sno)+'"><span class="sb-di-unit">'+esc(c.unit||'—')+'</span><span class="sb-di-person">'+esc(c.name||'Customer')+'</span><span class="sb-di-amount">'+esc(money(x.overdueAmount||x.amount))+'</span></button>';}).join('') : '<div class="sb-di-signal good"><div><strong>No priority overdue accounts</strong><span>Nothing currently needs escalation.</span></div><b>Clear</b></div>')+
           '</div>'+
         '</div>'+
