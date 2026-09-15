@@ -28,6 +28,26 @@
     });
   }
 
+  function removeLegacyOverviewDuplicates(){
+    if(!document.body||!document.body.classList.contains('sunbliss-ref-desktop'))return;
+    var exact=document.getElementById('sbRefOverviewV2');
+    var overview=document.querySelector('.overview');
+    if(!exact||!overview)return;
+
+    Array.prototype.slice.call(overview.children).forEach(function(node){
+      if(node===exact)return;
+      if(node.classList&&node.classList.contains('stat-hero'))node.remove();
+    });
+
+    Array.prototype.slice.call(overview.querySelectorAll(':scope > .section-label')).forEach(function(label){
+      var value=norm(label.textContent);
+      if(value.indexOf('spa status')!==0&&value.indexOf('oqood status')!==0&&value.indexOf('furniture status')!==0)return;
+      var next=label.nextElementSibling;
+      if(next&&next.classList&&next.classList.contains('pipeline'))next.remove();
+      label.remove();
+    });
+  }
+
   function removeRedundantFinancialPercentages(){
     ['btnCollected','btnOutstanding'].forEach(function(id){
       var cell=document.getElementById(id);
@@ -143,6 +163,7 @@
 
   function cleanupStatic(){
     if(!window.state || state.view!=='overview')return;
+    removeLegacyOverviewDuplicates();
     var emptyLabel=document.getElementById('sunblissAllTasksEmptyLabel');
     var empty=document.getElementById('sunblissAllTasksEmpty');
     if(emptyLabel)emptyLabel.remove();
