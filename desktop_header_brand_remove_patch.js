@@ -166,3 +166,246 @@
   window.addEventListener('pageshow',schedule);
   window.addEventListener('resize',schedule,{passive:true});
 })();
+
+(function(){
+  'use strict';
+  if(window.__sunblissDesktopGlobalSpaceFillInstalled)return;
+  window.__sunblissDesktopGlobalSpaceFillInstalled=true;
+
+  var MQ=window.matchMedia?window.matchMedia('(min-width:1024px)'):null;
+  var raf=0;
+  var observer=null;
+
+  function desktop(){return MQ?MQ.matches:window.innerWidth>=1024;}
+
+  function installStyle(){
+    var style=document.getElementById('sunblissDesktopGlobalSpaceFillStyle');
+    if(!style){
+      style=document.createElement('style');
+      style.id='sunblissDesktopGlobalSpaceFillStyle';
+      style.textContent=`
+@media(min-width:1024px){
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .overview,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .insights,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .detail,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .controls,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .list{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+    background:#f8f6ef!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main #sbRefOverviewV2{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .overview>*:not(.section-label):not(.footnote),
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .detail>*,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .controls>*,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .list>*{
+    max-width:none!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .search,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .filter-toggle,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .filter-panel,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .money-grid,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .notice,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .tx-list,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .field-row,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .field-address,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .stage-scroll,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .cancelled-archive-table-wrap{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .sb-v2-card,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .stat-cell,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .pill-stat,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .money-cell,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .stage-card,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .tx-list,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .stage-scroll,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .filter-panel,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .search{
+    background:#fbf8ef!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .stat-hero{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+    width:100%!important;
+    max-width:none!important;
+    background:transparent!important;
+    border:0!important;
+    overflow:visible!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .pipeline{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+    width:100%!important;
+    max-width:none!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .money-grid{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .ledger-scroll{
+    display:grid!important;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;
+    gap:12px!important;
+    width:100%!important;
+    max-width:none!important;
+    overflow:visible!important;
+  }
+
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.cancelled-archive-summary{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:12px!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:0!important;
+    height:auto!important;
+    margin:10px 0 12px!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+    overflow:visible!important;
+  }
+
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.cancelled-archive-summary>.stat-cell{
+    min-height:96px!important;
+    height:auto!important;
+    padding:14px 15px!important;
+    border:1px solid var(--paper-line)!important;
+    border-radius:11px!important;
+    background:#fbf8ef!important;
+    box-shadow:0 3px 14px rgba(15,26,38,.04)!important;
+  }
+
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.list[data-cancelled-archive-version]{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:10px!important;
+    background:#fbf8ef!important;
+    border:1px solid var(--paper-line)!important;
+    border-radius:11px!important;
+    overflow:visible!important;
+  }
+
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.list[data-cancelled-archive-version]>.cancelled-archive-row{
+    width:100%!important;
+    min-width:0!important;
+    min-height:74px!important;
+    height:auto!important;
+    margin:0!important;
+    padding:12px 28px 12px 12px!important;
+    border:1px solid var(--paper-line)!important;
+    border-radius:10px!important;
+    background:#fbf8ef!important;
+  }
+
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.pipeline{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+    padding:6px!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .stage-tbl,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .cancelled-archive-table,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main table{
+    width:100%!important;
+    max-width:none!important;
+  }
+
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main svg.insights-sales-chart,
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .overview>.section-label+svg{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    height:auto!important;
+  }
+}
+
+@media(min-width:1024px) and (max-width:1280px){
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.cancelled-archive-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  html body.sunbliss-ref-desktop.sunbliss-desktop-insights:not(.ceo-mode) #app main#main .overview>.list[data-cancelled-archive-version]{
+    grid-template-columns:1fr!important;
+  }
+  html body.sunbliss-ref-desktop:not(.ceo-mode) #app main#main .money-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+`;
+      document.head.appendChild(style);
+    }else{
+      document.head.appendChild(style);
+    }
+  }
+
+  function fillVisuals(){
+    if(!desktop()||!document.body||!document.body.classList.contains('sunbliss-ref-desktop'))return;
+    installStyle();
+    var main=document.getElementById('main');
+    if(!main)return;
+    var charts=main.querySelectorAll('svg.insights-sales-chart,.overview>.section-label+svg');
+    charts.forEach(function(svg){
+      if(!svg||!svg.style)return;
+      svg.style.setProperty('width','100%','important');
+      svg.style.setProperty('max-width','100%','important');
+      svg.style.setProperty('height','auto','important');
+      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    });
+  }
+
+  function schedule(){
+    if(raf)cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(function(){raf=0;fillVisuals();});
+  }
+
+  function observe(){
+    if(observer||!window.MutationObserver)return;
+    var main=document.getElementById('main');
+    if(!main){window.setTimeout(observe,120);return;}
+    observer=new MutationObserver(function(records){
+      for(var i=0;i<records.length;i++){
+        if(records[i].type==='childList'){schedule();break;}
+      }
+    });
+    observer.observe(main,{childList:true,subtree:true});
+  }
+
+  installStyle();
+  schedule();
+  observe();
+  window.addEventListener('pageshow',schedule,{passive:true});
+  window.addEventListener('resize',schedule,{passive:true});
+  if(MQ){
+    if(MQ.addEventListener)MQ.addEventListener('change',schedule);
+    else if(MQ.addListener)MQ.addListener(schedule);
+  }
+})();
