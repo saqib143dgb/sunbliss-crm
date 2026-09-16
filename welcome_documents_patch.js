@@ -12,3 +12,33 @@ async function open(c){if(dialog||opening)return;opening=true;const opener=docum
 function install(){if(!window.state||!window.sb||typeof window.renderDetail!=='function'||!window.__sunblissCustomerActionMenuInstalled){setTimeout(install,80);return}const previous=window.renderDetail;window.renderDetail=function(){const result=previous.apply(this,arguments);mount();return result};mount()}
 install();
 })();
+
+/* Approved section-title framing: style-only DOM grouping, no text changes. */
+(function(){
+'use strict';
+if(window.__sunblissSectionFrames)return;window.__sunblissSectionFrames=true;
+var queued=false,running=false;
+function excluded(h){return !!h.closest('.sbx-section-frame,.stat-hero,.kpi-card,.kpi-tile,.summary-card,.summary-tile');}
+function stopNode(n){return !n||n.classList.contains('section-label')||n.classList.contains('footnote')||n.classList.contains('tabs');}
+function frameHeading(h){
+  if(!h||!h.isConnected||excluded(h)||h.dataset.sbxSectionFramed==='1')return;
+  var parent=h.parentElement;if(!parent||parent.classList.contains('sbx-section-body'))return;
+  var nodes=[],n=h.nextElementSibling;
+  while(n&&!stopNode(n)){nodes.push(n);n=n.nextElementSibling;}
+  if(!nodes.length)return;
+  var frame=document.createElement('section');frame.className='sbx-section-frame';
+  var body=document.createElement('div');body.className='sbx-section-body';
+  parent.insertBefore(frame,h);frame.appendChild(h);frame.appendChild(body);
+  for(var i=0;i<nodes.length;i++)body.appendChild(nodes[i]);
+  h.dataset.sbxSectionFramed='1';
+}
+function apply(){
+  queued=false;if(running)return;running=true;
+  try{var root=document.getElementById('main');if(!root)return;var headings=root.querySelectorAll('.section-label');for(var i=0;i<headings.length;i++)frameHeading(headings[i]);}
+  finally{running=false;}
+}
+function schedule(){if(queued)return;queued=true;requestAnimationFrame(apply);}
+var observer=new MutationObserver(schedule);
+function installFrames(){var main=document.getElementById('main');if(!main){setTimeout(installFrames,80);return;}observer.observe(main,{childList:true,subtree:true});schedule();}
+installFrames();
+})();
