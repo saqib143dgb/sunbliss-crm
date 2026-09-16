@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 if(window.__sunblissWelcomeDocuments)return;window.__sunblissWelcomeDocuments=true;
-const TABLE='crm_documents',BUCKET='crm-documents',VERSION='welcome-v4-footer-inset';
+const TABLE='crm_documents',BUCKET='crm-documents',VERSION='welcome-v5-sharp-header';
 let dialog=null,opening=false;
 const safe=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function current(){return window.state&&state.view==='detail'&&(state.dues||[]).find(c=>c.unit+'::'+c.sno===state.selectedUnit)}
