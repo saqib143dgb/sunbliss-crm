@@ -18,6 +18,18 @@ const BANK={
 };
 const y=t=>PAGE_H-t;
 
+function bankDetailsText(){
+  return [
+    'Escrow Account Details:',
+    'Bank Name: '+BANK.name,
+    'Account Holder: '+BANK.holder,
+    'Bank Address: '+BANK.address1+' '+BANK.address2,
+    'Account Number: '+BANK.account,
+    'IBAN: '+BANK.iban,
+    'SWIFT Code: '+BANK.swift
+  ].join('\n');
+}
+
 function install(frame,attempt=0){
   try{
     const w=frame.contentWindow,d=frame.contentDocument;
@@ -33,6 +45,7 @@ function install(frame,attempt=0){
     const accountDetails=d.getElementById('accountDetails');
     if(accountDetails){
       accountDetails.required=false;
+      accountDetails.value=bankDetailsText();
       const label=accountDetails.closest('label');
       if(label)label.style.display='none';
     }
@@ -40,12 +53,18 @@ function install(frame,attempt=0){
     const original=w.makeDocumentPdf;
     const patched=async function(){
       if(!d.getElementById('stage'))return original.apply(this,arguments);
-      return buildDemandPdf(w,d);
+      try{
+        return await buildDemandPdf(w,d);
+      }catch(err){
+        console.error('[Sunbliss CRM] Exact Demand Letter renderer failed; using safe native renderer.',err);
+        return original.apply(this,arguments);
+      }
     };
     patched.__crmReferenceScalePatched=true;
     patched.__crmReferenceScale=1;
     patched.__crmDemandReferenceExact=true;
     patched.__crmDemandMasterReference=true;
+    patched.__crmSafeFallback=true;
     w.makeDocumentPdf=patched;
   }catch(_e){
     if(attempt<100)setTimeout(()=>install(frame,attempt+1),75);
@@ -63,19 +82,20 @@ async function buildDemandPdf(w,d){
   try{calc=typeof w.calculateContext==='function'?(w.calculateContext()||{}):{}}catch(_e){}
   let values={};
   try{values=typeof w.values==='function'?(w.values()||{}):{}}catch(_e){}
+  const account=ctx.account||{};
 
   const selected=d.getElementById('stage');
   let stage=null;
   try{stage=typeof w.selectedStage==='function'?w.selectedStage():null}catch(_e){}
-  if(!stage&&Array.isArray(ctx.stages)&&selected&&selected.value!=='')stage=ctx.stages[Number(selected.value)]||null;
+  if(!stage&&Array.isArray(account.stages)&&selected&&selected.value!=='')stage=account.stages[Number(selected.value)]||null;
 
-  const customer=String(values.customer||ctx.customer?.name||'Customer').trim();
-  const address=String(d.getElementById('address')?.value||ctx.customer?.address||'').trim();
-  const unit=String(values.unit||ctx.customer?.unit||'').trim();
-  const total=num(calc.total ?? ctx.customer?.total ?? ctx.customer?.unitValue);
-  const received=num(calc.cashReceived ?? calc.received ?? ctx.customer?.received);
+  const customer=String(values.customer||ctx.customer?.customer_name||ctx.customer?.name||'Customer').trim();
+  const address=String(d.getElementById('address')?.value||account.info?.address||ctx.customer?.address||'').trim();
+  const unit=String(values.unit||ctx.unit?.unit_no||ctx.customer?.unit||'').trim();
+  const total=num(calc.total ?? account.total ?? ctx.customer?.total ?? ctx.customer?.unitValue);
+  const received=num(calc.cashReceived ?? calc.received ?? account.cashReceived ?? account.received ?? ctx.customer?.received);
   const due=num(d.getElementById('demandAmount')?.value ?? stage?.due);
-  const balance=Math.max(0,num(calc.outstanding ?? (total-received)));
+  const balance=Math.max(0,num(calc.outstanding ?? account.outstanding ?? (total-received)));
   const letterDate=fmtDate(d.getElementById('date')?.value||ctx.generatedAt||new Date());
   const dueDate=fmtDate(d.getElementById('dueDate')?.value||stage?.revisedDueDate||stage?.dueDate||'');
   const meta=stageMeta(stage?.label||selected?.selectedOptions?.[0]?.textContent||'Instalment');
@@ -83,13 +103,13 @@ async function buildDemandPdf(w,d){
   const data={customer,address,unit,total,received,due,balance,letterDate,dueDate,meta,transactions};
 
   const page1=pdf.addPage([PAGE_W,PAGE_H]);
-  await w.drawHeader(pdf,page1,bold,font);
-  w.drawFooter(page1,font);
+  await w.drawHeader(pdf,page1,font,bold);
+  w.drawFooter(page1,bold);
   drawPageOne(page1,font,bold,rgb,data);
 
   const page2=pdf.addPage([PAGE_W,PAGE_H]);
-  await w.drawHeader(pdf,page2,bold,font);
-  w.drawFooter(page2,font);
+  await w.drawHeader(pdf,page2,font,bold);
+  w.drawFooter(page2,bold);
   drawPageTwo(page2,font,bold,rgb,data);
 
   return new w.Blob([await pdf.save()],{type:'application/pdf'});
