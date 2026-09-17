@@ -49,6 +49,23 @@ function bridgeHelper(w,name){
   return false;
 }
 
+function generationButton(d){
+  return d.getElementById('generate');
+}
+
+function setReadyState(d,ready){
+  const button=generationButton(d);
+  const notice=d.getElementById('notice');
+  if(button)button.disabled=!ready;
+  if(!ready){
+    if(notice&&!/Generating PDF|PDF ready/i.test(notice.textContent||'')){
+      notice.textContent='Preparing Demand Letter renderer…';
+    }
+  }else if(notice&&/Preparing Demand Letter renderer/i.test(notice.textContent||'')){
+    notice.textContent='';
+  }
+}
+
 function normalizeDemandState(w,d){
   const ctx=iframeContext(w);
   const account=ctx?.account;
@@ -70,10 +87,26 @@ function rendererIsActive(w){
   return !!(w?.makeDocumentPdf&&w.makeDocumentPdf.__crmDemandMasterReference===true);
 }
 
+function installSubmitGuard(w,d){
+  const form=d.getElementById('details');
+  if(!form||form.dataset.sbDemandActivationSubmitGuard==='1')return;
+  form.dataset.sbDemandActivationSubmitGuard='1';
+  form.addEventListener('submit',event=>{
+    if(rendererIsActive(w))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setReadyState(d,false);
+    const notice=d.getElementById('notice');
+    if(notice)notice.textContent='Preparing Demand Letter renderer. Please try again in a moment.';
+    setTimeout(scan,0);
+  },true);
+}
+
 function markActive(w,d){
   d.documentElement.dataset.crmDemandMasterReference='1';
   d.documentElement.dataset.crmDemandRendererStatus='active';
   w.__sunblissDemandRendererActivated=true;
+  setReadyState(d,true);
 }
 
 function nudgeReferencePatch(){
@@ -110,6 +143,8 @@ function activate(frame,attempt=0){
       return;
     }
 
+    installSubmitGuard(w,d);
+    setReadyState(d,false);
     normalizeDemandState(w,d);
     bridgeHelper(w,'drawHeader');
     bridgeHelper(w,'drawFooter');
@@ -138,11 +173,17 @@ function activate(frame,attempt=0){
         if(attempt<MAX_ATTEMPTS)activate(frame,attempt+1);
         else{
           d.documentElement.dataset.crmDemandRendererStatus='failed';
+          setReadyState(d,false);
+          const notice=d.getElementById('notice');
+          if(notice)notice.textContent='Demand Letter renderer could not initialize. Close Generate Document and reopen it.';
           console.error('[Sunbliss CRM] Demand Letter exact renderer did not activate.');
         }
       }catch(err){
         if(attempt<MAX_ATTEMPTS)setTimeout(()=>activate(frame,attempt+1),RETRY_MS);
-        else console.error('[Sunbliss CRM] Demand Letter activation guard failed.',err);
+        else{
+          setReadyState(d,false);
+          console.error('[Sunbliss CRM] Demand Letter activation guard failed.',err);
+        }
       }
     },RETRY_MS);
   }catch(err){
