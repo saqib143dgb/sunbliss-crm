@@ -5,7 +5,37 @@
   style.id='sunblissApprovedMobileHeaderStyles';
   style.textContent=`
     @media(max-width:720px){
+      html,body{
+        width:100%!important;
+        max-width:100%!important;
+        overflow-x:hidden!important;
+        overscroll-behavior-x:none!important;
+      }
+
+      body #app{
+        width:100%!important;
+        max-width:640px!important;
+        min-width:0!important;
+        overflow-x:hidden!important;
+      }
+
+      body #app main,
+      body #app .topbar,
+      body #app .detail,
+      body #app .overview,
+      body #app .units,
+      body #app .insights,
+      body #app .controls,
+      body #app .list{
+        min-width:0!important;
+        max-width:100%!important;
+        box-sizing:border-box!important;
+      }
+
       html body #app .topbar.sunbliss-professional-header{
+        width:100%!important;
+        max-width:100%!important;
+        min-width:0!important;
         min-height:198px!important;
         height:198px!important;
         overflow:hidden!important;
@@ -26,6 +56,14 @@
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-top,
+      html body #app .topbar.sunbliss-professional-header .sb-pro-main,
+      html body #app .topbar.sunbliss-professional-header .sb-pro-project-row{
+        min-width:0!important;
+        max-width:100%!important;
+        box-sizing:border-box!important;
+      }
+
+      html body #app .topbar.sunbliss-professional-header .sb-pro-top,
       html body #app .topbar.sunbliss-professional-header .sb-pro-main{
         opacity:1!important;
         visibility:visible!important;
@@ -34,6 +72,8 @@
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-role{
+        min-width:0!important;
+        max-width:55%!important;
         min-height:26px!important;
         padding:0 10px!important;
         border:1px solid rgba(224,170,78,.18)!important;
@@ -43,7 +83,9 @@
         backdrop-filter:blur(6px)!important;
         color:#f1d28a!important;
         white-space:nowrap!important;
-        flex-shrink:0!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+        flex-shrink:1!important;
         box-shadow:inset 0 1px 0 rgba(255,231,184,.055),0 10px 28px rgba(1,8,14,.16)!important;
       }
 
@@ -63,6 +105,7 @@
         color:#f1d28a!important;
         font:600 7.5px/1 Inter,system-ui,sans-serif!important;
         white-space:nowrap!important;
+        flex:none!important;
         box-shadow:inset 0 1px 0 rgba(255,231,184,.055),0 10px 28px rgba(1,8,14,.16)!important;
         -webkit-backdrop-filter:blur(6px)!important;
         backdrop-filter:blur(6px)!important;
@@ -75,6 +118,8 @@
       }
 
       html body #app .topbar.sunbliss-professional-header .sb-pro-sync{
+        min-width:0!important;
+        max-width:100%!important;
         background:linear-gradient(90deg,rgba(7,21,32,.41),rgba(3,12,22,.11))!important;
       }
 
@@ -93,4 +138,24 @@
   var existing=document.getElementById(style.id);
   if(existing)existing.remove();
   document.head.appendChild(style);
+
+  function resetViewportX(){
+    if(window.innerWidth>720)return;
+    if(document.documentElement)document.documentElement.scrollLeft=0;
+    if(document.body)document.body.scrollLeft=0;
+    if(window.scrollX!==0)window.scrollTo(0,window.scrollY);
+  }
+
+  var resetQueued=false;
+  function queueViewportReset(){
+    if(resetQueued)return;
+    resetQueued=true;
+    requestAnimationFrame(function(){resetQueued=false;resetViewportX();});
+  }
+
+  window.addEventListener('pageshow',queueViewportReset,{passive:true});
+  window.addEventListener('resize',queueViewportReset,{passive:true});
+  window.addEventListener('orientationchange',queueViewportReset,{passive:true});
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)queueViewportReset();},{passive:true});
+  queueViewportReset();
 })();
