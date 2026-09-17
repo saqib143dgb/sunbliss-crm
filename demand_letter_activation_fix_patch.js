@@ -4,7 +4,7 @@ if(window.__sunblissDemandActivationFix)return;
 window.__sunblissDemandActivationFix=true;
 
 const FRAME_SELECTOR='#crmDocumentDialog iframe[src*="welcome-letter.html"], iframe[src*="welcome-letter.html"]';
-const MAX_ATTEMPTS=240;
+const MAX_ATTEMPTS=900;
 const RETRY_MS=100;
 const BANK={
   name:'Bank of Baroda',
@@ -66,14 +66,39 @@ function setReadyState(d,ready){
   }
 }
 
+function correctOutstanding(total,received,current){
+  const t=numberValue(total),r=numberValue(received);
+  if(t>0)return Math.max(0,t-r);
+  return Math.max(0,numberValue(current));
+}
+
+function installCalculationGuard(w){
+  bridgeHelper(w,'calculateContext');
+  const original=w.calculateContext;
+  if(typeof original!=='function'||original.__crmDemandPositiveOutstandingGuard)return;
+  const guarded=function(){
+    const c=original.apply(this,arguments)||{};
+    const ctx=iframeContext(w);
+    const account=ctx?.account||{};
+    const total=c.total ?? account.total ?? ctx?.customer?.total ?? ctx?.customer?.unitValue;
+    const received=c.cashReceived ?? c.received ?? account.cashReceived ?? account.received ?? ctx?.customer?.received;
+    c.outstanding=correctOutstanding(total,received,c.outstanding);
+    return c;
+  };
+  try{Object.keys(original).forEach(k=>{guarded[k]=original[k];});}catch(_e){}
+  guarded.__crmDemandPositiveOutstandingGuard=true;
+  w.calculateContext=guarded;
+}
+
 function normalizeDemandState(w,d){
   const ctx=iframeContext(w);
   const account=ctx?.account;
   if(account){
-    const total=numberValue(account.total ?? ctx?.customer?.total ?? ctx?.customer?.unitValue);
-    const received=numberValue(account.cashReceived ?? account.received ?? ctx?.customer?.received);
-    if(total>0)account.outstanding=Math.max(0,total-received);
+    const total=account.total ?? ctx?.customer?.total ?? ctx?.customer?.unitValue;
+    const received=account.cashReceived ?? account.received ?? ctx?.customer?.received;
+    account.outstanding=correctOutstanding(total,received,account.outstanding);
   }
+  installCalculationGuard(w);
   const accountDetails=d.getElementById('accountDetails');
   if(accountDetails){
     accountDetails.required=false;
@@ -111,14 +136,7 @@ function installSubmitGuard(w,d){
   },true);
 }
 
-function markActive(w,d){
-  d.documentElement.dataset.crmDemandMasterReference='1';
-  d.documentElement.dataset.crmDemandRendererStatus='active';
-  w.__sunblissDemandRendererActivated=true;
-  setReadyState(d,true);
-}
-
-function nudgeReferencePatch(){
+function nudgePatches(){
   try{
     const marker=document.createComment('sunbliss-demand-activation');
     document.documentElement.appendChild(marker);
@@ -126,15 +144,29 @@ function nudgeReferencePatch(){
   }catch(_e){}
 }
 
-function reloadReferencePatchOnce(){
-  if(window.__sunblissDemandActivationReloaded)return;
-  window.__sunblissDemandActivationReloaded=true;
+function markActive(frame,w,d){
+  d.documentElement.dataset.crmDemandMasterReference='1';
+  d.documentElement.dataset.crmDemandRendererStatus='active';
+  w.__sunblissDemandRendererActivated=true;
+  normalizeDemandState(w,d);
+  setReadyState(d,true);
+  if(frame.dataset.sbDemandDependentsNudged!=='1'){
+    frame.dataset.sbDemandDependentsNudged='1';
+    setTimeout(nudgePatches,0);
+    setTimeout(nudgePatches,150);
+    setTimeout(nudgePatches,500);
+  }
+}
+
+function reloadReferencePatchOnce(frame){
+  if(frame.dataset.sbDemandReferenceReloaded==='1')return;
+  frame.dataset.sbDemandReferenceReloaded='1';
   window.__sunblissDemandReferenceMatchV2=false;
   const script=document.createElement('script');
   script.src='demand_letter_reference_match_patch.js?activation='+Date.now();
   script.dataset.sbDemandActivationReload='1';
-  script.onload=()=>setTimeout(scan,0);
-  script.onerror=()=>console.error('[Sunbliss CRM] Unable to reload Demand Letter reference renderer.');
+  script.onload=()=>{script.remove();setTimeout(scan,0);};
+  script.onerror=()=>{script.remove();console.error('[Sunbliss CRM] Unable to reload Demand Letter reference renderer.');};
   document.body.appendChild(script);
 }
 
@@ -159,7 +191,7 @@ function activate(frame,attempt=0){
     bridgeHelper(w,'drawFooter');
 
     if(rendererIsActive(w)){
-      markActive(w,d);
+      markActive(frame,w,d);
       return;
     }
 
@@ -169,8 +201,8 @@ function activate(frame,attempt=0){
       delete d.documentElement.dataset.crmDemandMasterReference;
     }
 
-    if(attempt===0)reloadReferencePatchOnce();
-    nudgeReferencePatch();
+    if(attempt===0)reloadReferencePatchOnce(frame);
+    nudgePatches();
 
     setTimeout(()=>{
       try{
@@ -178,7 +210,7 @@ function activate(frame,attempt=0){
         bridgeHelper(w,'drawHeader');
         bridgeHelper(w,'drawFooter');
         if(rendererIsActive(w)){
-          markActive(w,d);
+          markActive(frame,w,d);
           return;
         }
         if(attempt<MAX_ATTEMPTS)activate(frame,attempt+1);
@@ -207,7 +239,11 @@ function bindFrame(frame){
   activate(frame,0);
   if(frame.dataset.sbDemandActivationLoadBound!=='1'){
     frame.dataset.sbDemandActivationLoadBound='1';
-    frame.addEventListener('load',()=>activate(frame,0));
+    frame.addEventListener('load',()=>{
+      delete frame.dataset.sbDemandDependentsNudged;
+      delete frame.dataset.sbDemandReferenceReloaded;
+      activate(frame,0);
+    });
   }
 }
 
@@ -224,6 +260,7 @@ window.addEventListener('message',event=>{
     setTimeout(scan,150);
     setTimeout(scan,500);
     setTimeout(scan,1200);
+    setTimeout(scan,2500);
   }
 });
 scan();
