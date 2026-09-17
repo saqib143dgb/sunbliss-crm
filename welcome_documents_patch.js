@@ -42,13 +42,35 @@ function styles(){
 `;
   document.head.append(s);
 }
+function enhanceReceiptGenerator(frame,attempt=0){
+  try{
+    const d=frame.contentDocument,w=frame.contentWindow;if(!d||!w)return;
+    const receiptNo=d.getElementById('receiptNo');
+    if(!receiptNo){if(attempt<24)setTimeout(()=>enhanceReceiptGenerator(frame,attempt+1),50);return;}
+    if(d.documentElement.dataset.receiptUiEnhanced==='1')return;
+    d.documentElement.dataset.receiptUiEnhanced='1';
+    const form=d.getElementById('details');if(!form)return;
+    const date=d.getElementById('date');if(date?.parentElement?.childNodes?.length)date.parentElement.childNodes[0].textContent='Payment receipt date';
+    const firstNote=form.querySelector('p.muted');if(firstNote)firstNote.textContent='Select the payment and enter the receipt-specific details below. Customer, unit, area, contact and amount are fetched automatically.';
+    if(receiptNo.parentElement?.childNodes?.length)receiptNo.parentElement.childNodes[0].textContent='Official receipt number (SPRED:367)';
+    receiptNo.placeholder='SPRED:367';receiptNo.pattern='SPRED:[0-9]+';receiptNo.title='Use the official receipt format, for example SPRED:367';receiptNo.maxLength=30;
+    receiptNo.addEventListener('blur',()=>{const raw=receiptNo.value.trim();if(/^\d+$/.test(raw))receiptNo.value='SPRED:'+raw;else{const m=raw.match(/^spred\s*[:\-]?\s*(\d+)$/i);if(m)receiptNo.value='SPRED:'+m[1]}receiptNo.dispatchEvent(new Event('input',{bubbles:true}))});
+    function keepHidden(id){const el=d.getElementById(id);if(!el)return;const label=el.closest('label');el.type='hidden';form.appendChild(el);label?.remove()}
+    ['amount','address','contact','area'].forEach(keepHidden);
+    const oldInstrument=d.getElementById('instrument');
+    if(oldInstrument){const select=d.createElement('select');select.id='instrument';select.required=true;select.innerHTML='<option value="">Select payment method</option><option>Cash</option><option>Card</option><option>Online</option><option>Cheque</option>';oldInstrument.replaceWith(select);select.addEventListener('change',()=>select.dispatchEvent(new Event('input',{bubbles:true})))}
+    const reference=d.getElementById('reference'),bank=d.getElementById('bank');
+    if(reference)reference.placeholder='----------';if(bank)bank.placeholder='----------';
+    if(typeof w.receiptScene==='function'&&!w.receiptScene.__crmReceiptDashPatched){const original=w.receiptScene;const patched=function(measure){return original(measure).map(item=>item&&item.text==='----------------'?{...item,text:'----------'}:item)};patched.__crmReceiptDashPatched=true;w.receiptScene=patched;}
+  }catch(_e){}
+}
 function styleGeneratorFrame(frame){
   try{
     const d=frame.contentDocument;if(!d||!d.head)return;
     document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis.com"]').forEach(function(link){
       if(!d.querySelector('link[href="'+link.href+'"]'))d.head.appendChild(link.cloneNode(true));
     });
-    if(d.getElementById(GENERATOR_STYLE_ID))return;
+    if(d.getElementById(GENERATOR_STYLE_ID)){enhanceReceiptGenerator(frame);return;}
     const s=d.createElement('style');s.id=GENERATOR_STYLE_ID;
     s.textContent=`
 :root{--ink:#16232f!important;--ink-2:#0f1a26;--panel:#fffdf7!important;--paper:#f6f1e4;--paper-dim:#ebe3ce;--paper-line:#dcd2b6;--gold:#c6972e!important;--gold-deep:#8f6a1e;--cream:#ede6d6!important;--cream-dim:#b9af9a;--muted:#736c5c;--shadow:0 1px 2px rgba(15,26,38,.08),0 8px 24px rgba(15,26,38,.06)}
@@ -95,11 +117,22 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 }
 @media print{body{background:#fff!important}main{background:#fff!important;border-radius:0!important;padding:0!important}}
 `;
-    d.head.appendChild(s);
+    d.head.appendChild(s);enhanceReceiptGenerator(frame);
   }catch(_e){}
 }
 function mount(){const c=current();if(!c)return;styles();document.getElementById('crmDocuments')?.remove();document.getElementById('actionGenerateDocument')?.remove();document.getElementById('btnPrintWelcomeLetter')?.remove();const old=document.getElementById('btnPrintStatement');if(old){const b=document.createElement('button');b.id='btnGenerateDocument';b.className='btn-paper';b.type='button';b.textContent='Generate Document';b.onclick=()=>open(c);old.replaceWith(b)}}
-async function context(c){const unit=unwrap(await sb.from('units').select('id,customer_id,unit_no,unit_type,project_name,status').eq('id',c.sno).single());if(!unit.customer_id||unit.status==='Cancelled')throw Error('Select an active customer unit.');const [customer,transactions]=await Promise.all([sb.from('customers').select('id,customer_name').eq('id',unit.customer_id).single(),sb.from('payment_transactions').select('*').eq('unit_id',unit.id).eq('customer_id',unit.customer_id).gt('amount',0).order('payment_date',{ascending:true})]);const snapshot=JSON.parse(JSON.stringify(c));snapshot.paidPercent=window.__sunblissPaymentPercentageRules?window.__sunblissPaymentPercentageRules.progressPct(c):null;return {unit,customer:unwrap(customer),transactions:unwrap(transactions)||[],account:snapshot}}
+async function context(c){
+  const unit=unwrap(await sb.from('units').select('id,customer_id,unit_no,unit_type,project_name,status,area').eq('id',c.sno).single());
+  if(!unit.customer_id||unit.status==='Cancelled')throw Error('Select an active customer unit.');
+  const [customerResult,transactions]=await Promise.all([
+    sb.from('customers').select('id,customer_name,phone,email,address,permanent_address').eq('id',unit.customer_id).single(),
+    sb.from('payment_transactions').select('*').eq('unit_id',unit.id).eq('customer_id',unit.customer_id).gt('amount',0).order('payment_date',{ascending:true})
+  ]);
+  const customer=unwrap(customerResult),snapshot=JSON.parse(JSON.stringify(c));
+  snapshot.paidPercent=window.__sunblissPaymentPercentageRules?window.__sunblissPaymentPercentageRules.progressPct(c):null;
+  snapshot.info={...(snapshot.info||{}),address:customer.address||customer.permanent_address||snapshot.info?.address||snapshot.info?.permanentAddress||'',permanentAddress:customer.permanent_address||customer.address||snapshot.info?.permanentAddress||snapshot.info?.address||'',phone:customer.phone||snapshot.info?.phone||'',area:unit.area??snapshot.info?.area??''};
+  return {unit,customer,transactions:unwrap(transactions)||[],account:snapshot};
+}
 async function open(c){
   if(dialog||opening)return;opening=true;const opener=document.activeElement;
   try{
