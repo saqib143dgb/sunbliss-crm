@@ -64,13 +64,41 @@ function enhanceReceiptGenerator(frame,attempt=0){
     if(typeof w.receiptScene==='function'&&!w.receiptScene.__crmReceiptDashPatched){const original=w.receiptScene;const patched=function(measure){return original(measure).map(item=>item&&item.text==='----------------'?{...item,text:'----------'}:item)};patched.__crmReceiptDashPatched=true;w.receiptScene=patched;}
   }catch(_e){}
 }
+function patchPdfReferenceScale(frame,attempt=0){
+  try{
+    const w=frame.contentWindow;if(!w)return;
+    if(typeof w.makeDocumentPdf!=='function'||!w.PDFLib?.PDFDocument){if(attempt<24)setTimeout(()=>patchPdfReferenceScale(frame,attempt+1),50);return;}
+    if(w.makeDocumentPdf.__crmReferenceScalePatched)return;
+    const original=w.makeDocumentPdf;
+    const patched=async function(){
+      const blob=await original.apply(this,arguments);
+      if(!blob||typeof blob.arrayBuffer!=='function')return blob;
+      const source=await w.PDFLib.PDFDocument.load(await blob.arrayBuffer());
+      const output=await w.PDFLib.PDFDocument.create();
+      const scale=1.15;
+      for(const sourcePage of source.getPages()){
+        const size=sourcePage.getSize();
+        const embedded=(await output.embedPages([sourcePage]))[0];
+        const page=output.addPage([size.width,size.height]);
+        const x=(size.width-size.width*scale)/2;
+        const y=(size.height-size.height*scale)/2;
+        page.drawPage(embedded,{x,y,width:size.width*scale,height:size.height*scale});
+      }
+      try{const title=source.getTitle();if(title)output.setTitle(title)}catch(_e){}
+      return new w.Blob([await output.save()],{type:'application/pdf'});
+    };
+    patched.__crmReferenceScalePatched=true;
+    patched.__crmReferenceScale=1.15;
+    w.makeDocumentPdf=patched;
+  }catch(_e){}
+}
 function styleGeneratorFrame(frame){
   try{
     const d=frame.contentDocument;if(!d||!d.head)return;
     document.querySelectorAll('link[rel="stylesheet"][href*="fonts.googleapis.com"]').forEach(function(link){
       if(!d.querySelector('link[href="'+link.href+'"]'))d.head.appendChild(link.cloneNode(true));
     });
-    if(d.getElementById(GENERATOR_STYLE_ID)){enhanceReceiptGenerator(frame);return;}
+    if(d.getElementById(GENERATOR_STYLE_ID)){enhanceReceiptGenerator(frame);patchPdfReferenceScale(frame);return;}
     const s=d.createElement('style');s.id=GENERATOR_STYLE_ID;
     s.textContent=`
 :root{--ink:#16232f!important;--ink-2:#0f1a26;--panel:#fffdf7!important;--paper:#f6f1e4;--paper-dim:#ebe3ce;--paper-line:#dcd2b6;--gold:#c6972e!important;--gold-deep:#8f6a1e;--cream:#ede6d6!important;--cream-dim:#b9af9a;--muted:#736c5c;--shadow:0 1px 2px rgba(15,26,38,.08),0 8px 24px rgba(15,26,38,.06)}
@@ -117,7 +145,7 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 }
 @media print{body{background:#fff!important}main{background:#fff!important;border-radius:0!important;padding:0!important}}
 `;
-    d.head.appendChild(s);enhanceReceiptGenerator(frame);
+    d.head.appendChild(s);enhanceReceiptGenerator(frame);patchPdfReferenceScale(frame);
   }catch(_e){}
 }
 function mount(){const c=current();if(!c)return;styles();document.getElementById('crmDocuments')?.remove();document.getElementById('actionGenerateDocument')?.remove();document.getElementById('btnPrintWelcomeLetter')?.remove();const old=document.getElementById('btnPrintStatement');if(old){const b=document.createElement('button');b.id='btnGenerateDocument';b.className='btn-paper';b.type='button';b.textContent='Generate Document';b.onclick=()=>open(c);old.replaceWith(b)}}
