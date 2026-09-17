@@ -87,6 +87,15 @@ function rendererIsActive(w){
   return !!(w?.makeDocumentPdf&&w.makeDocumentPdf.__crmDemandMasterReference===true);
 }
 
+function blockLegacyDemandGenerator(w){
+  if(rendererIsActive(w)||typeof w.makeDocumentPdf!=='function'||w.makeDocumentPdf.__sbLegacyDemandBlocked)return;
+  const blocked=async function(){
+    throw new Error('Demand Letter renderer could not complete safely. Close Generate Document, reopen it, and try again.');
+  };
+  blocked.__sbLegacyDemandBlocked=true;
+  w.makeDocumentPdf=blocked;
+}
+
 function installSubmitGuard(w,d){
   const form=d.getElementById('details');
   if(!form||form.dataset.sbDemandActivationSubmitGuard==='1')return;
@@ -154,10 +163,13 @@ function activate(frame,attempt=0){
       return;
     }
 
+    blockLegacyDemandGenerator(w);
+
     if(d.documentElement.dataset.crmDemandMasterReference==='1'){
       delete d.documentElement.dataset.crmDemandMasterReference;
     }
 
+    if(attempt===0)reloadReferencePatchOnce();
     nudgeReferencePatch();
 
     setTimeout(()=>{
@@ -169,7 +181,6 @@ function activate(frame,attempt=0){
           markActive(w,d);
           return;
         }
-        if(attempt===20)reloadReferencePatchOnce();
         if(attempt<MAX_ATTEMPTS)activate(frame,attempt+1);
         else{
           d.documentElement.dataset.crmDemandRendererStatus='failed';
