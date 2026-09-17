@@ -1,0 +1,17 @@
+const fs=require('fs');
+const path=require('path');
+const root=process.cwd();
+const dist=path.join(root,'dist');
+const source=path.join(root,'demand_letter_reference_match_patch.js');
+const target=path.join(dist,'demand_letter_reference_match_patch.js');
+if(!fs.existsSync(source))throw new Error('Demand letter reference patch is missing');
+if(!fs.existsSync(path.join(dist,'index.html')))throw new Error('dist/index.html is missing');
+fs.copyFileSync(source,target);
+const version=String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.GITHUB_SHA||Date.now()).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,16);
+const tag='<script src="demand_letter_reference_match_patch.js?v='+version+'"></script>';
+const indexPath=path.join(dist,'index.html');
+let html=fs.readFileSync(indexPath,'utf8');
+html=html.replace(/<script[^>]+src=["']demand_letter_reference_match_patch\.js(?:\?[^"']*)?["'][^>]*><\/script>\s*/gi,'');
+if(/<\/body>/i.test(html))html=html.replace(/<\/body>/i,tag+'\n</body>');else html+='\n'+tag+'\n';
+fs.writeFileSync(indexPath,html);
+console.log('Demand letter reference-match patch applied');
