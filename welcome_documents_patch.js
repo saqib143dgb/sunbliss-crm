@@ -73,19 +73,18 @@ function patchPdfReferenceScale(frame,attempt=0){
     const patched=async function(){
       const blob=await original.apply(this,arguments);
       if(!blob||typeof blob.arrayBuffer!=='function')return blob;
-      const source=await w.PDFLib.PDFDocument.load(await blob.arrayBuffer());
-      const output=await w.PDFLib.PDFDocument.create();
+      const pdf=await w.PDFLib.PDFDocument.load(await blob.arrayBuffer());
       const scale=1.15;
-      for(const sourcePage of source.getPages()){
-        const size=sourcePage.getSize();
-        const embedded=(await output.embedPages([sourcePage]))[0];
-        const page=output.addPage([size.width,size.height]);
-        const x=(size.width-size.width*scale)/2;
-        const y=(size.height-size.height*scale)/2;
-        page.drawPage(embedded,{x,y,width:size.width*scale,height:size.height*scale});
+      for(const page of pdf.getPages()){
+        const size=page.getSize();
+        const width=Number(size.width),height=Number(size.height);
+        if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)continue;
+        const x=(width-width*scale)/2;
+        const y=(height-height*scale)/2;
+        page.scaleContent(scale,scale);
+        page.translateContent(x,y);
       }
-      try{const title=source.getTitle();if(title)output.setTitle(title)}catch(_e){}
-      return new w.Blob([await output.save()],{type:'application/pdf'});
+      return new w.Blob([await pdf.save()],{type:'application/pdf'});
     };
     patched.__crmReferenceScalePatched=true;
     patched.__crmReferenceScale=1.15;
