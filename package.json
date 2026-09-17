@@ -1,5 +1,6 @@
 {
   "name": "sunbliss-crm",
+  "description": "Sunbliss CRM",
   "private": true,
   "version": "1.0.0",
   "scripts": {
