@@ -302,7 +302,17 @@ function enhance(){
     var more=makeMore(panel,primary);panel.insertBefore(more,primary.nextSibling);
   }
   var result=controls.querySelector('.result-count');
-  if(result)result.textContent=result.textContent.replace(/\bunits\b/gi,'customers');
+  if(result){
+    var copy=text(result.textContent);
+    if(totalFilterCount()>0){
+      var match=copy.match(/^\s*(\d+)/);
+      if(match)copy='Filtered customers · '+match[1];
+      else copy=copy.replace(/\bunits\b/gi,'customers');
+    }else{
+      copy=copy.replace(/\bunits\b/gi,'customers');
+    }
+    if(text(result.textContent)!==copy)result.textContent=copy;
+  }
   var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export Results');
   renderActivePills(controls);updateBadge(controls);
 }

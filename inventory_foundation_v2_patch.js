@@ -78,9 +78,23 @@
   }
   function isCancelled(unit){return norm(unit&&unit.status)==='cancelled';}
   function hasCustomerConditionFilter(){
-    if(!window.state)return false;
-    var f=state.filters||{};
-    return !!((f.payment&&f.payment!=='all')||f.spa||f.oqood||f.furniture||f.unitType||f.dld);
+    var base=false;
+    if(window.state){
+      var f=state.filters||{};
+      base=!!((f.payment&&f.payment!=='all')||f.spa||f.oqood||f.furniture||f.unitType||f.dld);
+    }
+    var progress=window.__sunblissConstructionCompletionFilterState||{};
+    var progressActive=!!(
+      (progress.plan&&progress.plan!=='all')||
+      (progress.status&&progress.status!=='all')||
+      progress.deadlineMode==='month'
+    );
+    var paidActive=false;
+    try{
+      paidActive=typeof window.__sunblissPaymentPlanProgressExternalFilterActive==='function'&&
+        !!window.__sunblissPaymentPlanProgressExternalFilterActive();
+    }catch(_e){}
+    return base||progressActive||paidActive;
   }
 
   function loadInventory(force){
