@@ -66,7 +66,7 @@ function statusMatches(meta){
 }
 function deadlineMatches(meta){return stateFilter.deadlineMode!=='month'||(meta.deadline&&meta.deadline.slice(0,7)===stateFilter.month);}
 function monthLabel(value){var m=/^(\d{4})-(\d{2})$/.exec(text(value));if(!m)return text(value);var d=new Date(Number(m[1]),Number(m[2])-1,1);return d.toLocaleDateString(undefined,{month:'short',year:'numeric'});}
-function statusLabel(code){if(code==='completed')return 'Completed — Final Remaining';if(code==='pending')return 'Construction Not Completed';if(code==='fully_paid')return 'Final Already Paid';return 'Review';}
+function statusLabel(code){if(code==='completed')return 'Pre-Handover Completed — Final Remaining';if(code==='pending')return 'Pre-Handover Pending';if(code==='fully_paid')return 'Fully Settled';return 'Review Required';}
 
 function makeScheduleMeta(rows,unitNo,customerId,creditBySchedule){
   rows=(rows||[]).filter(isPropertySchedule);
@@ -210,8 +210,8 @@ function chip(label,attr,value,pressed){return '<button type="button" class="chi
 function filterSummary(){
   var parts=[];
   if(stateFilter.plan!=='all')parts.push(planLabel(Number(stateFilter.plan)));
-  if(stateFilter.status==='completed')parts.push('Construction Completed');
-  if(stateFilter.status==='pending')parts.push('Construction Pending');
+  if(stateFilter.status==='completed')parts.push('Pre-Handover Completed');
+  if(stateFilter.status==='pending')parts.push('Pre-Handover Pending');
   if(stateFilter.deadlineMode==='month')parts.push(monthLabel(stateFilter.month));
   return parts.join(' · ');
 }
@@ -226,8 +226,8 @@ function ensureActivePill(controls,toggle){
 function relabelExport(){
   var button=document.getElementById('btnExportList');if(!button)return;
   var label='Export Units';
-  if(stateFilter.status==='completed')label='Export Completed Construction';
-  else if(stateFilter.status==='pending')label='Export Pending Construction';
+  if(stateFilter.status==='completed')label='Export Pre-Handover Completed';
+  else if(stateFilter.status==='pending')label='Export Pre-Handover Pending';
   var changed=false;Array.prototype.forEach.call(button.childNodes,function(node){if(node.nodeType===3&&String(node.nodeValue||'').trim()){node.nodeValue=label;changed=true;}});
   if(!changed)button.appendChild(document.createTextNode(label));
   button.setAttribute('aria-label',label);button.setAttribute('title',label);
@@ -247,16 +247,16 @@ function enhanceFilterUI(isLoading,originalTotal){
       chip('40/60','data-sb-construction-plan','40',stateFilter.plan==='40')+
       chip('50/50','data-sb-construction-plan','50',stateFilter.plan==='50')+
       '</div>'+
-      '<p class="filter-group-label sb-construction-status-label">During Construction Payment</p><div class="chips">'+
+      '<p class="filter-group-label sb-construction-status-label">Pre-Handover Status</p><div class="chips">'+
       chip('All','data-sb-construction-status','all',stateFilter.status==='all')+
-      chip('Completed — Final Remaining','data-sb-construction-status','completed',stateFilter.status==='completed')+
-      chip('Not Completed','data-sb-construction-status','pending',stateFilter.status==='pending')+
+      chip('Pre-Handover Completed','data-sb-construction-status','completed',stateFilter.status==='completed')+
+      chip('Pre-Handover Pending','data-sb-construction-status','pending',stateFilter.status==='pending')+
       '</div>'+
-      '<p class="filter-group-label sb-construction-status-label">Construction Deadline</p><div class="sb-construction-deadline-row"><div class="chips">'+
+      '<p class="filter-group-label sb-construction-status-label">Pre-Handover Due Period</p><div class="sb-construction-deadline-row"><div class="chips">'+
       chip('Any Date','data-sb-construction-deadline','all',stateFilter.deadlineMode==='all')+
       chip('Specific Month','data-sb-construction-deadline','month',stateFilter.deadlineMode==='month')+
-      '</div><input id="sbConstructionCompletionMonth" class="sb-construction-month" type="month" value="'+stateFilter.month+'" '+(stateFilter.deadlineMode==='month'?'':'disabled')+' aria-label="Construction deadline month"></div>'+
-      '<p class="sb-construction-hint'+(isLoading?' sb-construction-loading':'')+'">'+(isLoading?'Loading payment-plan status…':'Completed means every property installment before the final installment is settled within the AED 1,000 tolerance; DLD/Admin fees and penalties are excluded.')+'</p>';
+      '</div><input id="sbConstructionCompletionMonth" class="sb-construction-month" type="month" value="'+stateFilter.month+'" '+(stateFilter.deadlineMode==='month'?'':'disabled')+' aria-label="Pre-handover due month"></div>'+
+      '<p class="sb-construction-hint'+(isLoading?' sb-construction-loading':'')+'">'+(isLoading?'Loading payment plan progress…':'Pre-Handover Completed means every property installment due before the final/handover installment is settled within the AED 1,000 tolerance. DLD/Admin fees and penalties are excluded.')+'</p>';
     var clear=panel.querySelector('#btnClearFilters');panel.insertBefore(group,clear||null);
     group.querySelectorAll('[data-sb-construction-plan]').forEach(function(btn){btn.addEventListener('click',function(){stateFilter.plan=btn.getAttribute('data-sb-construction-plan')||'all';loadReportIndex(false).catch(function(){});window.renderList();});});
     group.querySelectorAll('[data-sb-construction-status]').forEach(function(btn){btn.addEventListener('click',function(){stateFilter.status=btn.getAttribute('data-sb-construction-status')||'all';loadReportIndex(false).catch(function(){});window.renderList();});});
@@ -273,7 +273,7 @@ function wrappedRenderList(){
   if(typeof previousRenderList!=='function')return;
   var originalTotal=window.state&&Array.isArray(state.dues)?state.dues.length:0;
   if(!filterActive()){var plain=previousRenderList.apply(this,arguments);enhanceFilterUI(false,originalTotal);return plain;}
-  if(!reportIndex){var loading=previousRenderList.apply(this,arguments);enhanceFilterUI(true,originalTotal);loadReportIndex(false).then(function(){if(typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();}).catch(function(err){console.warn('Construction completion filter load failed',err);});return loading;}
+  if(!reportIndex){var loading=previousRenderList.apply(this,arguments);enhanceFilterUI(true,originalTotal);loadReportIndex(false).then(function(){if(typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();}).catch(function(err){console.warn('Payment plan progress filter load failed',err);});return loading;}
   var all=state.dues,subset=all.filter(matchesCustomer),out;state.dues=subset;try{out=previousRenderList.apply(this,arguments);}finally{state.dues=all;}enhanceFilterUI(false,originalTotal);return out;
 }
 wrappedRenderList.__sunblissConstructionCompletionWrapped=true;
@@ -283,16 +283,16 @@ async function exportConstructionStatus(rows){
   if(!window.ExcelJS)throw new Error('Spreadsheet library did not load — check your connection and try again.');
   await loadReportIndex(true);
   var exportRows=[];(rows||[]).forEach(function(item){var c=item&&item.c?item.c:item;if(!c)return;var e=customerEntry(c);if(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule))exportRows.push(e);});
-  if(!exportRows.length)throw new Error('No customers match the selected construction-payment filters.');
+  if(!exportRows.length)throw new Error('No customers match the selected Payment Plan Progress filters.');
   exportRows.sort(function(a,b){var ap=a.schedule.planTarget,bp=b.schedule.planTarget;if(ap!==bp)return ap-bp;return norm(a.customer.unit).localeCompare(norm(b.customer.unit),undefined,{numeric:true});});
 
   var wb=new ExcelJS.Workbook();wb.creator=(window.state&&state.branding&&state.branding.name)||'Sunbliss Residences';wb.created=new Date();
-  var ws=wb.addWorksheet('Construction Payment Status',{views:[{state:'frozen',ySplit:1}]});
+  var ws=wb.addWorksheet('Payment Plan Progress',{views:[{state:'frozen',ySplit:1}]});
   ws.columns=[
-    {header:'Unit',key:'unit',width:12},{header:'Customer',key:'customer',width:32},{header:'Payment Plan',key:'plan',width:14},{header:'Construction Status',key:'status',width:30},
+    {header:'Unit',key:'unit',width:12},{header:'Customer',key:'customer',width:32},{header:'Payment Plan',key:'plan',width:14},{header:'Pre-Handover Status',key:'status',width:32},
     {header:'Property Price (AED)',key:'price',width:23},{header:'Property Cash Received (AED)',key:'cash',width:27},{header:'Paid % So Far',key:'paidPct',width:16},
-    {header:'Required Before Final (AED)',key:'constructionDue',width:27},{header:'Construction Settled (AED)',key:'constructionSettled',width:26},{header:'Construction Balance (AED)',key:'constructionBalance',width:26},
-    {header:'Final Installment (AED)',key:'finalDueAmount',width:23},{header:'Final Balance (AED)',key:'finalBalance',width:22},{header:'Last Construction Due',key:'lastConstructionDue',width:22},{header:'Final Due',key:'finalDue',width:19}
+    {header:'Pre-Handover Required (AED)',key:'constructionDue',width:28},{header:'Pre-Handover Paid (AED)',key:'constructionSettled',width:25},{header:'Pre-Handover Balance (AED)',key:'constructionBalance',width:28},
+    {header:'Final Installment (AED)',key:'finalDueAmount',width:23},{header:'Final Balance (AED)',key:'finalBalance',width:22},{header:'Last Pre-Handover Due',key:'lastConstructionDue',width:23},{header:'Final Due',key:'finalDue',width:19}
   ];
   ws.autoFilter={from:{row:1,column:1},to:{row:1,column:14}};
   var header=ws.getRow(1);header.height=22;header.eachCell(function(cell){cell.font={bold:true,color:{argb:'FFEDE6D6'},size:11};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16232F'}};cell.alignment={vertical:'middle',wrapText:true};cell.border={bottom:{style:'medium',color:{argb:'FF16232F'}}};});
@@ -306,7 +306,7 @@ async function exportConstructionStatus(rows){
   });
   var buffer=await wb.xlsx.writeBuffer(),blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   var suffix=stateFilter.status==='completed'?'Completed':(stateFilter.status==='pending'?'Pending':'All');
-  a.href=url;a.download='Sunbliss-Construction-Payment-'+suffix+'-'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},30000);
+  a.href=url;a.download='Sunbliss-Payment-Plan-Progress-'+suffix+'-'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},30000);
 }
 
 window.exportFilteredList=async function(rows){if(filterActive())return exportConstructionStatus(rows);if(typeof previousExport==='function')return previousExport.apply(this,arguments);throw new Error('Export function is not available.');};
