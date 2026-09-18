@@ -112,7 +112,7 @@
       var stageVariance=hasEligibleLedgerEvent?ledgerVariance:legacyVariance;
       stage.legacyCarryPosition=legacyVariance;
       stage.carryForwardPosition=stageVariance;
-      stage.carryForwardManaged=stageVariance < -0.01 && Math.abs(stageVariance)<=5000;
+      stage.carryForwardManaged=stageVariance < -0.01 && Math.abs(stageVariance)<=5000 && paymentActivity(stage);
       legacyCarry=round2(legacyCarry+legacyVariance);
     });
 
