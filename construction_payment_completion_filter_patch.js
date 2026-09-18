@@ -304,9 +304,10 @@ async function exportConstructionStatus(rows){
     {header:'Received % So Far',key:'paidPct',width:18},
     {header:'Pre-Handover Balance (AED)',key:'constructionBalance',width:28},
     {header:'Pre-Handover Balance Installment',key:'remainingInstallments',width:30},
-    {header:'Final Installment (AED)',key:'finalDueAmount',width:23}
+    {header:'Final Installment (AED)',key:'finalDueAmount',width:23},
+    {header:'Total Balance Amount (AED)',key:'totalBalanceAmount',width:26}
   ];
-  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:11}};
+  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:12}};
   var header=ws.getRow(1);header.height=22;header.eachCell(function(cell){cell.font={bold:true,color:{argb:'FFEDE6D6'},size:11};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16232F'}};cell.alignment={vertical:'middle',wrapText:true};cell.border={bottom:{style:'medium',color:{argb:'FF16232F'}}};});
   exportRows.forEach(function(e){
     var s=e.schedule,c=e.customer,row=ws.addRow({
@@ -320,14 +321,16 @@ async function exportConstructionStatus(rows){
       paidPct:e.price>0?e.cash/e.price:0,
       constructionBalance:s.constructionBalance,
       remainingInstallments:s.constructionOpenCount,
-      finalDueAmount:s.finalAmount
+      finalDueAmount:s.finalAmount,
+      totalBalanceAmount:round2(num(s.constructionBalance)+num(s.finalBalance))
     });
-    ['price','constructionDue','cash','constructionBalance','finalDueAmount'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});
+    ['price','constructionDue','cash','constructionBalance','finalDueAmount','totalBalanceAmount'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});
     row.getCell('paidPct').numFmt='0.0%';
     row.getCell('remainingInstallments').numFmt='0';
     row.getCell('status').font={bold:true,color:{argb:s.completionCode==='completed'?'FF3F7A57':(s.completionCode==='pending'?'FFAE3B2B':'FF736C5C')}};
     row.getCell('constructionBalance').font={bold:true,color:{argb:s.completionCode==='pending'?'FFAE3B2B':'FF3F7A57'}};
     row.getCell('remainingInstallments').font={bold:true,color:{argb:s.constructionOpenCount>0?'FFAE3B2B':'FF3F7A57'}};
+    row.getCell('totalBalanceAmount').font={bold:true,color:{argb:(num(s.constructionBalance)+num(s.finalBalance))>0?'FF16232F':'FF3F7A57'}};
     row.eachCell(function(cell){cell.border={bottom:{style:'thin',color:{argb:'FFDCD2B6'}}};});
   });
   var buffer=await wb.xlsx.writeBuffer(),blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');
