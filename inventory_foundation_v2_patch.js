@@ -113,7 +113,7 @@
   }
   function matchesFilter(unit){
     if(!unit)return false;
-    if(activeFilter==='all')return true;
+    if(activeFilter==='all')return norm(availability(unit))==='sold';
     if(activeFilter==='cancelled')return isCancelled(unit);
     return norm(availability(unit))===activeFilter;
   }
@@ -143,8 +143,8 @@
       if(toolbar)toolbar.insertAdjacentElement('afterend',bar);else controls.appendChild(bar);
     }
     var c=counts();
-    bar.innerHTML='<div class="inventory-status-head"><span class="inventory-status-title">Physical Inventory</span><span class="inventory-status-total">'+c.all+' units</span></div><div class="inventory-status-chips">'+[
-      chip('All','all',c.all),chip('Available','available',c.available),chip('Sold','sold',c.sold),chip('Cancelled','cancelled',c.cancelled)
+    bar.innerHTML='<div class="inventory-status-head"><span class="inventory-status-title">Inventory View</span><span class="inventory-status-total">Total Inventory · '+c.all+'</span></div><div class="inventory-status-chips">'+[
+      chip('All','all',c.sold),chip('Available','available',c.available),chip('Cancelled','cancelled',c.cancelled)
     ].join('')+'</div>';
     return bar;
   }
@@ -201,16 +201,13 @@
     if(!line||hasCustomerConditionFilter())return;
     var c=counts(),q=currentSearch(),shown=visibleBaseCount+inventoryOnlyCount,copy='';
     if(activeFilter==='all'&&!q){
-      copy=c.all+' physical units · '+c.sold+' sold · '+c.available+' available';
-    }else if(activeFilter==='sold'&&!q){
-      var sales=0,outstanding=0;
-      (window.state&&Array.isArray(state.dues)?state.dues:[]).forEach(function(x){sales+=Number(x&&x.total)||0;outstanding+=Math.abs(Number(x&&x.outstanding)||0);});
-      copy=shown+' of '+c.all+' physical units · AED '+fmtCompact(sales)+' active sales value · AED '+fmtCompact(outstanding)+' outstanding';
+      copy=c.sold+' sold units · '+c.available+' available · '+c.all+' total inventory';
     }else{
-      copy=shown+' of '+c.all+' physical units';
+      if(activeFilter==='available'&&!q)copy=c.available+' available units · '+c.all+' total inventory';
+      else if(activeFilter==='cancelled'&&!q)copy=c.cancelled+' cancelled bookings · '+c.all+' total inventory';
+      else copy=shown+' of '+c.all+' total units';
       if(q)copy+=' · matching inventory';
-      else if(activeFilter==='available')copy+=' · Available inventory';
-      else if(activeFilter==='cancelled')copy+=' · Available for resale';
+      else if(activeFilter==='cancelled')copy+=' · available for resale';
     }
     if(text(line.textContent)!==copy)line.textContent=copy;
   }
