@@ -294,19 +294,40 @@ async function exportConstructionStatus(rows){
   var wb=new ExcelJS.Workbook();wb.creator=(window.state&&state.branding&&state.branding.name)||'Sunbliss Residences';wb.created=new Date();
   var ws=wb.addWorksheet('Payment Plan Progress',{views:[{state:'frozen',ySplit:1}]});
   ws.columns=[
-    {header:'Unit',key:'unit',width:12},{header:'Customer',key:'customer',width:32},{header:'Payment Plan',key:'plan',width:14},{header:'Pre-Handover Status',key:'status',width:32},
-    {header:'Property Price (AED)',key:'price',width:23},{header:'Property Cash Received (AED)',key:'cash',width:27},{header:'Paid % So Far',key:'paidPct',width:16},
-    {header:'Pre-Handover Required (AED)',key:'constructionDue',width:28},{header:'Pre-Handover Paid (AED)',key:'constructionSettled',width:25},{header:'Pre-Handover Balance (AED)',key:'constructionBalance',width:28},
-    {header:'Final Installment (AED)',key:'finalDueAmount',width:23},{header:'Final Balance (AED)',key:'finalBalance',width:22},{header:'Last Pre-Handover Due',key:'lastConstructionDue',width:23},{header:'Final Due',key:'finalDue',width:19}
+    {header:'Unit',key:'unit',width:12},
+    {header:'Customer',key:'customer',width:32},
+    {header:'Payment Plan',key:'plan',width:14},
+    {header:'Pre-Handover Payment Status',key:'status',width:34},
+    {header:'Property Price (AED)',key:'price',width:23},
+    {header:'Pre-Handover Payment Required (AED)',key:'constructionDue',width:34},
+    {header:'Received Amount (AED)',key:'cash',width:23},
+    {header:'Received % So Far',key:'paidPct',width:18},
+    {header:'Pre-Handover Balance (AED)',key:'constructionBalance',width:28},
+    {header:'Remaining Installments',key:'remainingInstallments',width:22},
+    {header:'Final Installment (AED)',key:'finalDueAmount',width:23}
   ];
-  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:14}};
+  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:11}};
   var header=ws.getRow(1);header.height=22;header.eachCell(function(cell){cell.font={bold:true,color:{argb:'FFEDE6D6'},size:11};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16232F'}};cell.alignment={vertical:'middle',wrapText:true};cell.border={bottom:{style:'medium',color:{argb:'FF16232F'}}};});
   exportRows.forEach(function(e){
-    var s=e.schedule,c=e.customer,row=ws.addRow({unit:c.unit||'',customer:nice(c.name),plan:s.planLabel,status:s.completionLabel,price:e.price,cash:e.cash,paidPct:e.price>0?e.cash/e.price:0,constructionDue:s.constructionAmount,constructionSettled:s.constructionSettled,constructionBalance:s.constructionBalance,finalDueAmount:s.finalAmount,finalBalance:s.finalBalance,lastConstructionDue:s.lastConstructionDue?(dateValue(s.lastConstructionDue)||s.lastConstructionDue):'',finalDue:s.finalDue?(dateValue(s.finalDue)||s.finalDue):''});
-    ['price','cash','constructionDue','constructionSettled','constructionBalance','finalDueAmount','finalBalance'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});row.getCell('paidPct').numFmt='0.0%';
-    ['lastConstructionDue','finalDue'].forEach(function(key){if(row.getCell(key).value instanceof Date)row.getCell(key).numFmt='dd mmm yyyy';});
+    var s=e.schedule,c=e.customer,row=ws.addRow({
+      unit:c.unit||'',
+      customer:nice(c.name),
+      plan:s.planLabel,
+      status:s.completionLabel,
+      price:e.price,
+      constructionDue:s.constructionAmount,
+      cash:e.cash,
+      paidPct:e.price>0?e.cash/e.price:0,
+      constructionBalance:s.constructionBalance,
+      remainingInstallments:s.constructionOpenCount,
+      finalDueAmount:s.finalAmount
+    });
+    ['price','constructionDue','cash','constructionBalance','finalDueAmount'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});
+    row.getCell('paidPct').numFmt='0.0%';
+    row.getCell('remainingInstallments').numFmt='0';
     row.getCell('status').font={bold:true,color:{argb:s.completionCode==='completed'?'FF3F7A57':(s.completionCode==='pending'?'FFAE3B2B':'FF736C5C')}};
     row.getCell('constructionBalance').font={bold:true,color:{argb:s.completionCode==='pending'?'FFAE3B2B':'FF3F7A57'}};
+    row.getCell('remainingInstallments').font={bold:true,color:{argb:s.constructionOpenCount>0?'FFAE3B2B':'FF3F7A57'}};
     row.eachCell(function(cell){cell.border={bottom:{style:'thin',color:{argb:'FFDCD2B6'}}};});
   });
   var buffer=await wb.xlsx.writeBuffer(),blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');
