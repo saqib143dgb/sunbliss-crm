@@ -16,6 +16,7 @@ function cleanStageLabel(v){return text(v).replace(/\bDLD\s*(?:\+|&|and)\s*Admin
 function cleanStageObject(s){if(!s)return;['label','name','stageName','stage_name'].forEach(function(k){if(typeof s[k]==='string')s[k]=cleanStageLabel(s[k])})}
 function codeFromName(v){var s=norm(v);if(/dld|admin\s*fees?/.test(s))return'DLD';if(/down\s*payment/.test(s))return'DOWN';if(/1st|first/.test(s))return'1ST';if(/2nd|second/.test(s))return'2ND';if(/3rd|third/.test(s))return'3RD';if(/4th|fourth/.test(s))return'4TH';if(/5th|fifth/.test(s))return'5TH';if(/6th|sixth/.test(s))return'6TH';if(/7th|seventh/.test(s))return'7TH';if(/final|handover/.test(s))return'FIN';return''}
 function effectiveDate(row){return dateValue(row&& (row.revised_due_date||row.due_date))}
+function effectiveAmount(row){return num(row&&row.revised_due_amount)!=0?num(row.revised_due_amount):num(row&&row.due_amount)}
 function compareRows(a,b){var da=effectiveDate(a),db=effectiveDate(b),ta=da?da.getTime():Infinity,tb=db?db.getTime():Infinity;return ta-tb||num(a&&a.id)-num(b&&b.id)}
 function cleanDomNode(root){
  if(!root)return;
@@ -46,7 +47,7 @@ async function fetchTruth(){
  if(!window.sb)return false;
  var q=await Promise.all([
   sb.from('units').select('id,unit_no'),
-  sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,paid_date,status'),
+  sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,paid_date,status'),
   sb.from('credit_notes').select('payment_schedule_id,amount')
  ]);
  q.forEach(function(x){if(x.error)throw x.error});
@@ -60,16 +61,16 @@ async function fetchTruth(){
   var rows=rowsByUnit[unitId].slice().sort(compareRows);
   var stages={};
   rows.forEach(function(row){
-   var credit=creditBySchedule[String(row.id)]||0,due=num(row.due_amount),cash=num(row.paid_amount),remaining=round2(due-cash-credit),paid=norm(row.status)==='paid'||remaining<=TOLERANCE;
+   var credit=creditBySchedule[String(row.id)]||0,due=effectiveAmount(row),cash=num(row.paid_amount),remaining=round2(due-cash-credit),paid=norm(row.status)==='paid'||remaining<=TOLERANCE;
    stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:due,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim()};
   });
   var open=rows.filter(function(row){
-   if(num(row.due_amount)<=0||/\bbooking\b/i.test(text(row.stage_name)))return false;
-   var remaining=round2(num(row.due_amount)-num(row.paid_amount)-(creditBySchedule[String(row.id)]||0));
+   if(effectiveAmount(row)<=0||/\bbooking\b/i.test(text(row.stage_name)))return false;
+   var remaining=round2(effectiveAmount(row)-num(row.paid_amount)-(creditBySchedule[String(row.id)]||0));
    return norm(row.status)!=='paid'&&remaining>TOLERANCE;
   }).sort(compareRows);
   var next=open[0]||null;
-  nextTruth[norm(unitNo)]={unitId:Number(unitId),stages:stages,next:next?{label:cleanStageLabel(next.stage_name).trim(),amount:round2(num(next.due_amount)-num(next.paid_amount)-(creditBySchedule[String(next.id)]||0)),date:effectiveDate(next),scheduleId:next.id}:null};
+  nextTruth[norm(unitNo)]={unitId:Number(unitId),stages:stages,next:next?{label:cleanStageLabel(next.stage_name).trim(),amount:round2(effectiveAmount(next)-num(next.paid_amount)-(creditBySchedule[String(next.id)]||0)),date:effectiveDate(next),scheduleId:next.id}:null};
  });
  truthByUnit=nextTruth;
  return true;
