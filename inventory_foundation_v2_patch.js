@@ -144,7 +144,7 @@
     }
     var c=counts();
     bar.innerHTML='<div class="inventory-status-head"><span class="inventory-status-title">Inventory View</span><span class="inventory-status-total">Total Inventory · '+c.all+'</span></div><div class="inventory-status-chips">'+[
-      chip('All','all',c.sold),chip('Available','available',c.available),chip('Cancelled','cancelled',c.cancelled)
+      chip('Sold','all',c.sold),chip('Available','available',c.available),chip('Cancelled','cancelled',c.cancelled)
     ].join('')+'</div>';
     return bar;
   }
