@@ -5,7 +5,9 @@ const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist');
 const SOURCES=[
   'payment_plan_construction_deadline_v3_patch.js',
-  'construction_payment_completion_filter_patch.js'
+  'construction_payment_completion_filter_patch.js',
+  'payment_plan_progress_clean_filter_patch.js',
+  'payment_plan_progress_clean_filter_patch.js'
 ];
 const INDEX=path.join(OUT,'index.html');
 
@@ -41,4 +43,4 @@ if(/<\/body>/i.test(html))html=html.replace(/<\/body>/i,`${tags}\n</body>`);
 else html+=`\n${tags}\n`;
 fs.writeFileSync(INDEX,html);
 
-console.log('Applied Payment Plan Progress filters');
+console.log('Applied clean Payment Plan Progress filters');
