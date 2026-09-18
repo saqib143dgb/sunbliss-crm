@@ -165,7 +165,7 @@ function renderPanel(){
   var shell=p.querySelector('.rpp-shell');
   shell.innerHTML=
     '<div class="rpp-head"><div><div class="rpp-kicker">Payment Plan Revision</div><h2 class="rpp-title">Unit '+safe(c.unit)+'</h2><p class="rpp-sub">'+safe(c.name)+' · contractual dates and amounts remain preserved.</p></div><button type="button" class="btn-paper" id="rppClose">Close</button></div>'+
-    '<div class="rpp-warning"><b>Management approval required.</b> Use this for an approved change to the payment plan. For extra time only, use Payment Extension instead.</div>'+
+    '<div class="rpp-warning"><b>Management approval required.</b> Use this for an approved change to the payment plan. For extra time only, use Payment Extension instead. If installment amounts change, adjust the other revised installment(s) so the total property payment schedule stays unchanged.</div>'+
     '<div class="rpp-mode"><button type="button" data-rpp-mode="single" class="'+(panelState.mode==='single'?'active':'')+'">Single Installment</button><button type="button" data-rpp-mode="multiple" class="'+(panelState.mode==='multiple'?'active':'')+'">Multiple Installments</button></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Installments to revise</p><div class="rpp-list">'+(rows.length?rows.map(installmentCard).join(''):'<div class="rpp-empty">No unpaid property installment is available for revision.</div>')+'</div></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Approval details</p><div class="rpp-approval">'+
