@@ -192,7 +192,7 @@ function customerEntry(customer){
   if(unitId!==null&&customerId!==null){var pk=pairKey(unitId,customerId);cash=Object.prototype.hasOwnProperty.call(reportIndex.cashByPair,pk)?num(reportIndex.cashByPair[pk])+num(reportIndex.unassignedCashByUnit[text(unitId)]):num(reportIndex.cashByUnit[text(unitId)]);}else if(unitId!==null)cash=num(reportIndex.cashByUnit[text(unitId)]);
   var paidPct=price>0?cash/price*100:0;
   try{if(window.__sunblissPaymentPercentageRules&&typeof window.__sunblissPaymentPercentageRules.progressPct==='function')paidPct=num(window.__sunblissPaymentPercentageRules.progressPct(customer));}catch(_e){}
-  var entry={customer:customer,schedule:schedule,price:round2(price),cash:round2(cash),paidPct:paidPct,nonCashSettlement:round2(sale.nonCashSettlement)};
+  var entry={customer:customer,schedule:schedule,price:round2(price),cash:round2(cash),paidPct:paidPct,nonCashSettlement:round2(sale.nonCashSettlement),bookingDate:text(sale.bookingDate)};
   return entry;
 }
 function matchesCustomer(customer){var e=customerEntry(customer);return !!(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(customer,e));}
@@ -289,7 +289,7 @@ async function exportConstructionStatus(rows){
   await loadReportIndex(true);
   var exportRows=[];(rows||[]).forEach(function(item){var c=item&&item.c?item.c:item;if(!c)return;var e=customerEntry(c);if(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(c,e))exportRows.push(e);});
   if(!exportRows.length)throw new Error('No customers match the selected Payment Plan Progress filters.');
-  exportRows.sort(function(a,b){var ap=a.schedule.planTarget,bp=b.schedule.planTarget;if(ap!==bp)return ap-bp;return norm(a.customer.unit).localeCompare(norm(b.customer.unit),undefined,{numeric:true});});
+  exportRows.sort(function(a,b){var ad=text(a.bookingDate),bd=text(b.bookingDate);if(ad&&bd&&ad!==bd)return ad.localeCompare(bd);if(ad&&!bd)return -1;if(!ad&&bd)return 1;return norm(a.customer.unit).localeCompare(norm(b.customer.unit),undefined,{numeric:true});});
 
   var wb=new ExcelJS.Workbook();wb.creator=(window.state&&state.branding&&state.branding.name)||'Sunbliss Residences';wb.created=new Date();
   var ws=wb.addWorksheet('Payment Plan Progress',{views:[{state:'frozen',ySplit:1}]});
