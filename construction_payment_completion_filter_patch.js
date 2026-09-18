@@ -57,7 +57,9 @@ function latestDated(rows){
   dated.sort(function(a,b){return b.date.localeCompare(a.date)||num(b.row&&b.row.id)-num(a.row&&a.row.id);});
   return dated.length?dated[0]:null;
 }
-function filterActive(){return stateFilter.plan!=='all'||stateFilter.status!=='all'||stateFilter.deadlineMode==='month';}
+function externalFilterActive(){try{return typeof window.__sunblissPaymentPlanProgressExternalFilterActive==='function'&&!!window.__sunblissPaymentPlanProgressExternalFilterActive();}catch(_e){return false;}}
+function externalMatches(customer,entry){try{return typeof window.__sunblissPaymentPlanProgressExternalMatches!=='function'||window.__sunblissPaymentPlanProgressExternalMatches(customer,entry)!==false;}catch(_e){return true;}}
+function filterActive(){return stateFilter.plan!=='all'||stateFilter.status!=='all'||stateFilter.deadlineMode==='month'||externalFilterActive();}
 function planMatches(meta){return stateFilter.plan==='all'||Number(stateFilter.plan)===meta.planTarget;}
 function statusMatches(meta){
   if(stateFilter.status==='completed')return meta.completionCode==='completed';
@@ -187,10 +189,12 @@ function customerEntry(customer){
   var price=sale.commercialPrice>0?sale.commercialPrice:(num(customer.total)>0?num(customer.total):schedule.totalScheduled);
   var cash=0;
   if(unitId!==null&&customerId!==null){var pk=pairKey(unitId,customerId);cash=Object.prototype.hasOwnProperty.call(reportIndex.cashByPair,pk)?num(reportIndex.cashByPair[pk])+num(reportIndex.unassignedCashByUnit[text(unitId)]):num(reportIndex.cashByUnit[text(unitId)]);}else if(unitId!==null)cash=num(reportIndex.cashByUnit[text(unitId)]);
-  var entry={customer:customer,schedule:schedule,price:round2(price),cash:round2(cash),paidPct:price>0?cash/price*100:0,nonCashSettlement:round2(sale.nonCashSettlement)};
+  var paidPct=price>0?cash/price*100:0;
+  try{if(window.__sunblissPaymentPercentageRules&&typeof window.__sunblissPaymentPercentageRules.progressPct==='function')paidPct=num(window.__sunblissPaymentPercentageRules.progressPct(customer));}catch(_e){}
+  var entry={customer:customer,schedule:schedule,price:round2(price),cash:round2(cash),paidPct:paidPct,nonCashSettlement:round2(sale.nonCashSettlement)};
   return entry;
 }
-function matchesCustomer(customer){var e=customerEntry(customer);return !!(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule));}
+function matchesCustomer(customer){var e=customerEntry(customer);return !!(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(customer,e));}
 
 function installStyles(){
   if(document.getElementById('sbConstructionCompletionFilterStyle'))return;
@@ -282,7 +286,7 @@ window.renderList=wrappedRenderList;
 async function exportConstructionStatus(rows){
   if(!window.ExcelJS)throw new Error('Spreadsheet library did not load — check your connection and try again.');
   await loadReportIndex(true);
-  var exportRows=[];(rows||[]).forEach(function(item){var c=item&&item.c?item.c:item;if(!c)return;var e=customerEntry(c);if(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule))exportRows.push(e);});
+  var exportRows=[];(rows||[]).forEach(function(item){var c=item&&item.c?item.c:item;if(!c)return;var e=customerEntry(c);if(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(c,e))exportRows.push(e);});
   if(!exportRows.length)throw new Error('No customers match the selected Payment Plan Progress filters.');
   exportRows.sort(function(a,b){var ap=a.schedule.planTarget,bp=b.schedule.planTarget;if(ap!==bp)return ap-bp;return norm(a.customer.unit).localeCompare(norm(b.customer.unit),undefined,{numeric:true});});
 
