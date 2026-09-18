@@ -29,13 +29,12 @@
   function statusTone(kind,status){
     var value=norm(status);
     if ((kind==='spa' && value==='signed') || (kind==='oqood' && value==='completed')) return 'good';
-    if ((kind==='spa' && value==='drafted') || (kind==='oqood' && value==='pending')) return 'warn';
-    return 'neutral';
+    return 'warn';
   }
   function displayStatus(kind,status){
-    var value=text(status).trim();
-    if (!value) return 'Not Started';
-    return value;
+    var value=norm(status);
+    if (kind==='spa') return value==='signed'?'Signed':'Pending';
+    return value==='completed'?'Completed':'Pending';
   }
 
   function ensureStyles(){
@@ -165,9 +164,9 @@
 
     var isSpa=kind==='spa';
     var title=isSpa?'SPA':'OQOOD';
-    var status=isSpa?(c.spa||'Not Started'):(c.oqood||'Not Started');
+    var status=isSpa?displayStatus('spa',c.spa):displayStatus('oqood',c.oqood);
     var currentDate=isSpa?(c.info&&c.info.spaDate):(c.info&&c.info.oqoodDate);
-    var options=isSpa?['Not Started','Drafted','Signed']:['Not Started','Pending','Completed'];
+    var options=isSpa?['Pending','Signed']:['Pending','Completed'];
     var dateLabel=isSpa?'SPA signed date (optional)':'OQOOD completed date (optional)';
 
     var panel=document.createElement('div');

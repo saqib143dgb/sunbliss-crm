@@ -287,9 +287,9 @@
   function installComplianceForm(){
     window.renderStatusForm = function(c){
       var values = state.statusFormValues || {
-        spa: c.spa || 'Not Started',
+        spa: (String(c.spa||'').toLowerCase()==='signed'?'Signed':'Pending'),
         spaDate: c.info && c.info.spaDate ? dateToIso(c.info.spaDate) : '',
-        oqood: c.oqood || 'Not Started',
+        oqood: (String(c.oqood||'').toLowerCase()==='completed'?'Completed':'Pending'),
         oqoodDate: c.info && c.info.oqoodDate ? dateToIso(c.info.oqoodDate) : '',
         furniture: c.furniture && String(c.furniture).toLowerCase() === 'signed' ? 'Furnished' : 'Unfurnished'
       };
