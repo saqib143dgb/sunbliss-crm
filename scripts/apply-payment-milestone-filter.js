@@ -41,4 +41,4 @@ if(/<\/body>/i.test(html))html=html.replace(/<\/body>/i,`${tags}\n</body>`);
 else html+=`\n${tags}\n`;
 fs.writeFileSync(INDEX,html);
 
-console.log('Applied construction deadline + completion/payment-plan filters');
+console.log('Applied Payment Plan Progress filters');
