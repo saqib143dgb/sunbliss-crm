@@ -64,7 +64,7 @@ main{box-sizing:border-box!important;max-width:none!important;min-height:calc(10
 h2{position:relative!important;margin:0 0 20px!important;padding:0 0 0 14px!important;border-left:4px solid var(--gold)!important;color:var(--ink)!important;font-family:'Inter',system-ui,sans-serif!important;font-size:18px!important;font-weight:650!important;line-height:1.3!important;letter-spacing:-.01em!important}
 label{display:block!important;margin-bottom:14px!important;color:var(--muted)!important;font-family:'Inter',system-ui,sans-serif!important;font-size:13px!important;font-weight:600!important;line-height:1.4!important}
 input,select,textarea{display:block!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:44px!important;margin-top:7px!important;padding:10px 12px!important;border:1px solid #d2c7aa!important;border-radius:10px!important;background:#fff!important;color:var(--ink)!important;box-shadow:inset 0 1px 1px rgba(15,26,38,.025)!important;font-family:'Inter',system-ui,sans-serif!important;font-size:15px!important;line-height:1.4!important}
-input[type="date"],input[type="datetime-local"],input[type="month"],input[type="time"]{inline-size:100%!important;max-inline-size:100%!important;min-inline-size:0!important;-webkit-min-logical-width:0!important}
+input[type="date"],input[type="datetime-local"],input[type="month"],input[type="time"]{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;inline-size:100%!important;max-inline-size:100%!important;min-inline-size:0!important;-webkit-min-logical-width:0!important;-webkit-appearance:none!important;appearance:none!important}
 label,.row,.row>*{min-width:0!important;max-width:100%!important}
 textarea{min-height:96px!important;resize:vertical!important}
 input[readonly],select:disabled{background:var(--paper-dim)!important;color:#5d5a52!important;opacity:1!important}
@@ -98,6 +98,29 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 @media print{body{background:#fff!important}main{background:#fff!important;border-radius:0!important;padding:0!important}}
 `;
     d.head.appendChild(s);
+    /* iOS Safari can keep an intrinsic minimum width on native date controls.
+       Fit date-like controls to the exact width of their own form field, without
+       changing the document-generator theme or any other control styling. */
+    const fitDateFields=function(){
+      d.querySelectorAll('input[type="date"],input[type="datetime-local"],input[type="month"],input[type="time"]').forEach(function(input){
+        const host=input.parentElement;
+        if(!host)return;
+        const available=Math.floor(host.getBoundingClientRect().width);
+        if(!available)return;
+        input.style.setProperty('box-sizing','border-box','important');
+        input.style.setProperty('min-width','0','important');
+        input.style.setProperty('max-width',available+'px','important');
+        input.style.setProperty('width',available+'px','important');
+        input.style.setProperty('inline-size',available+'px','important');
+        input.style.setProperty('-webkit-appearance','none','important');
+        input.style.setProperty('appearance','none','important');
+      });
+    };
+    fitDateFields();
+    const dateObserver=new MutationObserver(function(){requestAnimationFrame(fitDateFields);});
+    if(d.body)dateObserver.observe(d.body,{childList:true,subtree:true,attributes:true,attributeFilter:['type','class','style']});
+    frame.contentWindow.addEventListener('resize',fitDateFields,{passive:true});
+    setTimeout(fitDateFields,50);
   }catch(_e){}
 }
 function mount(){const c=current();if(!c)return;styles();document.getElementById('crmDocuments')?.remove();document.getElementById('actionGenerateDocument')?.remove();document.getElementById('btnPrintWelcomeLetter')?.remove();const old=document.getElementById('btnPrintStatement');if(old){const b=document.createElement('button');b.id='btnGenerateDocument';b.className='btn-paper';b.type='button';b.textContent='Generate Document';b.onclick=()=>open(c);old.replaceWith(b)}}
