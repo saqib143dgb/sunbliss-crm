@@ -184,7 +184,8 @@ function resolveSale(customer){
   return hit||{unitId:unitId,customerId:customerId,commercialPrice:0,nonCashSettlement:0};
 }
 function customerEntry(customer){
-  var schedule=resolveSchedule(customer);if(!schedule)return null;
+  var schedule=resolveSchedule(customer);
+  if(!schedule)schedule={planTarget:null,planLabel:'Other',completionCode:'review',completionLabel:'Review Required',deadline:'',finalDue:'',lastConstructionDue:'',constructionAmount:0,constructionSettled:0,constructionBalance:0,finalAmount:0,finalSettled:0,finalBalance:0};
   var sale=resolveSale(customer),unitId=unitIdOf(customer)||sale.unitId,customerId=customerIdOf(customer)||sale.customerId;
   var price=sale.commercialPrice>0?sale.commercialPrice:(num(customer.total)>0?num(customer.total):schedule.totalScheduled);
   var cash=0;
