@@ -82,6 +82,7 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 .doc button{border:1px solid #cdbf9b!important;background:#fff!important;color:var(--ink)!important}
 .download-link{border-radius:12px!important}
 @media(max-width:900px){
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="file"]):not([type="hidden"]),select,textarea{font-size:16px!important}
   header{padding:20px 20px 24px!important}
   header h1{font-size:27px!important}
   main{min-height:calc(100dvh - 102px)!important;padding:18px 16px 28px!important;grid-template-columns:1fr!important;gap:18px!important;border-radius:20px 20px 0 0!important}
