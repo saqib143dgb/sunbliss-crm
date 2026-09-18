@@ -111,43 +111,63 @@ function installStyles(){
   var style=document.createElement('style');
   style.id='sbPaymentPlanProgressCleanFilterStyle';
   style.textContent=[
-    '.sb-progress-main{margin:0!important;padding:2px 0 0!important;border-top:0!important;}',
-    '.sb-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px;}',
-    '.sb-progress-title{margin:0;font:700 13px/1.2 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);}',
-    '.sb-progress-clear{appearance:none;border:0;background:transparent;color:var(--gold-deep);font:700 12px/1.2 Inter,sans-serif;padding:8px 0;cursor:pointer;}',
-    '.sb-progress-clear:disabled{opacity:.35;cursor:default;}',
-    '.sb-progress-section{margin-top:15px;}',
-    '.sb-progress-section .filter-group-label{margin:0 0 8px!important;}',
-    '.sb-progress-main .chips{display:flex;gap:8px;flex-wrap:wrap;}',
-    '.sb-progress-main .chip{min-height:40px;padding:0 14px;border-radius:999px;font-size:14px;line-height:1.1;}',
-    '.sb-paid-row{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:8px;align-items:center;}',
-    '.sb-paid-row.sb-between{grid-template-columns:minmax(0,1fr) 88px 88px;}',
-    '.sb-paid-select,.sb-paid-input,.sb-due-month{box-sizing:border-box;width:100%;height:42px;border:1px solid var(--paper-line);border-radius:11px;background:var(--paper-dim);color:var(--ink);font:600 16px/1 Inter,sans-serif;outline:none;}',
-    '.sb-paid-select{padding:0 34px 0 12px;}',
-    '.sb-paid-input{padding:0 30px 0 12px;text-align:right;}',
+    '#main .controls #btnToggleFilters.filter-toggle{box-sizing:border-box;min-height:46px;padding:0 14px;border-radius:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:var(--paper);}',
+    '#main .controls #btnToggleFilters .filter-toggle-left{display:flex;align-items:center;gap:10px;min-width:0;font:700 15px/1 Inter,sans-serif;color:var(--ink);}',
+    '#main .controls #btnToggleFilters[aria-expanded="true"] .filter-badge{display:none!important;}',
+    '.sb-filter-icon{width:20px;height:20px;display:inline-flex;flex:none;color:var(--ink);}',
+    '.sb-filter-icon svg,.sb-more-icon svg{width:100%;height:100%;display:block;}',
+    '.sb-toggle-clear{margin-left:auto;color:var(--gold-deep);font:700 12.5px/1 Inter,sans-serif;white-space:nowrap;cursor:pointer;padding:10px 2px;}',
+    '.sb-toggle-clear[aria-disabled="true"]{opacity:.38;cursor:default;}',
+    '#main .controls .filter-panel{box-sizing:border-box;margin:0!important;padding:18px 16px 16px!important;border-radius:14px!important;min-height:0!important;height:auto!important;background:var(--paper-dim);}',
+    '.sb-progress-main{margin:0!important;padding:0!important;border-top:0!important;}',
+    '.sb-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;}',
+    '.sb-progress-title{margin:0;font:700 14px/1.25 Inter,sans-serif;letter-spacing:.055em;text-transform:uppercase;color:var(--ink);}',
+    '.sb-progress-section{margin-top:14px;}',
+    '.sb-progress-main .filter-group-label{margin:0 0 7px!important;font:600 12.5px/1.2 Inter,sans-serif!important;letter-spacing:0!important;text-transform:none!important;color:var(--muted)!important;}',
+    '.sb-progress-main .chips{display:flex;gap:8px;flex-wrap:nowrap;}',
+    '.sb-progress-main .chip{box-sizing:border-box;min-height:38px;padding:0 13px;border-radius:999px;font:600 13px/1 Inter,sans-serif;white-space:nowrap;}',
+    '.sb-plan-section .chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));}',
+    '.sb-plan-section .chip{width:100%;padding-left:7px;padding-right:7px;}',
+    '.sb-prehandover-section .chips{display:grid;grid-template-columns:.84fr 1.22fr 1fr;max-width:420px;}',
+    '.sb-prehandover-section .chip{width:100%;}',
+    '.sb-paid-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;}',
+    '.sb-paid-row.sb-between{grid-template-columns:minmax(0,1fr) minmax(0,.72fr) minmax(0,.72fr);}',
+    '.sb-paid-select,.sb-paid-input,.sb-due-month{box-sizing:border-box;width:100%;height:42px;border:1px solid var(--paper-line);border-radius:11px;background:var(--paper);color:var(--ink);font:600 15px/1 Inter,sans-serif;outline:none;}',
+    '.sb-paid-select{-webkit-appearance:none;appearance:none;padding:0 42px 0 14px;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2718%27 height=%2718%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2315232f%27 stroke-width=%272.2%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m7 10 5 5 5-5%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:18px 18px;}',
+    '.sb-paid-input{padding:0 34px 0 14px;text-align:left;}',
     '.sb-paid-input-wrap{position:relative;min-width:0;}',
-    '.sb-paid-input-wrap span{position:absolute;right:11px;top:50%;transform:translateY(-50%);font:600 13px/1 Inter,sans-serif;color:var(--muted);pointer-events:none;}',
-    '.sb-paid-between-mark{display:none;}',
-    '.sb-prehandover-info{margin-top:11px;font:500 11px/1.45 Inter,sans-serif;color:var(--muted);}',
-    '.sb-prehandover-info summary{cursor:pointer;color:var(--muted);font-weight:600;}',
-    '.sb-prehandover-info p{margin:7px 0 0;}',
-    '.sb-more-wrap{margin-top:16px;padding-top:12px;border-top:1px solid var(--paper-line);}',
-    '.sb-more-toggle{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--paper-line);border-radius:12px;background:rgba(255,255,255,.28);color:var(--ink);font:700 13px/1.2 Inter,sans-serif;padding:0 13px;cursor:pointer;}',
-    '.sb-more-toggle-right{display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:600;}',
-    '.sb-more-count{display:inline-flex;min-width:20px;height:20px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:var(--ink);color:var(--paper);font-size:10px;}',
+    '.sb-paid-input-wrap span{position:absolute;right:14px;top:50%;transform:translateY(-50%);font:600 14px/1 Inter,sans-serif;color:var(--muted);pointer-events:none;}',
+    '.sb-prehandover-info{margin:8px 0 0;font:600 11.5px/1.35 Inter,sans-serif;color:var(--muted);}',
+    '.sb-prehandover-info summary{display:inline-block;cursor:pointer;color:var(--muted);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;list-style:none;}',
+    '.sb-prehandover-info summary::-webkit-details-marker{display:none;}',
+    '.sb-prehandover-info summary::marker{display:none;content:"";}',
+    '.sb-prehandover-info p{margin:7px 0 0;font-weight:500;max-width:560px;}',
+    '.sb-more-wrap{margin-top:13px;padding-top:12px;border-top:1px solid var(--paper-line);}',
+    '.sb-more-toggle{box-sizing:border-box;width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--paper-line);border-radius:11px;background:var(--paper);color:var(--ink);font:700 13.5px/1.2 Inter,sans-serif;padding:0 13px;cursor:pointer;}',
+    '.sb-more-toggle-left{display:flex;align-items:center;gap:10px;min-width:0;}',
+    '.sb-more-icon{width:20px;height:20px;display:inline-flex;flex:none;color:var(--ink);}',
+    '.sb-more-toggle-right{display:flex;align-items:center;gap:8px;color:var(--ink);}',
+    '.sb-more-chevron{width:18px;height:18px;transition:transform .16s ease;}',
+    '.sb-more-toggle[aria-expanded="true"] .sb-more-chevron{transform:rotate(90deg);}',
     '.sb-more-content{padding:2px 0 0;}',
     '.sb-more-content[hidden]{display:none!important;}',
-    '.sb-more-content>.filter-group{margin-top:16px;}',
-    '.sb-more-content .filter-group-label{margin-bottom:8px!important;}',
+    '.sb-more-content>.filter-group{margin-top:15px;}',
+    '.sb-more-content .filter-group-label{margin-bottom:7px!important;}',
+    '.sb-more-content .chips{gap:8px;}',
     '.sb-due-row{display:flex;gap:8px;flex-wrap:wrap;}',
     '.sb-due-month{margin-top:9px;max-width:190px;padding:0 11px;}',
     '.sb-clean-active-pill{white-space:nowrap;}',
     '.sb-old-clear-hidden{display:none!important;}',
-    '@media(max-width:700px){.filter-panel{padding-bottom:96px!important}.sb-progress-main .chip{min-height:38px;padding:0 13px;font-size:13px}.sb-paid-row{grid-template-columns:minmax(0,1fr) 104px}.sb-paid-row.sb-between{grid-template-columns:minmax(0,1fr) 82px 82px}.sb-more-content .chips{gap:8px}.sb-more-content .chip{min-height:38px;padding:0 13px}}'
+    '.result-count.sb-filter-summary{box-sizing:border-box;min-height:50px;margin:10px 0 0!important;padding:0 14px!important;border:1px solid var(--paper-line);border-radius:12px;background:var(--paper);display:flex!important;align-items:center;justify-content:space-between;gap:12px;color:var(--ink)!important;font-family:Inter,sans-serif!important;letter-spacing:0!important;}',
+    '.sb-filter-summary-left{display:flex;align-items:center;gap:10px;min-width:0;font:700 13px/1.2 Inter,sans-serif;}',
+    '.sb-filter-summary-icon{width:19px;height:19px;display:inline-flex;flex:none;color:var(--ink);}',
+    '.sb-filter-summary-icon svg{width:100%;height:100%;display:block;}',
+    '.sb-filter-summary-total{flex:none;font:600 12px/1.2 Inter,sans-serif;color:var(--muted);white-space:nowrap;}',
+    '#main .controls #btnExportList{box-sizing:border-box;min-height:48px!important;margin-top:10px!important;border-radius:12px!important;font:700 13.5px/1 Inter,sans-serif!important;}',
+    '@media(max-width:700px){#main .controls{padding-left:18px;padding-right:18px}#main .controls .filter-panel{padding:17px 16px 15px!important}.sb-progress-title{font-size:13.5px}.sb-progress-section{margin-top:13px}.sb-progress-main .chip{min-height:37px;font-size:12.5px}.sb-paid-select,.sb-paid-input{height:40px;font-size:15px}.sb-more-toggle{min-height:43px}.sb-more-content .chip{min-height:37px;padding:0 12px}.result-count.sb-filter-summary{min-height:48px;padding:0 13px!important}#main .controls #btnExportList{min-height:47px!important}}'
   ].join('');
   document.head.appendChild(style);
 }
-
 function resetAll(){
   var s=filterState();
   s.plan='all';s.status='all';s.deadlineMode='all';
@@ -201,8 +221,8 @@ function makePrimaryGroup(){
   group.className='filter-group sb-progress-main';
   var condition=uiState.condition,between=condition==='between';
   group.innerHTML=
-    '<div class="sb-progress-head"><p class="sb-progress-title">Payment Plan Progress</p><button type="button" class="sb-progress-clear" id="sbProgressClear">Clear all</button></div>'+
-    '<div class="sb-progress-section"><p class="filter-group-label">Payment Plan</p><div class="chips">'+
+    '<div class="sb-progress-head"><p class="sb-progress-title">Payment Plan Progress</p></div>'+
+    '<div class="sb-progress-section sb-plan-section"><p class="filter-group-label">Payment Plan</p><div class="chips">'+
       chip('All','data-sb-clean-plan','all',s.plan==='all')+
       chip('30/70','data-sb-clean-plan','30',s.plan==='30')+
       chip('40/60','data-sb-clean-plan','40',s.plan==='40')+
@@ -210,20 +230,20 @@ function makePrimaryGroup(){
     '</div></div>'+
     '<div class="sb-progress-section"><p class="filter-group-label">Paid %</p><div class="sb-paid-row'+(between?' sb-between':'')+'">'+
       '<select class="sb-paid-select" id="sbPaidCondition" aria-label="Paid percentage condition">'+
-        '<option value="below"'+(condition==='below'?' selected':'')+'>Below (&lt;)</option>'+
-        '<option value="exact"'+(condition==='exact'?' selected':'')+'>Exactly (=)</option>'+
-        '<option value="above"'+(condition==='above'?' selected':'')+'>Above (&gt;)</option>'+
+        '<option value="below"'+(condition==='below'?' selected':'')+'>Below</option>'+
+        '<option value="exact"'+(condition==='exact'?' selected':'')+'>Exactly</option>'+
+        '<option value="above"'+(condition==='above'?' selected':'')+'>Above</option>'+
         '<option value="between"'+(condition==='between'?' selected':'')+'>Between</option>'+
       '</select>'+
       '<div class="sb-paid-input-wrap"><input class="sb-paid-input" id="sbPaidValue" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="22" value="'+text(uiState.value)+'" aria-label="Paid percentage"><span>%</span></div>'+
       (between?'<div class="sb-paid-input-wrap"><input class="sb-paid-input" id="sbPaidValue2" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="40" value="'+text(uiState.value2)+'" aria-label="Paid percentage upper value"><span>%</span></div>':'')+
     '</div></div>'+
-    '<div class="sb-progress-section"><p class="filter-group-label">Pre-Handover</p><div class="chips">'+
+    '<div class="sb-progress-section sb-prehandover-section"><p class="filter-group-label">Pre-Handover</p><div class="chips">'+
       chip('All','data-sb-clean-status','all',s.status==='all')+
       chip('Completed','data-sb-clean-status','completed',s.status==='completed')+
       chip('Pending','data-sb-clean-status','pending',s.status==='pending')+
     '</div></div>'+
-    '<details class="sb-prehandover-info"><summary>What does Pre-Handover mean?</summary><p>Completed means every property installment due before the final/handover installment is settled within the AED 1,000 tolerance. DLD/Admin fees and penalties are excluded.</p></details>';
+    '<details class="sb-prehandover-info"><summary>What is Pre-Handover?</summary><p>Completed means every property installment due before the final/handover installment is settled within the AED 1,000 tolerance. DLD/Admin fees and penalties are excluded.</p></details>';
   return group;
 }
 function makeDueGroup(){
@@ -270,8 +290,9 @@ function wireDue(group){
 }
 function makeMore(panel,primary){
   var wrapper=document.createElement('div');wrapper.className='sb-more-wrap';
-  var count=moreCount();
-  wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-expanded="'+(uiState.moreOpen?'true':'false')+'"><span>More Filters</span><span class="sb-more-toggle-right">'+(count?'<span class="sb-more-count">'+count+'</span>':'')+'<span>'+(uiState.moreOpen?'Hide':'Show')+'</span></span></button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
+  var sliders='<span class="sb-more-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6"/></svg></span>';
+  var arrow='<svg class="sb-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+  wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-expanded="'+(uiState.moreOpen?'true':'false')+'"><span class="sb-more-toggle-left">'+sliders+'<span>More Filters</span></span><span class="sb-more-toggle-right">'+arrow+'</span></button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
   var content=wrapper.querySelector('#sbMoreFiltersContent');
   Array.prototype.slice.call(panel.children).forEach(function(node){
     if(node===primary||node===wrapper)return;
@@ -284,14 +305,59 @@ function makeMore(panel,primary){
     uiState.moreOpen=!uiState.moreOpen;
     var body=wrapper.querySelector('#sbMoreFiltersContent'),btn=wrapper.querySelector('#sbMoreFilters');
     body.hidden=!uiState.moreOpen;btn.setAttribute('aria-expanded',uiState.moreOpen?'true':'false');
-    var right=btn.querySelector('.sb-more-toggle-right');if(right)right.lastElementChild.textContent=uiState.moreOpen?'Hide':'Show';
   });
   return wrapper;
+}
+function filterIconMarkup(){
+  return '<span class="sb-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"/></svg></span>';
+}
+function summaryIconMarkup(){
+  return '<span class="sb-filter-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2.5 20v-1.5c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5V20h-12Zm12.7 0v-1.3c0-1.7-.6-3.3-1.7-4.5.6-.2 1.3-.3 2-.3 3.1 0 5.5 2.1 5.5 4.8V20h-5.8Z"/></svg></span>';
+}
+function enhanceFilterToggle(controls){
+  var toggle=controls.querySelector('#btnToggleFilters');if(!toggle)return;
+  var left=toggle.querySelector('.filter-toggle-left');
+  if(left&&!left.querySelector('.sb-filter-icon'))left.insertAdjacentHTML('afterbegin',filterIconMarkup());
+  var clear=toggle.querySelector('.sb-toggle-clear');
+  if(state.filtersExpanded){
+    if(!clear){
+      clear=document.createElement('span');
+      clear.className='sb-toggle-clear';
+      clear.setAttribute('role','button');
+      clear.setAttribute('tabindex','0');
+      clear.textContent='Clear';
+      var chevron=toggle.lastElementChild;
+      if(chevron&&chevron!==left)toggle.insertBefore(clear,chevron);else toggle.appendChild(clear);
+      var runClear=function(e){
+        if(e){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();}
+        if(totalFilterCount()>0)resetAll();
+      };
+      clear.addEventListener('click',runClear);
+      clear.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){runClear(e);}});
+    }
+    clear.setAttribute('aria-disabled',totalFilterCount()>0?'false':'true');
+  }else if(clear){
+    clear.remove();
+  }
+}
+function enhanceResultSummary(controls){
+  var result=controls.querySelector('.result-count');if(!result)return;
+  if(totalFilterCount()>0){
+    var raw=text(result.textContent),match=raw.match(/^\s*(\d+)/);
+    var filtered=match?Number(match[1]):0;
+    var total=window.state&&Array.isArray(state.dues)?state.dues.length:0;
+    result.classList.add('sb-filter-summary');
+    result.innerHTML=summaryIconMarkup()+'<span class="sb-filter-summary-left"><span>'+filtered+' filtered customer'+(filtered===1?'':'s')+'</span></span><span class="sb-filter-summary-total">'+total+' total</span>';
+  }else{
+    result.classList.remove('sb-filter-summary');
+    result.textContent=result.textContent.replace(/\bunits\b/gi,'customers');
+  }
 }
 function enhance(){
   installStyles();
   if(!window.state||state.view!=='list')return;
   var controls=document.querySelector('.controls');if(!controls)return;
+  enhanceFilterToggle(controls);
   var panel=controls.querySelector('.filter-panel');
   controls.querySelectorAll('.sb-construction-completion-active-pill').forEach(function(n){n.remove();});
   if(panel){
@@ -301,19 +367,8 @@ function enhance(){
     wirePrimary(primary);
     var more=makeMore(panel,primary);panel.insertBefore(more,primary.nextSibling);
   }
-  var result=controls.querySelector('.result-count');
-  if(result){
-    var copy=text(result.textContent);
-    if(totalFilterCount()>0){
-      var match=copy.match(/^\s*(\d+)/);
-      if(match)copy='Filtered customers · '+match[1];
-      else copy=copy.replace(/\bunits\b/gi,'customers');
-    }else{
-      copy=copy.replace(/\bunits\b/gi,'customers');
-    }
-    if(text(result.textContent)!==copy)result.textContent=copy;
-  }
-  var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export Results');
+  enhanceResultSummary(controls);
+  var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export Units');
   renderActivePills(controls);updateBadge(controls);
 }
 var previousRender=window.renderList;
