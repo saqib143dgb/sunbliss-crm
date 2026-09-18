@@ -303,7 +303,7 @@ async function exportConstructionStatus(rows){
     {header:'Received Amount (AED)',key:'cash',width:23},
     {header:'Received % So Far',key:'paidPct',width:18},
     {header:'Pre-Handover Balance (AED)',key:'constructionBalance',width:28},
-    {header:'Remaining Installments',key:'remainingInstallments',width:22},
+    {header:'Pre-Handover Balance Installment',key:'remainingInstallments',width:30},
     {header:'Final Installment (AED)',key:'finalDueAmount',width:23}
   ];
   ws.autoFilter={from:{row:1,column:1},to:{row:1,column:11}};
