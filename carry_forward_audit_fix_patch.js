@@ -59,7 +59,9 @@
         var credit=Number(stage.creditNoteTotal)||0;
         stage.cashPaid=round2(cash);
         stage.settledAmount=round2(stage.cashPaid+credit+carryApplied);
-        stage.paid=stage.settledAmount;
+        var directSettled=round2(stage.cashPaid+credit);
+        stage.paid=directSettled;
+        if(directSettled<=0.01&&text(stage.status).trim().toLowerCase()==='partial')stage.status='Outstanding';
         stage.outAmt=stage.due===null||stage.due===undefined?null:round2((Number(stage.due)||0)-stage.settledAmount);
       });
     });
