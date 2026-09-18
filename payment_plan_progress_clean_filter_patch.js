@@ -13,7 +13,7 @@ window.__sunblissPaymentPlanProgressCleanUiState=uiState;
 if(!/^(below|exact|above|between)$/.test(String(uiState.condition||'')))uiState.condition='below';
 
 function text(v){return v==null?'':String(v);}
-function num(v){var n=Number(v);return isFinite(n)?n:null;}
+function num(v){if(v==null||String(v).trim()==='')return null;var n=Number(v);return isFinite(n)?n:null;}
 function pctValue(v){var n=num(v);return n!==null&&n>=0&&n<=100?n:null;}
 function filterState(){
   var s=window.__sunblissConstructionCompletionFilterState;
@@ -141,12 +141,9 @@ function installStyles(){
     '.sb-more-content .filter-group-label{margin-bottom:8px!important;}',
     '.sb-due-row{display:flex;gap:8px;flex-wrap:wrap;}',
     '.sb-due-month{margin-top:9px;max-width:190px;padding:0 11px;}',
-    '.sb-filter-action{display:flex;align-items:center;gap:9px;margin-top:16px;}',
-    '.sb-view-results{width:100%;min-height:46px;border:0;border-radius:13px;background:var(--ink);color:var(--paper);font:700 14px/1.2 Inter,sans-serif;padding:0 16px;cursor:pointer;}',
-    '.sb-view-results:disabled{opacity:.5;cursor:default;}',
     '.sb-clean-active-pill{white-space:nowrap;}',
     '.sb-old-clear-hidden{display:none!important;}',
-    '@media(max-width:700px){.filter-panel{padding-bottom:96px!important}.sb-progress-main .chip{min-height:38px;padding:0 13px;font-size:13px}.sb-paid-row{grid-template-columns:minmax(0,1fr) 104px}.sb-paid-row.sb-between{grid-template-columns:minmax(0,1fr) 82px 82px}.sb-more-content .chips{gap:8px}.sb-more-content .chip{min-height:38px;padding:0 13px}.sb-filter-action{position:relative;z-index:1}}'
+    '@media(max-width:700px){.filter-panel{padding-bottom:96px!important}.sb-progress-main .chip{min-height:38px;padding:0 13px;font-size:13px}.sb-paid-row{grid-template-columns:minmax(0,1fr) 104px}.sb-paid-row.sb-between{grid-template-columns:minmax(0,1fr) 82px 82px}.sb-more-content .chips{gap:8px}.sb-more-content .chip{min-height:38px;padding:0 13px}}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -198,10 +195,6 @@ function updateBadge(controls){
     if(!badge){badge=document.createElement('span');badge.className='filter-badge';left.appendChild(document.createTextNode(' '));left.appendChild(badge);}
     badge.textContent=String(count);
   }else if(badge)badge.remove();
-}
-function currentResultCount(controls){
-  var el=controls.querySelector('.result-count'),m=el&&text(el.textContent).match(/^(\d+)\s+of\s+(\d+)/i);
-  return m?Number(m[1]):(window.state&&Array.isArray(state.dues)?state.dues.length:0);
 }
 function makePrimaryGroup(){
   var s=filterState(),group=document.createElement('div');
@@ -307,10 +300,6 @@ function enhance(){
     panel.insertBefore(primary,panel.firstChild);
     wirePrimary(primary);
     var more=makeMore(panel,primary);panel.insertBefore(more,primary.nextSibling);
-    var count=currentResultCount(controls),action=document.createElement('div');action.className='sb-filter-action';
-    action.innerHTML='<button type="button" class="sb-view-results" id="sbViewResults"'+(count===0?' disabled':'')+'>'+(count===0?'No Customers Found':'View '+count+' Customer'+(count===1?'':'s'))+'</button>';
-    panel.appendChild(action);
-    var view=action.querySelector('#sbViewResults');if(view&&!view.disabled)view.addEventListener('click',function(){state.filtersExpanded=false;window.renderList();setTimeout(function(){var list=document.querySelector('.list');if(list&&list.scrollIntoView)list.scrollIntoView({block:'start',behavior:'smooth'});},20);});
   }
   var result=controls.querySelector('.result-count');
   if(result)result.textContent=result.textContent.replace(/\bunits\b/gi,'customers');
