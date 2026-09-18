@@ -77,6 +77,55 @@ function cleanupOverview(){
   });
 }
 
+
+function cleanupFilters(){
+  normalizeState();
+  if(!window.state)return;
+  document.querySelectorAll('.filter-panel .filter-group').forEach(function(group){
+    var label=group.querySelector('.filter-group-label');
+    var kind=label?norm(label.textContent):'';
+    if(kind!=='spa'&&kind!=='oqood')return;
+    var chips=group.querySelector('.chips');
+    if(!chips)return;
+
+    var keepA=kind==='spa'?'signed':'completed';
+    var keepB='pending';
+    var pendingChip=null;
+
+    Array.prototype.slice.call(chips.querySelectorAll('.chip[data-group]')).forEach(function(chip){
+      var value=norm(chip.getAttribute('data-value'));
+      if(value===keepA){
+        chip.textContent=kind==='spa'?'Signed':'Completed';
+        chip.setAttribute('aria-pressed',state.filters&&state.filters[kind]===keepA?'true':'false');
+        return;
+      }
+      if(value===keepB){
+        if(pendingChip){chip.remove();return;}
+        pendingChip=chip;
+        chip.textContent='Pending';
+        chip.setAttribute('aria-pressed',state.filters&&state.filters[kind]==='pending'?'true':'false');
+        return;
+      }
+      if(kind==='spa'&&(value==='drafted'||value==='notstarted')){
+        if(!pendingChip){
+          pendingChip=chip;
+          chip.setAttribute('data-value','pending');
+          chip.textContent='Pending';
+          chip.setAttribute('aria-pressed',state.filters&&state.filters.spa==='pending'?'true':'false');
+        }else chip.remove();
+        return;
+      }
+      if(kind==='oqood'&&value==='notstarted'){chip.remove();return;}
+      chip.remove();
+    });
+  });
+}
+
+function cleanupUi(){
+  cleanupOverview();
+  cleanupFilters();
+}
+
 function wrap(name,after){
   var base=window[name];
   if(typeof base!=='function'||base.__binaryComplianceStatus)return;
@@ -84,10 +133,10 @@ function wrap(name,after){
     normalizeState();
     var out=base.apply(this,arguments);
     if(out&&typeof out.then==='function'){
-      return out.then(function(value){normalizeState();if(after)setTimeout(cleanupOverview,0);return value});
+      return out.then(function(value){normalizeState();if(after)setTimeout(cleanupUi,0);return value});
     }
     normalizeState();
-    if(after)setTimeout(cleanupOverview,0);
+    if(after)setTimeout(cleanupUi,0);
     return out;
   };
   wrapped.__binaryComplianceStatus=true;
@@ -121,12 +170,12 @@ function install(){
   normalizeState();
   wrapPortfolioStats();
   ['loadFromSupabase','render','renderMain','renderOverview','renderList','renderDetail'].forEach(function(name){wrap(name,true)});
-  cleanupOverview();
+  cleanupUi();
   if(window.MutationObserver&&document.body){
     var queued=false;
     new MutationObserver(function(){
       if(queued)return;queued=true;
-      requestAnimationFrame(function(){queued=false;normalizeState();cleanupOverview()});
+      requestAnimationFrame(function(){queued=false;normalizeState();cleanupUi()});
     }).observe(document.body,{subtree:true,childList:true});
   }
   window.__sunblissComplianceStatus={
