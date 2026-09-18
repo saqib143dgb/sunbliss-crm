@@ -34,11 +34,12 @@ function fallbackKey(unitNo,customerName){return norm(unitNo)+'|'+norm(customerN
 function customerIdOf(c){return c&&(c.customerId||c.dbCustomerId||c.customer_id)||null;}
 function unitIdOf(c){return c&&(c.unitId||c.dbUnitId||c.unit_id)||null;}
 function effectiveDateText(row){var value=text(row&&(row.revised_due_date||row.due_date)).trim();return /^\d{4}-\d{2}-\d{2}$/.test(value)?value:'';}
+function effectiveAmount(row){var revised=row&&row.revised_due_amount;return revised!==null&&revised!==undefined&&text(revised)!==''?num(revised):num(row&&row.due_amount);}
 function dateValue(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(text(value)))return null;var d=new Date(value+'T00:00:00');return isNaN(d.getTime())?null:d;}
 function isPropertySchedule(row){
   var label=text(row&&row.stage_name);
   if(/\bdld\b|admin\s*fees?|registration\s*fees?|penalt|late\s*(fee|charge)/i.test(label))return false;
-  return num(row&&row.due_amount)>0;
+  return effectiveAmount(row)>0;
 }
 function isFinalStage(row){return /\bfinal\b|handover|offer\s+of\s+possession|possession/i.test(text(row&&row.stage_name));}
 function isVoidedTransaction(t){return /(bounce|bounced|refund|refunded|revers|void|deleted|uncleared\s*pdc|credit\s*note|carry\s*forward)/i.test([t&&t.payment_type,t&&t.payment_reference,t&&t.remarks].join(' '));}
@@ -50,7 +51,7 @@ function planTarget(pct){
 }
 function planLabel(target){return target?String(target)+'/'+String(100-target):'Other';}
 function rowRemaining(row,creditBySchedule){
-  return round2(Math.max(0,num(row&&row.due_amount)-num(row&&row.paid_amount)-num(creditBySchedule&&creditBySchedule[text(row&&row.id)])));
+  return round2(Math.max(0,effectiveAmount(row)-num(row&&row.paid_amount)-num(creditBySchedule&&creditBySchedule[text(row&&row.id)])));
 }
 function latestDated(rows){
   var dated=(rows||[]).map(function(r){return {row:r,date:effectiveDateText(r)};}).filter(function(x){return !!x.date;});
@@ -75,21 +76,21 @@ function makeScheduleMeta(rows,unitNo,customerId,creditBySchedule){
   if(!rows.length)return null;
   var finalRows=rows.filter(isFinalStage),constructionRows=rows.filter(function(r){return !isFinalStage(r);});
   if(!finalRows.length||!constructionRows.length)return null;
-  var totalScheduled=round2(rows.reduce(function(sum,row){return sum+num(row.due_amount);},0));
-  var constructionAmount=round2(constructionRows.reduce(function(sum,row){return sum+num(row.due_amount);},0));
-  var finalAmount=round2(finalRows.reduce(function(sum,row){return sum+num(row.due_amount);},0));
+  var totalScheduled=round2(rows.reduce(function(sum,row){return sum+effectiveAmount(row);},0));
+  var constructionAmount=round2(constructionRows.reduce(function(sum,row){return sum+effectiveAmount(row);},0));
+  var finalAmount=round2(finalRows.reduce(function(sum,row){return sum+effectiveAmount(row);},0));
   if(totalScheduled<=0||constructionAmount<=0||finalAmount<=0)return null;
   var constructionPct=constructionAmount/totalScheduled*100,target=planTarget(constructionPct);
   if(!target)return null;
 
   var constructionSettled=0,constructionBalance=0,constructionOpenCount=0;
   constructionRows.forEach(function(row){
-    var due=num(row.due_amount),remaining=rowRemaining(row,creditBySchedule),settled=Math.max(0,due-remaining);
+    var due=effectiveAmount(row),remaining=rowRemaining(row,creditBySchedule),settled=Math.max(0,due-remaining);
     constructionSettled+=settled;constructionBalance+=remaining;if(remaining>TOLERANCE)constructionOpenCount++;
   });
   var finalSettled=0,finalBalance=0,finalOpenCount=0;
   finalRows.forEach(function(row){
-    var due=num(row.due_amount),remaining=rowRemaining(row,creditBySchedule),settled=Math.max(0,due-remaining);
+    var due=effectiveAmount(row),remaining=rowRemaining(row,creditBySchedule),settled=Math.max(0,due-remaining);
     finalSettled+=settled;finalBalance+=remaining;if(remaining>TOLERANCE)finalOpenCount++;
   });
   constructionSettled=round2(constructionSettled);constructionBalance=round2(constructionBalance);
@@ -118,7 +119,7 @@ async function loadReportIndex(force){
     var results=await Promise.all([
       sb.from('units').select('id,unit_no'),
       sb.from('customers').select('id,customer_name'),
-      sb.from('payment_schedule').select('id,unit_id,customer_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').order('id',{ascending:true}),
+      sb.from('payment_schedule').select('id,unit_id,customer_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').order('id',{ascending:true}),
       sb.from('sales').select('id,unit_id,customer_id,booking_date,commercial_sale_price,commercial_non_cash_settlement').order('booking_date',{ascending:true}).order('id',{ascending:true}),
       sb.from('payment_transactions').select('unit_id,customer_id,amount,payment_type,payment_reference,remarks'),
       sb.from('credit_notes').select('payment_schedule_id,amount')
