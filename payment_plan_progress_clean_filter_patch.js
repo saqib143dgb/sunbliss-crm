@@ -18,12 +18,13 @@ function pctValue(v){var n=num(v);return n!==null&&n>=0&&n<=100?n:null;}
 function filterState(){
   var s=window.__sunblissConstructionCompletionFilterState;
   if(!s){
-    s={plan:'all',status:'all',deadlineMode:'all',month:''};
+    s={plan:'all',status:'all',deadlineMode:'all',dueMode:'by',month:''};
     window.__sunblissConstructionCompletionFilterState=s;
   }
   if(!s.plan)s.plan='all';
   if(!s.status)s.status='all';
   if(!s.deadlineMode)s.deadlineMode='all';
+  if(!/^(by|in)$/.test(String(s.dueMode||'')))s.dueMode='by';
   return s;
 }
 function paidFilterActive(){
@@ -156,6 +157,8 @@ function installStyles(){
     '.sb-more-content .chips{gap:8px;}',
     '.sb-due-row{display:flex;gap:8px;flex-wrap:wrap;}',
     '.sb-due-month{margin-top:9px;max-width:190px;padding:0 11px;}',
+    '.sb-due-mode-label{margin-top:11px!important;}',
+    '.sb-due-help{margin:8px 0 0;font:500 10.5px/1.45 Inter,sans-serif;color:var(--muted);}',
     '.sb-clean-active-pill{white-space:nowrap;}',
     '.sb-old-clear-hidden{display:none!important;}',
     '.result-count.sb-filter-summary{box-sizing:border-box;min-height:50px;margin:10px 0 0!important;padding:0 14px!important;border:1px solid var(--paper-line);border-radius:12px;background:var(--paper);display:flex!important;align-items:center;justify-content:space-between;gap:12px;color:var(--ink)!important;font-family:Inter,sans-serif!important;letter-spacing:0!important;}',
@@ -170,7 +173,7 @@ function installStyles(){
 }
 function resetAll(){
   var s=filterState();
-  s.plan='all';s.status='all';s.deadlineMode='all';
+  s.plan='all';s.status='all';s.deadlineMode='all';s.dueMode='by';
   uiState.condition='below';uiState.value='';uiState.value2='';uiState.moreOpen=false;
   if(window.state){
     state.filters={payment:'all',spa:null,oqood:null,furniture:null,unitType:null,dld:null};
@@ -201,7 +204,7 @@ function renderActivePills(controls){
   if(paidFilterActive())items.push([paidLabel(),'paid']);
   if(s.status==='completed')items.push(['Pre-Handover Completed','status']);
   else if(s.status==='pending')items.push(['Pre-Handover Pending','status']);
-  if(s.deadlineMode==='month')items.push(['Due '+monthLabel(s.month),'due']);
+  if(s.deadlineMode==='month')items.push([(s.dueMode==='in'?'Pre-Handover due in ':'Pre-Handover due by ')+monthLabel(s.month),'due']);
   if(!items.length)return;
   var toggle=controls.querySelector('#btnToggleFilters'),wrap=controls.querySelector('.active-pills');
   if(!wrap){wrap=document.createElement('div');wrap.className='active-pills';toggle.parentNode.insertBefore(wrap,toggle);}
@@ -247,15 +250,19 @@ function makePrimaryGroup(){
   return group;
 }
 function makeDueGroup(){
-  var s=filterState(),preset=duePreset(),group=document.createElement('div');
+  var s=filterState(),preset=duePreset(),group=document.createElement('div'),active=s.deadlineMode==='month';
   group.className='filter-group sb-clean-due-group';
-  group.innerHTML='<p class="filter-group-label">Due Period</p><div class="sb-due-row">'+
+  group.innerHTML='<p class="filter-group-label">Pre-Handover Due Period</p><div class="sb-due-row">'+
     chip('Any','data-sb-clean-due','any',preset==='any')+
     chip('This Month','data-sb-clean-due','this',preset==='this')+
     chip('Next Month','data-sb-clean-due','next',preset==='next')+
     chip('Custom','data-sb-clean-due','custom',preset==='custom')+
     '</div>'+
-    (preset==='custom'?'<input class="sb-due-month" id="sbCleanDueMonth" type="month" value="'+text(s.month||monthValue(0))+'" aria-label="Due month">':'');
+    (preset==='custom'?'<input class="sb-due-month" id="sbCleanDueMonth" type="month" value="'+text(s.month||monthValue(0))+'" aria-label="Pre-handover due month">':'')+
+    (active?'<p class="filter-group-label sb-due-mode-label">Date Rule</p><div class="chips sb-due-mode-row">'+
+      chip('Due By Month','data-sb-clean-due-mode','by',s.dueMode==='by')+
+      chip('Due In Month','data-sb-clean-due-mode','in',s.dueMode==='in')+
+    '</div><p class="sb-due-help">Uses only the last pre-handover installment date. Final/handover installment dates are excluded.</p>':'');
   return group;
 }
 function wirePrimary(group){
@@ -279,9 +286,20 @@ function wireDue(group){
     btn.addEventListener('click',function(){
       var v=btn.getAttribute('data-sb-clean-due');
       if(v==='any')s.deadlineMode='all';
-      else if(v==='this'){s.deadlineMode='month';s.month=monthValue(0);}
-      else if(v==='next'){s.deadlineMode='month';s.month=monthValue(1);}
-      else{s.deadlineMode='month';if(!/^\d{4}-\d{2}$/.test(text(s.month)))s.month=monthValue(0);}
+      else{
+        s.deadlineMode='month';
+        if(!/^(by|in)$/.test(String(s.dueMode||'')))s.dueMode='by';
+        if(v==='this')s.month=monthValue(0);
+        else if(v==='next')s.month=monthValue(1);
+        else if(!/^\d{4}-\d{2}$/.test(text(s.month)))s.month=monthValue(0);
+      }
+      window.renderList();
+    });
+  });
+  group.querySelectorAll('[data-sb-clean-due-mode]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      s.dueMode=btn.getAttribute('data-sb-clean-due-mode')==='in'?'in':'by';
+      s.deadlineMode='month';
       window.renderList();
     });
   });
