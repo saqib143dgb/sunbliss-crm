@@ -8,12 +8,14 @@ var stateFilter=window.__sunblissConstructionCompletionFilterState||{
   plan:'all',
   status:'all',
   deadlineMode:'all',
+  dueMode:'by',
   month:'2026-12'
 };
 window.__sunblissConstructionCompletionFilterState=stateFilter;
 if(!stateFilter.plan)stateFilter.plan='all';
 if(!stateFilter.status)stateFilter.status='all';
 if(!stateFilter.deadlineMode)stateFilter.deadlineMode='all';
+if(!/^(by|in)$/.test(String(stateFilter.dueMode||'')))stateFilter.dueMode='by';
 if(!/^\d{4}-\d{2}$/.test(String(stateFilter.month||'')))stateFilter.month='2026-12';
 
 var oldMilestoneState=window.__sunblissPaymentMilestoneFilterState;
@@ -67,7 +69,13 @@ function statusMatches(meta){
   if(stateFilter.status==='pending')return meta.completionCode==='pending';
   return true;
 }
-function deadlineMatches(meta){return stateFilter.deadlineMode!=='month'||(meta.deadline&&meta.deadline.slice(0,7)===stateFilter.month);}
+function deadlineMatches(meta){
+  if(stateFilter.deadlineMode!=='month')return true;
+  var due=text(meta&&meta.lastConstructionDue);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(due))return false;
+  if(stateFilter.dueMode==='in')return due.slice(0,7)===stateFilter.month;
+  return due.slice(0,7)<=stateFilter.month;
+}
 function monthLabel(value){var m=/^(\d{4})-(\d{2})$/.exec(text(value));if(!m)return text(value);var d=new Date(Number(m[1]),Number(m[2])-1,1);return d.toLocaleDateString(undefined,{month:'short',year:'numeric'});}
 function statusLabel(code){if(code==='completed')return 'Pre-Handover Completed — Final Remaining';if(code==='pending')return 'Pre-Handover Pending';if(code==='fully_paid')return 'Fully Settled';return 'Review Required';}
 
@@ -97,7 +105,7 @@ function makeScheduleMeta(rows,unitNo,customerId,creditBySchedule){
   finalSettled=round2(finalSettled);finalBalance=round2(finalBalance);
   var completionCode=constructionOpenCount>0?'pending':(finalOpenCount>0?'completed':'fully_paid');
   var lastConstruction=latestDated(constructionRows),finalDated=latestDated(finalRows);
-  var deadline=finalDated?finalDated.date:(lastConstruction?lastConstruction.date:'');
+  var deadline=lastConstruction?lastConstruction.date:'';
   var maxId=rows.reduce(function(m,row){return Math.max(m,num(row&&row.id));},0);
   return {
     unitNo:unitNo,customerId:customerId,totalScheduled:totalScheduled,
@@ -218,7 +226,7 @@ function filterSummary(){
   if(stateFilter.plan!=='all')parts.push(planLabel(Number(stateFilter.plan)));
   if(stateFilter.status==='completed')parts.push('Pre-Handover Completed');
   if(stateFilter.status==='pending')parts.push('Pre-Handover Pending');
-  if(stateFilter.deadlineMode==='month')parts.push(monthLabel(stateFilter.month));
+  if(stateFilter.deadlineMode==='month')parts.push((stateFilter.dueMode==='in'?'Pre-Handover due in ':'Pre-Handover due by ')+monthLabel(stateFilter.month));
   return parts.join(' · ');
 }
 function ensureActivePill(controls,toggle){
