@@ -262,7 +262,7 @@ function makePrimaryGroup(){
       chip('Completed','data-sb-clean-status','completed',s.status==='completed')+
       chip('Pending','data-sb-clean-status','pending',s.status==='pending')+
     '</div></div>'+
-    '<details class="sb-prehandover-info"><summary>What is Pre-Handover?</summary><p>Pending means an unpaid property installment above AED 0.01 after approved credits and excess payments. It includes upcoming payments; overdue amounts are shown separately in the report. DLD/Admin fees and penalties are excluded.</p></details>';
+    '<details class="sb-prehandover-info"><summary>What is Pre-Handover?</summary><p>Completed means the remaining pre-handover balance is AED 7,000 or less; Pending means it is above AED 7,000. The tolerance affects CRM filtering and exported status only and does not change the customer’s actual balance or payment data. DLD/Admin fees and penalties are excluded.</p></details>';
   return group;
 }
 function makeDueGroup(){

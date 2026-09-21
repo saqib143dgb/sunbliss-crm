@@ -3,7 +3,7 @@
 if(window.__sunblissConstructionCompletionFilterInstalled)return;
 window.__sunblissConstructionCompletionFilterInstalled=true;
 
-var TOLERANCE=0.01;
+var FILTER_TOLERANCE=7000;
 var stateFilter=window.__sunblissConstructionCompletionFilterState||{
   plan:'all',
   status:'all',
@@ -63,8 +63,10 @@ function externalMatches(customer,entry){try{return typeof window.__sunblissPaym
 function filterActive(){return stateFilter.plan!=='all'||stateFilter.status!=='all'||stateFilter.deadlineMode==='month'||externalFilterActive();}
 function planMatches(meta){return stateFilter.plan==='all'||Number(stateFilter.plan)===meta.planTarget;}
 function statusMatches(meta){
-  if(stateFilter.status==='completed')return meta.completionCode==='completed';
-  if(stateFilter.status==='pending')return meta.completionCode==='pending';
+  if(!meta)return false;
+  var balance=Math.max(0,num(meta.constructionBalance));
+  if(stateFilter.status==='completed')return balance<=FILTER_TOLERANCE;
+  if(stateFilter.status==='pending')return balance>FILTER_TOLERANCE;
   return true;
 }
 function deadlineMatches(meta){
@@ -166,7 +168,7 @@ function enhanceFilterUI(isLoading,originalTotal){
       chip('Any Date','data-sb-construction-deadline','all',stateFilter.deadlineMode==='all')+
       chip('Specific Month','data-sb-construction-deadline','month',stateFilter.deadlineMode==='month')+
       '</div><input id="sbConstructionCompletionMonth" class="sb-construction-month" type="month" value="'+stateFilter.month+'" '+(stateFilter.deadlineMode==='month'?'':'disabled')+' aria-label="Pre-handover due month"></div>'+
-      '<p class="sb-construction-hint'+(isLoading?' sb-construction-loading':'')+'">'+(isLoading?'Loading payment plan progress…':'Pre-Handover Completed means every property installment due before the final/handover installment is settled with no balance above AED 0.01 after approved credits and excess payments. DLD/Admin fees and penalties are excluded.')+'</p>';
+      '<p class="sb-construction-hint'+(isLoading?' sb-construction-loading':'')+'">'+(isLoading?'Loading payment plan progress…':'Pre-Handover Completed means the remaining pre-handover balance is AED 7,000 or less. Pending means it is above AED 7,000. This tolerance affects filtering/reporting only; the customer balance and payment data remain unchanged. DLD/Admin fees and penalties are excluded.')+'</p>';
     var clear=panel.querySelector('#btnClearFilters');panel.insertBefore(group,clear||null);
     group.querySelectorAll('[data-sb-construction-plan]').forEach(function(btn){btn.addEventListener('click',function(){stateFilter.plan=btn.getAttribute('data-sb-construction-plan')||'all';loadReportIndex(false).catch(function(){});window.renderList();});});
     group.querySelectorAll('[data-sb-construction-status]').forEach(function(btn){btn.addEventListener('click',function(){stateFilter.status=btn.getAttribute('data-sb-construction-status')||'all';loadReportIndex(false).catch(function(){});window.renderList();});});
