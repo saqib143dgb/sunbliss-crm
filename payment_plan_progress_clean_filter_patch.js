@@ -178,8 +178,8 @@ function installStyles(){
     '.sb-progress-main>.sb-progress-head,.sb-progress-main>.sb-prehandover-info{grid-column:1/-1;}',
     '.sb-progress-main>.sb-progress-section{min-width:0;margin-top:10px;}',
     '#main .controls .sb-more-wrap{margin-top:6px;padding-top:0;border-top:0;}',
-    '#main .controls .sb-more-toggle{width:auto;min-height:34px;padding:0 2px;border:0;border-radius:6px;background:transparent;gap:10px;font-size:13px;}',
-    '#main .controls .sb-more-toggle-left{gap:6px;}',
+    '#main .controls .sb-more-toggle{width:auto;min-height:34px;padding:0 10px;border:1px solid var(--paper-line);border-radius:8px;background:var(--paper);gap:7px;font-size:13px;}',
+    '.sb-filter-expand-icon{font:500 19px/1 Inter,sans-serif;min-width:14px;text-align:center;}',
     '#main .controls .sb-more-icon{width:16px;height:16px;}',
     '#main .controls .sb-more-chevron{width:15px;height:15px;}',
     '#main .controls .sb-more-toggle:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;}',
@@ -320,9 +320,8 @@ function wireDue(group){
 }
 function makeMore(panel,primary){
   var wrapper=document.createElement('div');wrapper.className='sb-more-wrap';
-  var sliders='<span class="sb-more-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6"/></svg></span>';
-  var arrow='<svg class="sb-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
-  wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-expanded="'+(uiState.moreOpen?'true':'false')+'"><span class="sb-more-toggle-left">'+sliders+'<span>More Filters</span></span><span class="sb-more-toggle-right">'+arrow+'</span></button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
+  function toggleLabel(){return '<span class="sb-filter-expand-icon" aria-hidden="true">'+(uiState.moreOpen?'−':'+')+'</span><span>'+(uiState.moreOpen?'Hide extra filters':'Show all filters')+'</span>';}
+  wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-controls="sbMoreFiltersContent" aria-expanded="'+(uiState.moreOpen?'true':'false')+'">'+toggleLabel()+'</button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
   var content=wrapper.querySelector('#sbMoreFiltersContent');
   var paid=primary.querySelector('.sb-paid-group');if(paid)content.appendChild(paid);
   Array.prototype.slice.call(panel.children).forEach(function(node){
@@ -335,7 +334,7 @@ function makeMore(panel,primary){
   wrapper.querySelector('#sbMoreFilters').addEventListener('click',function(){
     uiState.moreOpen=!uiState.moreOpen;
     var body=wrapper.querySelector('#sbMoreFiltersContent'),btn=wrapper.querySelector('#sbMoreFilters');
-    body.hidden=!uiState.moreOpen;btn.setAttribute('aria-expanded',uiState.moreOpen?'true':'false');
+    body.hidden=!uiState.moreOpen;btn.setAttribute('aria-expanded',uiState.moreOpen?'true':'false');btn.innerHTML=toggleLabel();
   });
   return wrapper;
 }
