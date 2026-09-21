@@ -152,6 +152,13 @@ function installStyles(){
     '.sb-more-content>.filter-group{margin-top:15px;}',
     '.sb-more-content .filter-group-label{margin-bottom:7px!important;}',
     '.sb-more-content .chips{gap:8px;}',
+    '.sb-more-content.sb-dropdown-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;padding-top:12px;}',
+    '.sb-dropdown-grid>.filter-group{grid-column:1/-1;min-width:0;margin:0!important;}',
+    '.sb-dropdown-grid>[data-dropdown-field="spa"],.sb-dropdown-grid>[data-dropdown-field="oqood"],.sb-dropdown-grid>[data-dropdown-field="unitType"],.sb-dropdown-grid>[data-dropdown-field="dld"]{grid-column:auto;}',
+    '.sb-dropdown-grid .filter-group-label{margin:0 0 6px!important;}',
+    '.sb-filter-select{min-width:0;max-width:100%;height:40px;border-radius:9px;}',
+    '.sb-filter-select:focus-visible,.sb-paid-select:focus-visible,.sb-paid-input:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;}',
+    '@media(max-width:700px){.sb-filter-select,.sb-paid-select,.sb-paid-input{font-size:16px!important;}.sb-dropdown-grid .sb-paid-select{padding-left:11px;padding-right:30px;background-position:right 10px center;}}',
     '.sb-due-row{display:flex;gap:8px;flex-wrap:wrap;}',
     '.sb-due-month{margin-top:9px;max-width:190px;padding:0 11px;}',
     '.sb-due-mode-label{margin-top:11px!important;}',
@@ -365,6 +372,39 @@ function enhanceResultSummary(controls){
     result.textContent=result.textContent.replace(/\bunits\b/gi,'customers');
   }
 }
+function dropdownFilters(panel){
+  if(!panel)return;
+  panel.querySelectorAll('.chips,.sb-due-row').forEach(function(container){
+    var buttons=Array.prototype.slice.call(container.querySelectorAll('button.chip'));
+    if(!buttons.length)return;
+    var first=buttons[0],base=first.getAttribute('data-group');
+    var attr=base?'data-value':['data-sb-clean-plan','data-sb-clean-status','data-sb-clean-due','data-sb-clean-due-mode'].filter(function(a){return first.hasAttribute(a);})[0];
+    if(!attr)return;
+    var name=base||attr.replace('data-sb-clean-',''),group=container.closest('.filter-group,.sb-progress-section');
+    if(base&&group)group.setAttribute('data-dropdown-field',base);
+    var label=container.previousElementSibling;
+    if(base==='furniture'&&label)label.textContent='Furnishing Type';
+    var select=document.createElement('select');select.className='sb-paid-select sb-filter-select';select.id='sbDropdown-'+name;
+    select.setAttribute('aria-label',label?label.textContent.trim():name);
+    if(label){label.id=select.id+'Label';select.setAttribute('aria-labelledby',label.id);}
+    if(base&&base!=='payment'){var all=document.createElement('option');all.value='';all.textContent='All';select.appendChild(all);}
+    var choices=base==='spa'?[['signed','Signed'],['pending','Pending']]:base==='oqood'?[['completed','Completed'],['pending','Pending']]:buttons.map(function(btn){return [btn.getAttribute(attr),btn.textContent.trim()];});
+    choices.forEach(function(choice){
+      var option=document.createElement('option');option.value=choice[0];option.textContent=choice[1];
+      if(base==='furniture')option.textContent=option.value==='furnished'?'Fully Furnished':option.value==='unfurnished'?'Semi Furnished':option.textContent;
+      select.appendChild(option);
+    });
+    var selected=buttons.filter(function(btn){return btn.getAttribute('aria-pressed')==='true';})[0];
+    select.value=base?String(state.filters[base]||''):selected?selected.getAttribute(attr):first.getAttribute(attr);
+    select.addEventListener('change',function(){
+      if(base){state.filters[base]=select.value||(base==='payment'?'all':null);window.renderList();return;}
+      var button=buttons.filter(function(btn){return btn.getAttribute(attr)===select.value;})[0];if(button)button.click();
+    });
+    container.replaceWith(select);
+  });
+  var content=panel.querySelector('#sbMoreFiltersContent');
+  if(content)content.classList.add('sb-dropdown-grid');
+}
 function enhance(){
   installStyles();
   if(!window.state||state.view!=='list')return;
@@ -390,6 +430,7 @@ function enhance(){
   controls.querySelectorAll('[data-remove-group="dld"]').forEach(function(pill){
     if(state.filters.dld==='outstanding')pill.innerHTML='DLD Unpaid<span class="x">&times;</span>';
   });
+  dropdownFilters(panel);
   enhanceResultSummary(controls);
   var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export payment report');
   renderActivePills(controls);updateBadge(controls);
