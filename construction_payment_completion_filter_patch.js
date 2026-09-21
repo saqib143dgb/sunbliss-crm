@@ -3,7 +3,7 @@
 if(window.__sunblissConstructionCompletionFilterInstalled)return;
 window.__sunblissConstructionCompletionFilterInstalled=true;
 
-var TOLERANCE=1000;
+var TOLERANCE=0.01;
 var stateFilter=window.__sunblissConstructionCompletionFilterState||{
   plan:'all',
   status:'all',
@@ -44,8 +44,6 @@ function isPropertySchedule(row){
   return effectiveAmount(row)>0;
 }
 function isFinalStage(row){return /\bfinal\b|handover|offer\s+of\s+possession|possession/i.test(text(row&&row.stage_name));}
-function isVoidedTransaction(t){return /(bounce|bounced|refund|refunded|revers|void|deleted|uncleared\s*pdc|credit\s*note|carry\s*forward)/i.test([t&&t.payment_type,t&&t.payment_reference,t&&t.remarks].join(' '));}
-function isOtherCash(t){return /(dld|admin|registration|penalt|late\s*fee|late\s*charge|other\s*fee)/i.test(text(t&&t.payment_type));}
 function planTarget(pct){
   var options=[30,40,50];
   for(var i=0;i<options.length;i++)if(Math.abs(num(pct)-options[i])<=1)return options[i];
@@ -79,130 +77,28 @@ function deadlineMatches(meta){
 function monthLabel(value){var m=/^(\d{4})-(\d{2})$/.exec(text(value));if(!m)return text(value);var d=new Date(Number(m[1]),Number(m[2])-1,1);return d.toLocaleDateString(undefined,{month:'short',year:'numeric'});}
 function statusLabel(code){if(code==='completed')return 'Pre-Handover Completed — Final Remaining';if(code==='pending')return 'Pre-Handover Pending';if(code==='fully_paid')return 'Fully Settled';return 'Review Required';}
 
-function makeScheduleMeta(rows,unitNo,customerId,creditBySchedule){
-  rows=(rows||[]).filter(isPropertySchedule);
-  if(!rows.length)return null;
-  var finalRows=rows.filter(isFinalStage),constructionRows=rows.filter(function(r){return !isFinalStage(r);});
-  if(!finalRows.length||!constructionRows.length)return null;
-  var totalScheduled=round2(rows.reduce(function(sum,row){return sum+effectiveAmount(row);},0));
-  var constructionAmount=round2(constructionRows.reduce(function(sum,row){return sum+effectiveAmount(row);},0));
-  var finalAmount=round2(finalRows.reduce(function(sum,row){return sum+effectiveAmount(row);},0));
-  if(totalScheduled<=0||constructionAmount<=0||finalAmount<=0)return null;
-  var constructionPct=constructionAmount/totalScheduled*100,target=planTarget(constructionPct);
-  if(!target)return null;
-
-  var constructionSettled=0,constructionBalance=0,constructionOpenCount=0;
-  constructionRows.forEach(function(row){
-    var due=effectiveAmount(row),remaining=rowRemaining(row,creditBySchedule),settled=Math.max(0,due-remaining);
-    constructionSettled+=settled;constructionBalance+=remaining;if(remaining>TOLERANCE)constructionOpenCount++;
-  });
-  var finalSettled=0,finalBalance=0,finalOpenCount=0;
-  finalRows.forEach(function(row){
-    var due=effectiveAmount(row),remaining=rowRemaining(row,creditBySchedule),settled=Math.max(0,due-remaining);
-    finalSettled+=settled;finalBalance+=remaining;if(remaining>TOLERANCE)finalOpenCount++;
-  });
-  constructionSettled=round2(constructionSettled);constructionBalance=round2(constructionBalance);
-  finalSettled=round2(finalSettled);finalBalance=round2(finalBalance);
-  var completionCode=constructionOpenCount>0?'pending':(finalOpenCount>0?'completed':'fully_paid');
-  var lastConstruction=latestDated(constructionRows),finalDated=latestDated(finalRows);
-  var deadline=lastConstruction?lastConstruction.date:'';
-  var maxId=rows.reduce(function(m,row){return Math.max(m,num(row&&row.id));},0);
-  return {
-    unitNo:unitNo,customerId:customerId,totalScheduled:totalScheduled,
-    constructionAmount:constructionAmount,finalAmount:finalAmount,
-    constructionPct:constructionPct,planTarget:target,planLabel:planLabel(target),
-    constructionSettled:constructionSettled,constructionBalance:constructionBalance,constructionOpenCount:constructionOpenCount,
-    finalSettled:finalSettled,finalBalance:finalBalance,finalOpenCount:finalOpenCount,
-    completionCode:completionCode,completionLabel:statusLabel(completionCode),
-    deadline:deadline,finalDue:finalDated?finalDated.date:'',lastConstructionDue:lastConstruction?lastConstruction.date:'',
-    maxId:maxId
-  };
+async function readAll(table,columns){
+  var rows=[],offset=0;
+  for(;;){var r=await window.sb.from(table).select(columns).order('id',{ascending:true}).range(offset,offset+999);if(r.error)throw r.error;rows=rows.concat(r.data||[]);if((r.data||[]).length<1000)return rows;offset+=1000;}
 }
-
 async function loadReportIndex(force){
-  if(!window.sb)throw new Error('CRM data connection is not ready. Please refresh and try again.');
+  if(!window.sb)throw new Error('CRM connection is not ready. Refresh and try again.');
   if(reportIndex&&!force)return reportIndex;
   if(reportIndexPromise)return reportIndexPromise;
   reportIndexPromise=(async function(){
-    var results=await Promise.all([
-      sb.from('units').select('id,unit_no'),
-      sb.from('customers').select('id,customer_name'),
-      sb.from('payment_schedule').select('id,unit_id,customer_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').order('id',{ascending:true}),
-      sb.from('sales').select('id,unit_id,customer_id,booking_date,commercial_sale_price,commercial_non_cash_settlement').order('booking_date',{ascending:true}).order('id',{ascending:true}),
-      sb.from('payment_transactions').select('unit_id,customer_id,amount,payment_type,payment_reference,remarks'),
-      sb.from('credit_notes').select('payment_schedule_id,amount')
-    ]);
-    results.forEach(function(r){if(r.error)throw r.error;});
-
-    var unitNoById={},customerNameById={},creditBySchedule={};
-    (results[0].data||[]).forEach(function(u){unitNoById[text(u.id)]=text(u.unit_no).trim();});
-    (results[1].data||[]).forEach(function(c){customerNameById[text(c.id)]=text(c.customer_name).trim();});
-    (results[5].data||[]).forEach(function(c){var k=text(c.payment_schedule_id);if(k)creditBySchedule[k]=round2((creditBySchedule[k]||0)+num(c.amount));});
-
-    var rowsByPair={},scheduleByPair={},scheduleByFallback={},scheduleByUnit={};
-    (results[2].data||[]).forEach(function(row){if(!isPropertySchedule(row))return;var k=pairKey(row.unit_id,row.customer_id);if(!rowsByPair[k])rowsByPair[k]=[];rowsByPair[k].push(row);});
-    Object.keys(rowsByPair).forEach(function(k){
-      var rows=rowsByPair[k],sample=rows[0]||{},unitNo=unitNoById[text(sample.unit_id)]||'',customerId=sample.customer_id;
-      if(!unitNo)return;
-      var meta=makeScheduleMeta(rows,unitNo,customerId,creditBySchedule);if(!meta)return;
-      scheduleByPair[k]=meta;
-      var customerName=customerNameById[text(customerId)]||'',fk=fallbackKey(unitNo,customerName);
-      if(unitNo&&customerName)scheduleByFallback[fk]=meta;
-      var uk=norm(unitNo),existing=scheduleByUnit[uk];if(!existing||meta.maxId>existing.maxId)scheduleByUnit[uk]=meta;
-    });
-
-    var saleByPair={},saleByFallback={},saleByUnit={};
-    (results[3].data||[]).forEach(function(s){
-      var unitNo=unitNoById[text(s.unit_id)]||'',customerName=customerNameById[text(s.customer_id)]||'';
-      var entry={id:num(s.id),unitId:s.unit_id,customerId:s.customer_id,bookingDate:text(s.booking_date),commercialPrice:round2(s.commercial_sale_price),nonCashSettlement:round2(s.commercial_non_cash_settlement)};
-      var pk=pairKey(s.unit_id,s.customer_id),current=saleByPair[pk];
-      if(!current||(entry.bookingDate&&(!current.bookingDate||entry.bookingDate<current.bookingDate))||(entry.bookingDate===current.bookingDate&&entry.id<current.id))saleByPair[pk]=entry;
-      var fk=fallbackKey(unitNo,customerName),fallback=saleByFallback[fk];
-      if(unitNo&&customerName&&(!fallback||(entry.bookingDate&&(!fallback.bookingDate||entry.bookingDate<fallback.bookingDate))||(entry.bookingDate===fallback.bookingDate&&entry.id<fallback.id)))saleByFallback[fk]=entry;
-      var uk=norm(unitNo),unitCurrent=saleByUnit[uk];
-      if(unitNo&&(!unitCurrent||(entry.bookingDate&&(!unitCurrent.bookingDate||entry.bookingDate>unitCurrent.bookingDate))||(entry.bookingDate===unitCurrent.bookingDate&&entry.id>unitCurrent.id)))saleByUnit[uk]=entry;
-    });
-
-    var cashByPair={},cashByUnit={},unassignedCashByUnit={};
-    (results[4].data||[]).forEach(function(t){
-      if(isVoidedTransaction(t)||isOtherCash(t))return;
-      var amount=round2(t&&t.amount);if(amount<=0)return;
-      var uk=text(t.unit_id);cashByUnit[uk]=round2((cashByUnit[uk]||0)+amount);
-      if(t.customer_id!==null&&t.customer_id!==undefined){var pk=pairKey(t.unit_id,t.customer_id);cashByPair[pk]=round2((cashByPair[pk]||0)+amount);}else unassignedCashByUnit[uk]=round2((unassignedCashByUnit[uk]||0)+amount);
-    });
-
-    reportIndex={unitNoById:unitNoById,scheduleByPair:scheduleByPair,scheduleByFallback:scheduleByFallback,scheduleByUnit:scheduleByUnit,saleByPair:saleByPair,saleByFallback:saleByFallback,saleByUnit:saleByUnit,cashByPair:cashByPair,cashByUnit:cashByUnit,unassignedCashByUnit:unassignedCashByUnit};
-    return reportIndex;
-  })().finally(function(){reportIndexPromise=null;});
-  return reportIndexPromise;
-}
-
-function resolveSchedule(customer){
-  if(!reportIndex||!customer)return null;
-  var unitId=unitIdOf(customer),customerId=customerIdOf(customer),hit=null;
-  if(unitId!==null&&customerId!==null)hit=reportIndex.scheduleByPair[pairKey(unitId,customerId)];
-  if(!hit)hit=reportIndex.scheduleByFallback[fallbackKey(customer.unit,customer.name)];
-  if(!hit)hit=reportIndex.scheduleByUnit[norm(customer.unit)];
-  return hit||null;
-}
-function resolveSale(customer){
-  var unitId=unitIdOf(customer),customerId=customerIdOf(customer),hit=null;
-  if(unitId!==null&&customerId!==null)hit=reportIndex.saleByPair[pairKey(unitId,customerId)];
-  if(!hit)hit=reportIndex.saleByFallback[fallbackKey(customer.unit,customer.name)];
-  if(!hit)hit=reportIndex.saleByUnit[norm(customer.unit)];
-  return hit||{unitId:unitId,customerId:customerId,commercialPrice:0,nonCashSettlement:0};
+    var specs=[['units','id,unit_no,total_price,status,customer_id'],['customers','id,customer_name'],['payment_schedule','id,unit_id,customer_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status'],['sales','id,unit_id,customer_id,booking_date,commercial_sale_price,commercial_non_cash_settlement'],['payment_transactions','id,unit_id,customer_id,payment_schedule_id,payment_date,amount,payment_type'],['credit_notes','id,unit_id,customer_id,payment_schedule_id,issue_date,amount'],['payment_extensions','id,unit_id,customer_id,payment_schedule_id,extended_due_date,approved_on,status']];
+    var values=await Promise.all(specs.map(function(x){return readAll(x[0],x[1]);}));
+    var data={};['units','customers','schedule','sales','transactions','credits','extensions'].forEach(function(k,i){data[k]=values[i];});
+    var asOf=window.SunblissPaymentReport.reportDate(),entries=window.SunblissPaymentReport.build(data,asOf),byPair={},byUnit={};
+    entries.forEach(function(e){byPair[pairKey(e.unitId,e.customerId)]=e;byUnit[norm(e.unitNo)]=e;});
+    reportIndex={entries:entries,byPair:byPair,byUnit:byUnit,asOf:asOf};return reportIndex;
+  })().finally(function(){reportIndexPromise=null;});return reportIndexPromise;
 }
 function customerEntry(customer){
-  var schedule=resolveSchedule(customer);
-  if(!schedule)schedule={planTarget:null,planLabel:'Other',completionCode:'review',completionLabel:'Review Required',deadline:'',finalDue:'',lastConstructionDue:'',constructionAmount:0,constructionSettled:0,constructionBalance:0,finalAmount:0,finalSettled:0,finalBalance:0};
-  var sale=resolveSale(customer),unitId=unitIdOf(customer)||sale.unitId,customerId=customerIdOf(customer)||sale.customerId;
-  var price=sale.commercialPrice>0?sale.commercialPrice:(num(customer.total)>0?num(customer.total):schedule.totalScheduled);
-  var cash=0;
-  if(unitId!==null&&customerId!==null){var pk=pairKey(unitId,customerId);cash=Object.prototype.hasOwnProperty.call(reportIndex.cashByPair,pk)?num(reportIndex.cashByPair[pk])+num(reportIndex.unassignedCashByUnit[text(unitId)]):num(reportIndex.cashByUnit[text(unitId)]);}else if(unitId!==null)cash=num(reportIndex.cashByUnit[text(unitId)]);
-  var paidPct=price>0?cash/price*100:0;
-  try{if(window.__sunblissPaymentPercentageRules&&typeof window.__sunblissPaymentPercentageRules.progressPct==='function')paidPct=num(window.__sunblissPaymentPercentageRules.progressPct(customer));}catch(_e){}
-  var entry={customer:customer,schedule:schedule,price:round2(price),cash:round2(cash),paidPct:paidPct,nonCashSettlement:round2(sale.nonCashSettlement),bookingDate:text(sale.bookingDate)};
-  return entry;
+  if(!reportIndex||!customer)return null;
+  var unitId=unitIdOf(customer),customerId=customerIdOf(customer);
+  var e=unitId!=null&&customerId!=null?reportIndex.byPair[pairKey(unitId,customerId)]:reportIndex.byUnit[norm(customer.unit)];
+  return e?Object.assign({},e,{customer:customer}):null;
 }
 function matchesCustomer(customer){var e=customerEntry(customer);return !!(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(customer,e));}
 
@@ -239,7 +135,7 @@ function ensureActivePill(controls,toggle){
 }
 function relabelExport(){
   var button=document.getElementById('btnExportList');if(!button)return;
-  var label='Export Units';
+  var label='Export payment report';
   if(stateFilter.status==='completed')label='Export Pre-Handover Completed';
   else if(stateFilter.status==='pending')label='Export Pre-Handover Pending';
   var changed=false;Array.prototype.forEach.call(button.childNodes,function(node){if(node.nodeType===3&&String(node.nodeValue||'').trim()){node.nodeValue=label;changed=true;}});
@@ -270,7 +166,7 @@ function enhanceFilterUI(isLoading,originalTotal){
       chip('Any Date','data-sb-construction-deadline','all',stateFilter.deadlineMode==='all')+
       chip('Specific Month','data-sb-construction-deadline','month',stateFilter.deadlineMode==='month')+
       '</div><input id="sbConstructionCompletionMonth" class="sb-construction-month" type="month" value="'+stateFilter.month+'" '+(stateFilter.deadlineMode==='month'?'':'disabled')+' aria-label="Pre-handover due month"></div>'+
-      '<p class="sb-construction-hint'+(isLoading?' sb-construction-loading':'')+'">'+(isLoading?'Loading payment plan progress…':'Pre-Handover Completed means every property installment due before the final/handover installment is settled within the AED 1,000 tolerance. DLD/Admin fees and penalties are excluded.')+'</p>';
+      '<p class="sb-construction-hint'+(isLoading?' sb-construction-loading':'')+'">'+(isLoading?'Loading payment plan progress…':'Pre-Handover Completed means every property installment due before the final/handover installment is settled with no balance above AED 0.01 after approved credits and excess payments. DLD/Admin fees and penalties are excluded.')+'</p>';
     var clear=panel.querySelector('#btnClearFilters');panel.insertBefore(group,clear||null);
     group.querySelectorAll('[data-sb-construction-plan]').forEach(function(btn){btn.addEventListener('click',function(){stateFilter.plan=btn.getAttribute('data-sb-construction-plan')||'all';loadReportIndex(false).catch(function(){});window.renderList();});});
     group.querySelectorAll('[data-sb-construction-status]').forEach(function(btn){btn.addEventListener('click',function(){stateFilter.status=btn.getAttribute('data-sb-construction-status')||'all';loadReportIndex(false).catch(function(){});window.renderList();});});
@@ -287,68 +183,35 @@ function wrappedRenderList(){
   if(typeof previousRenderList!=='function')return;
   var originalTotal=window.state&&Array.isArray(state.dues)?state.dues.length:0;
   if(!filterActive()){var plain=previousRenderList.apply(this,arguments);enhanceFilterUI(false,originalTotal);return plain;}
-  if(!reportIndex){var loading=previousRenderList.apply(this,arguments);enhanceFilterUI(true,originalTotal);loadReportIndex(false).then(function(){if(typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();}).catch(function(err){console.warn('Payment plan progress filter load failed',err);});return loading;}
+  if(!reportIndex){var saved=state.dues;state.dues=[];var loading;try{loading=previousRenderList.apply(this,arguments);}finally{state.dues=saved;}enhanceFilterUI(true,originalTotal);loadReportIndex(false).then(function(){if(typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();}).catch(function(err){console.warn('Payment plan progress filter load failed',err);var hint=document.querySelector('.sb-construction-hint');if(hint)hint.textContent='Unable to load payment report. Refresh to retry.';});return loading;}
   var all=state.dues,subset=all.filter(matchesCustomer),out;state.dues=subset;try{out=previousRenderList.apply(this,arguments);}finally{state.dues=all;}enhanceFilterUI(false,originalTotal);return out;
 }
 wrappedRenderList.__sunblissConstructionCompletionWrapped=true;
 window.renderList=wrappedRenderList;
 
-async function exportConstructionStatus(rows){
-  if(!window.ExcelJS)throw new Error('Spreadsheet library did not load — check your connection and try again.');
-  await loadReportIndex(true);
-  var exportRows=[];(rows||[]).forEach(function(item){var c=item&&item.c?item.c:item;if(!c)return;var e=customerEntry(c);if(e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(c,e))exportRows.push(e);});
-  if(!exportRows.length)throw new Error('No customers match the selected Payment Plan Progress filters.');
-  exportRows.sort(function(a,b){var ad=text(a.bookingDate),bd=text(b.bookingDate);if(ad&&bd&&ad!==bd)return ad.localeCompare(bd);if(ad&&!bd)return -1;if(!ad&&bd)return 1;return norm(a.customer.unit).localeCompare(norm(b.customer.unit),undefined,{numeric:true});});
-
-  var wb=new ExcelJS.Workbook();wb.creator=(window.state&&state.branding&&state.branding.name)||'Sunbliss Residences';wb.created=new Date();
-  var ws=wb.addWorksheet('Payment Plan Progress',{views:[{state:'frozen',ySplit:1}]});
-  ws.columns=[
-    {header:'Unit',key:'unit',width:12},
-    {header:'Customer',key:'customer',width:32},
-    {header:'Payment Plan',key:'plan',width:14},
-    {header:'Pre-Handover Payment Status',key:'status',width:34},
-    {header:'Property Price (AED)',key:'price',width:23},
-    {header:'Pre-Handover Payment Required (AED)',key:'constructionDue',width:34},
-    {header:'Received Amount (AED)',key:'cash',width:23},
-    {header:'Received % So Far',key:'paidPct',width:18},
-    {header:'Pre-Handover Balance (AED)',key:'constructionBalance',width:28},
-    {header:'Pre-Handover Balance Installment',key:'remainingInstallments',width:30},
-    {header:'Final Installment (AED)',key:'finalDueAmount',width:23},
-    {header:'Total Balance Amount (AED)',key:'totalBalanceAmount',width:26}
-  ];
-  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:12}};
-  var header=ws.getRow(1);header.height=22;header.eachCell(function(cell){cell.font={bold:true,color:{argb:'FFEDE6D6'},size:11};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF16232F'}};cell.alignment={vertical:'middle',wrapText:true};cell.border={bottom:{style:'medium',color:{argb:'FF16232F'}}};});
-  exportRows.forEach(function(e){
-    var s=e.schedule,c=e.customer,row=ws.addRow({
-      unit:c.unit||'',
-      customer:nice(c.name),
-      plan:s.planLabel,
-      status:s.completionLabel,
-      price:e.price,
-      constructionDue:s.constructionAmount,
-      cash:e.cash,
-      paidPct:e.price>0?e.cash/e.price:0,
-      constructionBalance:s.constructionBalance,
-      remainingInstallments:s.constructionOpenCount,
-      finalDueAmount:s.finalAmount,
-      totalBalanceAmount:round2(num(s.constructionBalance)+num(s.finalBalance))
-    });
-    ['price','constructionDue','cash','constructionBalance','finalDueAmount','totalBalanceAmount'].forEach(function(key){row.getCell(key).numFmt='#,##0.00';});
-    row.getCell('paidPct').numFmt='0.0%';
-    row.getCell('remainingInstallments').numFmt='0';
-    row.getCell('status').font={bold:true,color:{argb:s.completionCode==='completed'?'FF3F7A57':(s.completionCode==='pending'?'FFAE3B2B':'FF736C5C')}};
-    row.getCell('constructionBalance').font={bold:true,color:{argb:s.completionCode==='pending'?'FFAE3B2B':'FF3F7A57'}};
-    row.getCell('remainingInstallments').font={bold:true,color:{argb:s.constructionOpenCount>0?'FFAE3B2B':'FF3F7A57'}};
-    row.getCell('totalBalanceAmount').font={bold:true,color:{argb:(num(s.constructionBalance)+num(s.finalBalance))>0?'FF16232F':'FF3F7A57'}};
-    row.eachCell(function(cell){cell.border={bottom:{style:'thin',color:{argb:'FFDCD2B6'}}};});
-  });
-  var buffer=await wb.xlsx.writeBuffer(),blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  var suffix=stateFilter.status==='completed'?'Completed':(stateFilter.status==='pending'?'Pending':'All');
-  a.href=url;a.download='Sunbliss-Payment-Plan-Progress-'+suffix+'-'+new Date().toISOString().slice(0,10)+'.xlsx';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},30000);
+function currentEntries(rows){
+  return (rows||[]).map(function(item){return customerEntry(item&&item.c?item.c:item);}).filter(function(e){return e&&planMatches(e.schedule)&&statusMatches(e.schedule)&&deadlineMatches(e.schedule)&&externalMatches(e.customer,e);}).sort(function(a,b){return a.bookingDate.localeCompare(b.bookingDate)||a.unitNo.localeCompare(b.unitNo,undefined,{numeric:true});});
 }
-
-window.exportFilteredList=async function(rows){if(filterActive())return exportConstructionStatus(rows);if(typeof previousExport==='function')return previousExport.apply(this,arguments);throw new Error('Export function is not available.');};
+function reportFilters(){
+  var parts=[filterSummary()||'All plans / statuses / due dates'],filters=(window.state&&state.filters)||{};
+  Object.keys(filters).forEach(function(k){if(filters[k]&&filters[k]!=='all')parts.push(k+': '+filters[k]);});
+  if(window.state&&state.search)parts.push('Search: '+state.search);
+  var pct=window.__sunblissPaymentPlanProgressCleanUiState;if(pct&&pct.value!==''&&pct.value!=null)parts.push('Cash received '+pct.condition+' '+pct.value+(pct.condition==='between'?' to '+pct.value2:'')+'%');
+  return parts.join('; ');
+}
+async function exportConstructionStatus(rows){
+  if(!window.ExcelJS)throw new Error('Spreadsheet library did not load. Refresh and try again.');
+  await loadReportIndex(true);var entries=currentEntries(rows);
+  if(!entries.length)throw new Error('No customers match the selected payment report filters.');
+  var wb=window.SunblissPaymentReportExport.buildWorkbook(window.ExcelJS,entries,{date:reportIndex.asOf,filters:reportFilters()});
+  var buffer=await wb.xlsx.writeBuffer(),blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='Sunbliss-Payment-Report-'+reportIndex.asOf+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},30000);
+}
+window.exportFilteredList=exportConstructionStatus;
 window.__sunblissRefreshConstructionCompletionReport=function(){reportIndex=null;return loadReportIndex(true).then(function(){if(typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();return true;});};
+window.__sunblissPaymentReportApi={entries:currentEntries,refresh:function(){return loadReportIndex(true);},export:exportConstructionStatus,filters:reportFilters};
+var previousLoad=window.loadFromSupabase;
+if(typeof previousLoad==='function')window.loadFromSupabase=async function(){var result=await previousLoad.apply(this,arguments);reportIndex=null;await window.__sunblissRefreshConstructionCompletionReport();return result;};
 
 installStyles();
 loadReportIndex(false).catch(function(){});

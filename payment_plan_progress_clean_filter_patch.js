@@ -246,7 +246,7 @@ function makePrimaryGroup(){
       chip('Completed','data-sb-clean-status','completed',s.status==='completed')+
       chip('Pending','data-sb-clean-status','pending',s.status==='pending')+
     '</div></div>'+
-    '<details class="sb-prehandover-info"><summary>What is Pre-Handover?</summary><p>Completed means every property installment due before the final/handover installment is settled within the AED 1,000 tolerance. DLD/Admin fees and penalties are excluded.</p></details>';
+    '<details class="sb-prehandover-info"><summary>What is Pre-Handover?</summary><p>Pending means an unpaid property installment above AED 0.01 after approved credits and excess payments. It includes upcoming payments; overdue amounts are shown separately in the report. DLD/Admin fees and penalties are excluded.</p></details>';
   return group;
 }
 function makeDueGroup(){
@@ -386,7 +386,7 @@ function enhance(){
     var more=makeMore(panel,primary);panel.insertBefore(more,primary.nextSibling);
   }
   enhanceResultSummary(controls);
-  var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export Units');
+  var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export payment report');
   renderActivePills(controls);updateBadge(controls);
 }
 var previousRender=window.renderList;

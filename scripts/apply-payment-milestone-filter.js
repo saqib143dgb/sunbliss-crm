@@ -4,9 +4,12 @@ const path=require('path');
 const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist');
 const SOURCES=[
+  'payment_report_model.js',
+  'payment_report_export.js',
   'payment_plan_construction_deadline_v3_patch.js',
   'construction_payment_completion_filter_patch.js',
-  'payment_plan_progress_clean_filter_patch.js'
+  'payment_plan_progress_clean_filter_patch.js',
+  'payment_report_review.js'
 ];
 const INDEX=path.join(OUT,'index.html');
 
