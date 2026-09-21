@@ -26,6 +26,8 @@ function build(data,asOf=reportDate()){
   return Array.from(sales.values()).map(s=>{
     const u=units.get(str(s.unit_id)),c=customers.get(str(s.customer_id))||{},notes=[];
     const belongs=r=>str(r.unit_id)===str(s.unit_id)&&str(r.customer_id)===str(s.customer_id);
+    const feeRows=(data.schedule||[]).filter(r=>belongs(r)&&fee(r.stage_name)&&amount(r)>0);
+    const feeAmount=sum(feeRows,r=>amount(r));
     const grossRows=(data.schedule||[]).filter(r=>belongs(r)&&!fee(r.stage_name)&&amount(r)>0);
     const rows=grossRows.map(r=>({id:r.id,stage:r.stage_name,isFinal:final(r),originalDate:date(r.due_date),dueDate:date(r.revised_due_date||r.due_date),collectionDate:date(r.revised_due_date||r.due_date),gross:amount(r),cash:0,issued:0,adjustment:0,rounding:0,carry:0,sourcePaid:money(r.paid_amount)}));
     const byId=new Map(rows.map(r=>[str(r.id),r]));let cash=0,unallocated=0;
@@ -33,6 +35,11 @@ function build(data,asOf=reportDate()){
       if(str(t.unit_id)!==str(s.unit_id)||str(owner)!==str(s.customer_id)||date(t.payment_date)>asOf)continue;
       if(linked?fee(linked.stage_name):fee(t.payment_type))continue;
       const value=transactionValue(t);cash+=value;const row=byId.get(str(t.payment_schedule_id));if(row)row.cash+=value;else unallocated+=value;
+    }
+    let feeCash=0;
+    for(const t of data.transactions||[]){const linked=source.get(str(t.payment_schedule_id));const owner=t.customer_id==null&&linked?linked.customer_id:t.customer_id;
+      if(str(t.unit_id)!==str(s.unit_id)||str(owner)!==str(s.customer_id)||date(t.payment_date)>asOf)continue;
+      if((linked&&fee(linked.stage_name))||(!linked&&fee(t.payment_type)))feeCash+=transactionValue(t);
     }
     let issued=0;
     for(const cn of data.credits||[]){if(!belongs(cn)||date(cn.issue_date)>asOf)continue;const linked=source.get(str(cn.payment_schedule_id));if(linked&&fee(linked.stage_name))continue;
@@ -56,16 +63,17 @@ function build(data,asOf=reportDate()){
     if(pool<0)notes.push('Unallocated refund needs review.');
     const credit=Math.max(0,pool),balance=sum(rows,r=>r.remaining),check=price-cash-nonCash-balance+credit;
     if(Math.abs(check)>1)notes.push('Balance does not reconcile with agreed price.');
-    const preAmount=sum(pre,r=>r.net),preBalance=sum(pre,r=>r.remaining),finalAmount=sum(fin,r=>r.net),finalBalance=sum(fin,r=>r.remaining);
+    const preAmount=sum(pre,r=>r.net),preBalance=sum(pre,r=>r.remaining),preCash=sum(pre,r=>Math.max(0,r.net-r.remaining)),finalAmount=sum(fin,r=>r.net),finalBalance=sum(fin,r=>r.remaining);
+    const cleanFeeCash=Math.max(0,feeCash),feeBalance=Math.max(0,feeAmount-cleanFeeCash);
     const target=[30,40,50].find(t=>Math.abs(sum(pre,r=>r.gross)/(gross||1)*100-t)<=1)||null;
     if(!target||!pre.length||!fin.length)notes.push('Payment plan needs review.');
     const count=pre.filter(r=>r.remaining>1).length,finalCount=fin.filter(r=>r.remaining>1).length;
     const code=notes.length?'review':count?'pending':finalCount?'completed':'fully_paid';
     const labels={pending:'Pre-Handover Pending',completed:'Pre-Handover Completed — Final Remaining',fully_paid:'Fully Settled',review:'Review Required'};
     const maxDate=rs=>rs.map(r=>r.dueDate).filter(Boolean).sort().pop()||'';
-    const schedule={planTarget:target,planLabel:target?target+'/'+(100-target):'Other',completionCode:code,completionLabel:labels[code],constructionAmount:aed(preAmount),constructionBalance:aed(preBalance),constructionSettled:aed(preAmount-preBalance),constructionOpenCount:count,finalAmount:aed(finalAmount),finalBalance:aed(finalBalance),finalOpenCount:finalCount,totalScheduled:aed(gross),lastConstructionDue:maxDate(pre),deadline:maxDate(pre),finalDue:maxDate(fin)};
+    const schedule={planTarget:target,planLabel:target?target+'/'+(100-target):'Other',completionCode:code,completionLabel:labels[code],constructionAmount:aed(preAmount),constructionBalance:aed(preBalance),constructionSettled:aed(preAmount-preBalance),constructionCash:aed(preCash),constructionOpenCount:count,finalAmount:aed(finalAmount),finalBalance:aed(finalBalance),finalOpenCount:finalCount,totalScheduled:aed(gross),lastConstructionDue:maxDate(pre),deadline:maxDate(pre),finalDue:maxDate(fin)};
     const outRows=rows.map(r=>({...r,...Object.fromEntries(['gross','cash','issued','adjustment','rounding','carry','net','remaining'].map(k=>[k,aed(r[k])])),status:r.remaining<=1?'Settled':r.isFinal?'Final / handover':!r.collectionDate?'Undated':r.collectionDate<asOf?'Overdue':'Upcoming'}));
-    return {unitId:s.unit_id,customerId:s.customer_id,unitNo:u.unit_no,customerName:c.customer_name||'',bookingDate:date(s.booking_date),asOf,schedule,rows:outRows,notes,spaPrice:aed(spa),price:aed(price),cash:aed(cash),paidPct:price?cash/price*100:0,approvedDiscount:aed(discount),nonCashSettlement:aed(nonCash),issuedCredits:aed(issued),pendingAdjustment:aed(pending),roundingAdjustment:aed(sum(rows,r=>r.rounding)),customerCredit:aed(credit),balance:aed(balance),reconciliation:aed(check),overdue:aed(sum(pre.filter(r=>r.collectionDate&&r.collectionDate<asOf),r=>r.remaining)),upcoming:aed(sum(pre.filter(r=>r.collectionDate&&r.collectionDate>=asOf),r=>r.remaining)),undated:aed(sum(pre.filter(r=>!r.collectionDate),r=>r.remaining))};
+    return {unitId:s.unit_id,customerId:s.customer_id,unitNo:u.unit_no,customerName:c.customer_name||'',bookingDate:date(s.booking_date),asOf,schedule,rows:outRows,notes,spaPrice:aed(spa),price:aed(price),cash:aed(cash),paidPct:price?cash/price*100:0,approvedDiscount:aed(discount),nonCashSettlement:aed(nonCash),issuedCredits:aed(issued),pendingAdjustment:aed(pending),roundingAdjustment:aed(sum(rows,r=>r.rounding)),customerCredit:aed(credit),balance:aed(balance),feeAmount:aed(feeAmount),feeCash:aed(cleanFeeCash),feeBalance:aed(feeBalance),reconciliation:aed(check),overdue:aed(sum(pre.filter(r=>r.collectionDate&&r.collectionDate<asOf),r=>r.remaining)),upcoming:aed(sum(pre.filter(r=>r.collectionDate&&r.collectionDate>=asOf),r=>r.remaining)),undated:aed(sum(pre.filter(r=>!r.collectionDate),r=>r.remaining))};
   });
 }
 return {build,transactionValue,reportDate};
