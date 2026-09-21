@@ -174,16 +174,25 @@ function installStyles(){
     '@media(max-width:700px){#main .controls{padding-left:18px;padding-right:18px}#main .controls .filter-panel{padding:17px 16px 15px!important}.sb-progress-title{font-size:13.5px}.sb-progress-section{margin-top:13px}.sb-progress-main .chip{min-height:37px;font-size:12.5px}.sb-paid-select,.sb-paid-input{height:40px;font-size:15px}.sb-more-toggle{min-height:43px}.sb-more-content .chip{min-height:37px;padding:0 12px}.result-count.sb-filter-summary{min-height:48px;padding:0 13px!important}#main .controls #btnExportList{min-height:47px!important}}'
   ].join('');
   style.textContent+=[
-    '.sb-progress-main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px;}',
-    '.sb-progress-main>.sb-progress-head,.sb-progress-main>.sb-prehandover-info{grid-column:1/-1;}',
-    '.sb-progress-main>.sb-progress-section{min-width:0;margin-top:10px;}',
-    '#main .controls .sb-more-wrap{margin-top:6px;padding-top:0;border-top:0;}',
-    '#main .controls .sb-more-toggle{width:auto;min-height:34px;padding:0 10px;border:1px solid var(--paper-line);border-radius:8px;background:var(--paper);gap:7px;font-size:13px;}',
-    '.sb-filter-expand-icon{font:500 19px/1 Inter,sans-serif;min-width:14px;text-align:center;}',
-    '#main .controls .sb-more-icon{width:16px;height:16px;}',
-    '#main .controls .sb-more-chevron{width:15px;height:15px;}',
+    '.sb-progress-main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px;margin:0!important;}',
+    '.sb-progress-main>.sb-progress-section{min-width:0;margin:0!important;}',
+    '.sb-progress-main .filter-group-label,.sb-dropdown-grid .filter-group-label{margin:0 0 6px!important;padding:0!important;font:600 12.5px/1.2 Inter,sans-serif!important;letter-spacing:0!important;text-transform:none!important;color:var(--muted)!important;}',
+    '.sb-progress-head,.sb-prehandover-info{display:none!important;}',
+    '.sb-paid-select,.sb-paid-input,.sb-due-month,.sb-filter-select{font-weight:400!important;}',
+    '.sb-filter-select{min-width:0;max-width:100%;width:100%;height:40px;border-radius:9px;}',
+    '#main .controls .sb-more-wrap{margin-top:8px;padding-top:0;border-top:0;display:flex;flex-direction:column;align-items:stretch;}',
+    '#main .controls .sb-more-toggle{align-self:flex-end;width:auto;min-height:30px;padding:4px 2px;border:0;border-radius:6px;background:transparent;gap:7px;font:500 12.5px/1.2 Inter,sans-serif;color:var(--muted);}',
+    '#main .controls .sb-more-toggle-left{display:flex;align-items:center;gap:7px;min-width:0;}',
+    '#main .controls .sb-more-icon{width:17px;height:17px;color:var(--muted);}',
+    '#main .controls .sb-more-chevron{width:14px;height:14px;color:var(--muted);transition:transform .16s ease;}',
+    '#main .controls .sb-more-toggle[aria-expanded="true"] .sb-more-chevron{transform:rotate(180deg);}',
     '#main .controls .sb-more-toggle:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;}',
-    '#main .controls .sb-more-content.sb-dropdown-grid{padding-top:6px;}'
+    '#main .controls .sb-more-content.sb-dropdown-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 10px;padding-top:8px;}',
+    '#main .controls .sb-more-content.sb-dropdown-grid[hidden]{display:none!important;}',
+    '.sb-dropdown-grid>.filter-group{grid-column:auto!important;min-width:0;margin:0!important;}',
+    '.sb-dropdown-grid .sb-paid-row{min-width:0;}',
+    '.sb-dropdown-grid .sb-paid-select,.sb-dropdown-grid .sb-paid-input{height:40px;}',
+    '@media(max-width:700px){#main .controls .filter-panel{padding:14px 16px 14px!important}.sb-progress-main .filter-group-label,.sb-dropdown-grid .filter-group-label{font-size:12px!important}.sb-filter-select,.sb-paid-select,.sb-paid-input{height:40px!important;font-size:16px!important}.sb-dropdown-grid{gap:10px 9px!important}}'
   ].join('');
   document.head.appendChild(style);
 }
@@ -240,7 +249,6 @@ function makePrimaryGroup(){
   group.className='filter-group sb-progress-main';
   var condition=uiState.condition,between=condition==='between';
   group.innerHTML=
-    '<div class="sb-progress-head"><p class="sb-progress-title">Payment Plan Progress</p></div>'+
     '<div class="sb-progress-section sb-plan-section"><p class="filter-group-label">Payment Plan</p><div class="chips">'+
       chip('All','data-sb-clean-plan','all',s.plan==='all')+
       chip('30/70','data-sb-clean-plan','30',s.plan==='30')+
@@ -261,10 +269,10 @@ function makePrimaryGroup(){
       chip('All','data-sb-clean-status','all',s.status==='all')+
       chip('Completed','data-sb-clean-status','completed',s.status==='completed')+
       chip('Pending','data-sb-clean-status','pending',s.status==='pending')+
-    '</div></div>'+
-    '<details class="sb-prehandover-info"><summary>What is Pre-Handover?</summary><p>Completed means the remaining pre-handover balance is AED 7,000 or less; Pending means it is above AED 7,000. The tolerance affects CRM filtering and exported status only and does not change the customer’s actual balance or payment data. DLD/Admin fees and penalties are excluded.</p></details>';
+    '</div></div>';
   return group;
 }
+
 function makeDueGroup(){
   var s=filterState(),preset=duePreset(),group=document.createElement('div'),active=s.deadlineMode==='month';
   group.className='filter-group sb-clean-due-group';
@@ -320,15 +328,18 @@ function wireDue(group){
 }
 function makeMore(panel,primary){
   var wrapper=document.createElement('div');wrapper.className='sb-more-wrap';
-  function toggleLabel(){return '<span class="sb-filter-expand-icon" aria-hidden="true">'+(uiState.moreOpen?'−':'+')+'</span><span>'+(uiState.moreOpen?'Hide extra filters':'Show all filters')+'</span>';}
-  wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-controls="sbMoreFiltersContent" aria-expanded="'+(uiState.moreOpen?'true':'false')+'">'+toggleLabel()+'</button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
+  var sliders='<span class="sb-more-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 4v6M8 14v6"/></svg></span>';
+  var arrow='<svg class="sb-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>';
+  function toggleLabel(){return '<span class="sb-more-toggle-left">'+sliders+'<span>Advanced Filters</span></span>'+arrow;}
+  wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-label="Advanced Filters" aria-controls="sbMoreFiltersContent" aria-expanded="'+(uiState.moreOpen?'true':'false')+'">'+toggleLabel()+'</button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
   var content=wrapper.querySelector('#sbMoreFiltersContent');
-  var paid=primary.querySelector('.sb-paid-group');if(paid)content.appendChild(paid);
+  var paid=primary.querySelector('.sb-paid-group');
   Array.prototype.slice.call(panel.children).forEach(function(node){
     if(node===primary||node===wrapper)return;
     if(node.classList&&node.classList.contains('sb-construction-completion-group')){node.remove();return;}
     if(node.classList&&node.classList.contains('filter-group'))content.appendChild(node);
   });
+  if(paid)content.appendChild(paid);
   var due=makeDueGroup();content.appendChild(due);wireDue(due);
   var oldClear=panel.querySelector('#btnClearFilters');if(oldClear)oldClear.classList.add('sb-old-clear-hidden');
   wrapper.querySelector('#sbMoreFilters').addEventListener('click',function(){
@@ -338,6 +349,7 @@ function makeMore(panel,primary){
   });
   return wrapper;
 }
+
 function filterIconMarkup(){
   return '<span class="sb-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z"/></svg></span>';
 }
@@ -355,7 +367,7 @@ function enhanceFilterToggle(controls){
       clear.className='sb-toggle-clear';
       clear.setAttribute('role','button');
       clear.setAttribute('tabindex','0');
-      clear.textContent='Clear';
+      clear.textContent='Clear All';
       var chevron=toggle.lastElementChild;
       if(chevron&&chevron!==left)toggle.insertBefore(clear,chevron);else toggle.appendChild(clear);
       var runClear=function(e){
@@ -443,7 +455,7 @@ function enhance(){
   });
   dropdownFilters(panel);
   enhanceResultSummary(controls);
-  var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export payment report');
+  var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export Units');
   renderActivePills(controls);updateBadge(controls);
 }
 var previousRender=window.renderList;
