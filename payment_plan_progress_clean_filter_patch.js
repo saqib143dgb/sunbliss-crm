@@ -70,8 +70,6 @@ function monthLabel(v){
 function duePreset(){
   var s=filterState();
   if(s.deadlineMode!=='month')return 'any';
-  if(s.month===monthValue(0))return 'this';
-  if(s.month===monthValue(1))return 'next';
   return 'custom';
 }
 function baseFilterCount(){
@@ -84,13 +82,12 @@ function baseFilterCount(){
 function primaryCount(){
   var s=filterState(),n=0;
   if(s.plan!=='all')n++;
-  if(paidFilterActive())n++;
   if(s.status!=='all')n++;
   return n;
 }
 function moreCount(){
   var s=filterState();
-  return baseFilterCount()+(s.deadlineMode==='month'?1:0);
+  return baseFilterCount()+(paidFilterActive()?1:0)+(s.deadlineMode==='month'?1:0);
 }
 function totalFilterCount(){return primaryCount()+moreCount();}
 
@@ -231,15 +228,15 @@ function makePrimaryGroup(){
       chip('40/60','data-sb-clean-plan','40',s.plan==='40')+
       chip('50/50','data-sb-clean-plan','50',s.plan==='50')+
     '</div></div>'+
-    '<div class="sb-progress-section"><p class="filter-group-label">Paid %</p><div class="sb-paid-row'+(between?' sb-between':'')+'">'+
+    '<div class="filter-group sb-paid-group"><p class="filter-group-label">Paid %</p><div class="sb-paid-row'+(between?' sb-between':'')+'">'+
       '<select class="sb-paid-select" id="sbPaidCondition" aria-label="Paid percentage condition">'+
         '<option value="below"'+(condition==='below'?' selected':'')+'>Below</option>'+
         '<option value="exact"'+(condition==='exact'?' selected':'')+'>Exactly</option>'+
         '<option value="above"'+(condition==='above'?' selected':'')+'>Above</option>'+
         '<option value="between"'+(condition==='between'?' selected':'')+'>Between</option>'+
       '</select>'+
-      '<div class="sb-paid-input-wrap"><input class="sb-paid-input" id="sbPaidValue" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="22" value="'+text(uiState.value)+'" aria-label="Paid percentage"><span>%</span></div>'+
-      (between?'<div class="sb-paid-input-wrap"><input class="sb-paid-input" id="sbPaidValue2" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="40" value="'+text(uiState.value2)+'" aria-label="Paid percentage upper value"><span>%</span></div>':'')+
+      '<div class="sb-paid-input-wrap"><input class="sb-paid-input" id="sbPaidValue" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="" value="'+text(uiState.value)+'" aria-label="Paid percentage"><span>%</span></div>'+
+      (between?'<div class="sb-paid-input-wrap"><input class="sb-paid-input" id="sbPaidValue2" type="number" inputmode="decimal" min="0" max="100" step="0.1" placeholder="" value="'+text(uiState.value2)+'" aria-label="Paid percentage upper value"><span>%</span></div>':'')+
     '</div></div>'+
     '<div class="sb-progress-section sb-prehandover-section"><p class="filter-group-label">Pre-Handover</p><div class="chips">'+
       chip('All','data-sb-clean-status','all',s.status==='all')+
@@ -254,8 +251,6 @@ function makeDueGroup(){
   group.className='filter-group sb-clean-due-group';
   group.innerHTML='<p class="filter-group-label">Pre-Handover Due Period</p><div class="sb-due-row">'+
     chip('Any','data-sb-clean-due','any',preset==='any')+
-    chip('This Month','data-sb-clean-due','this',preset==='this')+
-    chip('Next Month','data-sb-clean-due','next',preset==='next')+
     chip('Custom','data-sb-clean-due','custom',preset==='custom')+
     '</div>'+
     (preset==='custom'?'<input class="sb-due-month" id="sbCleanDueMonth" type="month" value="'+text(s.month||monthValue(0))+'" aria-label="Pre-handover due month">':'')+
@@ -289,9 +284,7 @@ function wireDue(group){
       else{
         s.deadlineMode='month';
         if(!/^(by|in)$/.test(String(s.dueMode||'')))s.dueMode='by';
-        if(v==='this')s.month=monthValue(0);
-        else if(v==='next')s.month=monthValue(1);
-        else if(!/^\d{4}-\d{2}$/.test(text(s.month)))s.month=monthValue(0);
+        if(!/^\d{4}-\d{2}$/.test(text(s.month)))s.month=monthValue(0);
       }
       window.renderList();
     });
@@ -312,6 +305,7 @@ function makeMore(panel,primary){
   var arrow='<svg class="sb-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
   wrapper.innerHTML='<button type="button" class="sb-more-toggle" id="sbMoreFilters" aria-expanded="'+(uiState.moreOpen?'true':'false')+'"><span class="sb-more-toggle-left">'+sliders+'<span>More Filters</span></span><span class="sb-more-toggle-right">'+arrow+'</span></button><div class="sb-more-content" id="sbMoreFiltersContent"'+(uiState.moreOpen?'':' hidden')+'></div>';
   var content=wrapper.querySelector('#sbMoreFiltersContent');
+  var paid=primary.querySelector('.sb-paid-group');if(paid)content.appendChild(paid);
   Array.prototype.slice.call(panel.children).forEach(function(node){
     if(node===primary||node===wrapper)return;
     if(node.classList&&node.classList.contains('sb-construction-completion-group')){node.remove();return;}
@@ -385,13 +379,24 @@ function enhance(){
     wirePrimary(primary);
     var more=makeMore(panel,primary);panel.insertBefore(more,primary.nextSibling);
   }
+  controls.querySelectorAll('.chip[data-group="dld"]').forEach(function(btn){
+    var value=btn.getAttribute('data-value');
+    if(value==='notstarted'){btn.remove();return;}
+    if(value==='partial'){
+      btn.setAttribute('data-value','outstanding');btn.textContent='Unpaid';
+      btn.setAttribute('aria-pressed',state.filters.dld==='outstanding'?'true':'false');
+    }
+  });
+  controls.querySelectorAll('[data-remove-group="dld"]').forEach(function(pill){
+    if(state.filters.dld==='outstanding')pill.innerHTML='DLD Unpaid<span class="x">&times;</span>';
+  });
   enhanceResultSummary(controls);
   var exportBtn=document.getElementById('btnExportList');if(exportBtn)setButtonText(exportBtn,'Export payment report');
   renderActivePills(controls);updateBadge(controls);
 }
 var previousRender=window.renderList;
 if(typeof previousRender==='function'){
-  window.renderList=function(){var out=previousRender.apply(this,arguments);enhance();return out;};
+  window.renderList=function(){if(window.state&&state.filters&&(state.filters.dld==='partial'||state.filters.dld==='notstarted'))state.filters.dld='outstanding';var out=previousRender.apply(this,arguments);enhance();return out;};
 }
 setTimeout(enhance,0);
 })();

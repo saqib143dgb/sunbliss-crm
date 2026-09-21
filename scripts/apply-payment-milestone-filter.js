@@ -8,8 +8,7 @@ const SOURCES=[
   'payment_report_export.js',
   'payment_plan_construction_deadline_v3_patch.js',
   'construction_payment_completion_filter_patch.js',
-  'payment_plan_progress_clean_filter_patch.js',
-  'payment_report_review.js'
+  'payment_plan_progress_clean_filter_patch.js'
 ];
 const INDEX=path.join(OUT,'index.html');
 
