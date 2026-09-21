@@ -173,6 +173,18 @@ function installStyles(){
     '#main .controls #btnExportList{box-sizing:border-box;min-height:48px!important;margin-top:10px!important;border-radius:12px!important;font:700 13.5px/1 Inter,sans-serif!important;}',
     '@media(max-width:700px){#main .controls{padding-left:18px;padding-right:18px}#main .controls .filter-panel{padding:17px 16px 15px!important}.sb-progress-title{font-size:13.5px}.sb-progress-section{margin-top:13px}.sb-progress-main .chip{min-height:37px;font-size:12.5px}.sb-paid-select,.sb-paid-input{height:40px;font-size:15px}.sb-more-toggle{min-height:43px}.sb-more-content .chip{min-height:37px;padding:0 12px}.result-count.sb-filter-summary{min-height:48px;padding:0 13px!important}#main .controls #btnExportList{min-height:47px!important}}'
   ].join('');
+  style.textContent+=[
+    '.sb-progress-main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px;}',
+    '.sb-progress-main>.sb-progress-head,.sb-progress-main>.sb-prehandover-info{grid-column:1/-1;}',
+    '.sb-progress-main>.sb-progress-section{min-width:0;margin-top:10px;}',
+    '#main .controls .sb-more-wrap{margin-top:6px;padding-top:0;border-top:0;}',
+    '#main .controls .sb-more-toggle{width:auto;min-height:34px;padding:0 2px;border:0;border-radius:6px;background:transparent;gap:10px;font-size:13px;}',
+    '#main .controls .sb-more-toggle-left{gap:6px;}',
+    '#main .controls .sb-more-icon{width:16px;height:16px;}',
+    '#main .controls .sb-more-chevron{width:15px;height:15px;}',
+    '#main .controls .sb-more-toggle:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;}',
+    '#main .controls .sb-more-content.sb-dropdown-grid{padding-top:6px;}'
+  ].join('');
   document.head.appendChild(style);
 }
 function resetAll(){
