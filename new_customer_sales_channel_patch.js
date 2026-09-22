@@ -57,6 +57,10 @@
       '.new-customer-calc-label{font-size:11px;color:var(--muted);}',
       '.new-customer-calc-value{font-family:IBM Plex Mono,monospace;font-size:13px;font-weight:700;color:var(--ink);text-align:right;}',
       '.new-customer-channel-help{font-size:11.5px;line-height:1.45;color:var(--muted);margin:-3px 0 12px;}',
+      '#ncUnitNo{display:block;width:100%;margin-top:5px;padding:10px 36px 10px 11px;border:1px solid var(--paper-line);border-radius:8px;font:500 16px/1.2 Inter,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box;}',
+      '#ncUnitType[readonly],#ncFloor[readonly],#ncArea[readonly]{background:rgba(220,210,182,.45);color:var(--slate);cursor:default;}',
+      '.detail .brand-editor input[type="date"]{display:block;width:100%;height:44px;min-height:44px;padding:9px 11px;line-height:24px;font-size:16px;box-sizing:border-box;-webkit-appearance:auto;appearance:auto;}',
+      '.detail .brand-editor input[type="date"]::-webkit-calendar-picker-indicator{opacity:1;min-width:20px;min-height:20px;cursor:pointer;}',
       '@media(max-width:480px){.new-customer-calc{align-items:flex-start;flex-direction:column;gap:4px}.new-customer-calc-value{text-align:left}}'
     ].join('');
     document.head.appendChild(style);
@@ -64,6 +68,64 @@
 
   function storedValues(){ return (window.state && state.newCustomerFormValues) || {}; }
   function getStored(key){ var values = storedValues(); return values[key] || ''; }
+
+  function availableUnits(){ return window.state && Array.isArray(state.__newCustomerAvailableUnits) ? state.__newCustomerAvailableUnits : []; }
+  function availableUnitByNo(unitNo){
+    var wanted = text(unitNo).trim();
+    return availableUnits().find(function(row){ return text(row && row.unit_no).trim() === wanted; }) || null;
+  }
+  function unitSelectOptions(selected){
+    var rows = availableUnits();
+    var options = [{value:'',label:state.__newCustomerAvailableUnitsError ? 'Could not load available units' : (rows.length ? 'Select available unit' : 'Loading available units…')}];
+    rows.forEach(function(row){ options.push({value:text(row.unit_no),label:text(row.unit_no)}); });
+    if (selected && !rows.some(function(row){ return text(row.unit_no) === text(selected); })){
+      options.push({value:text(selected),label:text(selected)});
+    }
+    return options;
+  }
+  async function loadAvailableUnits(force){
+    if (!window.state || !window.sb) return [];
+    if (!force && Array.isArray(state.__newCustomerAvailableUnits)) return state.__newCustomerAvailableUnits;
+    if (!force && state.__newCustomerAvailableUnitsPromise) return state.__newCustomerAvailableUnitsPromise;
+    state.__newCustomerAvailableUnitsError = '';
+    state.__newCustomerAvailableUnitsPromise = sb.from('units')
+      .select('id,unit_no,unit_type,floor,area,unit_area_sqft,status,availability_status,customer_id')
+      .eq('availability_status','Available')
+      .order('unit_no',{ascending:true})
+      .then(function(result){
+        if (result.error) throw result.error;
+        var rows = (result.data || []).slice().sort(function(a,b){
+          return text(a.unit_no).localeCompare(text(b.unit_no),undefined,{numeric:true,sensitivity:'base'});
+        });
+        state.__newCustomerAvailableUnits = rows;
+        state.__newCustomerAvailableUnitsPromise = null;
+        return rows;
+      })
+      .catch(function(err){
+        state.__newCustomerAvailableUnits = [];
+        state.__newCustomerAvailableUnitsError = err && err.message ? err.message : 'Could not load available units.';
+        state.__newCustomerAvailableUnitsPromise = null;
+        throw err;
+      });
+    return state.__newCustomerAvailableUnitsPromise;
+  }
+  function syncSelectedUnitFields(){
+    var selectEl = document.getElementById('ncUnitNo');
+    if (!selectEl) return;
+    var row = availableUnitByNo(selectEl.value);
+    var typeEl = document.getElementById('ncUnitType');
+    var floorEl = document.getElementById('ncFloor');
+    var areaEl = document.getElementById('ncArea');
+    var area = row ? (row.area !== null && row.area !== undefined ? row.area : row.unit_area_sqft) : '';
+    if (typeEl){ typeEl.value = row ? text(row.unit_type) : ''; typeEl.readOnly = true; }
+    if (floorEl){ floorEl.value = row ? text(row.floor) : ''; floorEl.readOnly = true; }
+    if (areaEl){
+      areaEl.value = row && area !== null && area !== undefined ? text(area) : '';
+      areaEl.readOnly = true;
+      areaEl.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+    state.__newCustomerSelectedUnitId = row ? row.id : null;
+  }
 
   function captureFormValues(){
     var source = normalizeSource(valueOf('ncSource') || getStored('source'));
@@ -139,10 +201,10 @@
     t += input('ncCoApplicant','Co-applicant',e('coApplicant'),'text');
 
     t += '<p class="section-label">Unit</p>';
-    t += input('ncUnitNo','Unit no.',e('unitNo'),'text','','e.g. A2-804');
-    t += input('ncUnitType','Unit type',e('unitType'),'text','','e.g. 2BR');
-    t += input('ncFloor','Floor',e('floor'),'text');
-    t += input('ncArea','Area (sqft)',e('area'),'number',' min="0" step="0.01"');
+    t += select('ncUnitNo','Unit no.',e('unitNo'),unitSelectOptions(e('unitNo')),' required');
+    t += input('ncUnitType','Unit type',e('unitType'),'text',' readonly');
+    t += input('ncFloor','Floor',e('floor'),'text',' readonly');
+    t += input('ncArea','Area (sqft)',e('area'),'number',' readonly min="0" step="0.01"');
     t += input('ncPricePerSqft','Price / sqft',e('pricePerSqft'),'number',' min="0" step="0.01"');
     t += input('ncTotalPrice','Total price (AED)',e('totalPrice'),'number',' min="0" step="0.01"','e.g. 1200000');
 
@@ -199,6 +261,11 @@
     document.getElementById('btnNcBack').addEventListener('click',function(){ state.view='list'; renderMain(); window.scrollTo(0,0); });
     document.getElementById('ncCancel').addEventListener('click',function(){ state.newCustomerFormValues=null; state.newCustomerFormError=null; state.view='list'; renderMain(); window.scrollTo(0,0); });
     document.getElementById('ncSave').addEventListener('click',function(){ saveNewCustomer(); });
+    var unitSelect = document.getElementById('ncUnitNo');
+    if (unitSelect){
+      unitSelect.addEventListener('change',function(){ syncSelectedUnitFields(); });
+      syncSelectedUnitFields();
+    }
     var sourceSelect = document.getElementById('ncSource');
     if (sourceSelect) sourceSelect.addEventListener('change',function(){
       var previousSource = normalizeSource(getStored('source'));
@@ -224,7 +291,9 @@
     state.newCustomerFormValues = e;
 
     if (!e.name){ state.newCustomerFormError='Enter the customer’s name.'; renderNewCustomer(); return; }
-    if (!e.unitNo){ state.newCustomerFormError='Enter the unit number.'; renderNewCustomer(); return; }
+    if (!e.unitNo){ state.newCustomerFormError='Select an available unit.'; renderNewCustomer(); return; }
+    var selectedUnit = availableUnitByNo(e.unitNo);
+    if (!selectedUnit){ state.newCustomerFormError='Select an available unit from the list.'; renderNewCustomer(); return; }
     var totalPrice = numberValue(e.totalPrice);
     if (totalPrice === null || totalPrice <= 0){ state.newCustomerFormError='Enter a valid total price.'; renderNewCustomer(); return; }
     if (!source){ state.newCustomerFormError='Choose Broker, Direct or Individual Buyer as the sales channel.'; renderNewCustomer(); return; }
@@ -258,6 +327,9 @@
     renderNewCustomer();
 
     try{
+      var availabilityCheck = await sb.from('units').select('id,unit_no,availability_status').eq('id',selectedUnit.id).eq('availability_status','Available').single();
+      if (availabilityCheck.error || !availabilityCheck.data) throw new Error('That unit is no longer available. Refresh the form and choose another unit.');
+
       var customerResult = await sb.from('customers').insert({
         customer_name:e.name,
         phone:e.phone || null,
@@ -274,16 +346,18 @@
       if (customerResult.error) throw customerResult.error;
       var customerId = customerResult.data.id;
 
-      var unitResult = await sb.from('units').insert({
+      var unitResult = await sb.from('units').update({
         customer_id:customerId,
-        unit_no:e.unitNo,
-        unit_type:e.unitType || null,
-        floor:e.floor || null,
-        area:e.area ? parseFloat(e.area) : null,
+        unit_type:e.unitType || selectedUnit.unit_type || null,
+        floor:e.floor || selectedUnit.floor || null,
+        area:e.area ? parseFloat(e.area) : (selectedUnit.area !== null && selectedUnit.area !== undefined ? selectedUnit.area : selectedUnit.unit_area_sqft),
         price_per_sqft:e.pricePerSqft ? parseFloat(e.pricePerSqft) : null,
-        total_price:totalPrice
-      }).select('id').single();
-      if (unitResult.error) throw unitResult.error;
+        total_price:totalPrice,
+        status:'Sold',
+        availability_status:'Sold',
+        updated_at:new Date().toISOString()
+      }).eq('id',selectedUnit.id).eq('availability_status','Available').select('id').single();
+      if (unitResult.error || !unitResult.data) throw (unitResult.error || new Error('That unit is no longer available.'));
       var unitId = unitResult.data.id;
 
       var saleResult = await sb.from('sales').insert({
@@ -326,6 +400,9 @@
       state.newCustomerFormValues = null;
       state.newCustomerFormSaving = false;
       state.newCustomerFormError = null;
+      state.__newCustomerAvailableUnits = null;
+      state.__newCustomerSelectedUnitId = null;
+      try { await loadAvailableUnits(true); } catch (_inventoryRefreshError) {}
       await loadFromSupabase();
       goToDetail(e.unitNo,unitId,'list');
     }catch(err){
@@ -391,6 +468,7 @@
     }
     window.renderNewCustomer = renderNewCustomer;
     window.saveNewCustomer = saveNewCustomer;
+    loadAvailableUnits().then(function(){ if (state.view === 'newCustomer') renderNewCustomer(); }).catch(function(){ if (state.view === 'newCustomer') renderNewCustomer(); });
 
     var originalLoad = window.loadFromSupabase;
     window.loadFromSupabase = async function(){
