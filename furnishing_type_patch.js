@@ -189,7 +189,7 @@
     }catch(ex){ state.statusFormSaving=false; state.statusFormError=ex&&ex.message?ex.message:'Could not save compliance.'; renderDetail(); }
   }
 
-  function decorateNewCustomer(baseSave){
+  function decorateNewCustomer(){
     var unitType=document.getElementById('ncUnitType');
     if (!unitType) return;
     if (!document.getElementById('ncFurnishingType')){
@@ -201,22 +201,34 @@
       if (holder) holder.insertAdjacentElement('afterend',label);
       document.getElementById('ncFurnishingType').addEventListener('change',function(){ state.__newCustomerFurnishingType=this.value; });
     }
-    var save=document.getElementById('ncSave');
-    if (!save || save.getAttribute('data-furnishing-save')==='1') return;
-    var clone=save.cloneNode(true); clone.setAttribute('data-furnishing-save','1'); save.parentNode.replaceChild(clone,save);
-    clone.addEventListener('click',async function(){
-      var field=document.getElementById('ncFurnishingType');
-      var furnishing=field?field.value:state.__newCustomerFurnishingType;
-      if (!isFurnishing(furnishing)){ state.newCustomerFormError='Choose Fully Furnished or Semi Furnished.'; if (typeof window.renderNewCustomer==='function') window.renderNewCustomer(); return; }
-      state.__newCustomerFurnishingType=furnishing;
-      await baseSave();
-      if (state.newCustomerFormError || state.view !== 'detail' || !state.selectedUnit) return;
-      var parts=String(state.selectedUnit).split('::'); var unitId=parts.length>1?Number(parts[1]):null; if (!unitId) return;
-      var result=await sb.from('sales').update({furniture_status:furnishing,updated_at:new Date().toISOString()}).eq('unit_id',unitId);
-      if (result.error){ alert(result.error.message || 'Customer created, but furnishing type could not be saved.'); return; }
-      var key=state.selectedUnit, from=state.detailFrom || 'list'; state.__newCustomerFurnishingType=null;
-      await loadFromSupabase(); state.selectedUnit=key; state.detailFrom=from; state.view='detail'; renderMain();
-    });
+  }
+
+  async function saveNewCustomerWithFurnishing(baseSave){
+    var field=document.getElementById('ncFurnishingType');
+    var furnishing=field?field.value:state.__newCustomerFurnishingType;
+    if (!isFurnishing(furnishing)){
+      state.newCustomerFormError='Choose Fully Furnished or Semi Furnished.';
+      if (typeof window.renderNewCustomer==='function') window.renderNewCustomer();
+      return;
+    }
+    state.__newCustomerFurnishingType=furnishing;
+    await baseSave();
+    if (state.newCustomerFormError || state.view !== 'detail' || !state.selectedUnit) return;
+    var parts=String(state.selectedUnit).split('::');
+    var unitId=parts.length>1?Number(parts[1]):null;
+    if (!unitId) return;
+    var result=await sb.from('sales').update({furniture_status:furnishing,updated_at:new Date().toISOString()}).eq('unit_id',unitId);
+    if (result.error){
+      alert(result.error.message || 'Customer created, but furnishing type could not be saved.');
+      return;
+    }
+    var key=state.selectedUnit, from=state.detailFrom || 'list';
+    state.__newCustomerFurnishingType=null;
+    await loadFromSupabase();
+    state.selectedUnit=key;
+    state.detailFrom=from;
+    state.view='detail';
+    renderMain();
   }
 
   async function exportCleanUnits(rows){
@@ -238,7 +250,7 @@
   }
 
   function install(){
-    if (!window.state || !window.sb || typeof window.loadFromSupabase!=='function' || typeof window.renderDetail!=='function') { setTimeout(install,50); return; }
+    if (!window.state || !window.sb || typeof window.loadFromSupabase!=='function' || typeof window.renderDetail!=='function' || typeof window.saveNewCustomer!=='function') { setTimeout(install,50); return; }
     ensureStyles();
     var originalLoad=window.loadFromSupabase;
     window.loadFromSupabase=async function(){ var result=await originalLoad.apply(this,arguments); await enrichFurnishing(); return result; };
@@ -247,10 +259,13 @@
     window.renderStatusForm=complianceForm;
     window.saveStatus=saveCompliance;
     window.exportFilteredList=exportCleanUnits;
-    var baseSaveNewCustomer=typeof window.saveNewCustomer==='function' ? window.saveNewCustomer : null;
-    var observer=new MutationObserver(function(){ decorateFurnishingLabels(); if (baseSaveNewCustomer) decorateNewCustomer(baseSaveNewCustomer); });
+    var baseSaveNewCustomer=window.saveNewCustomer;
+    var furnishingSave=async function(){ return saveNewCustomerWithFurnishing(baseSaveNewCustomer); };
+    furnishingSave.__sunblissFurnishingWrapped=true;
+    window.saveNewCustomer=furnishingSave;
+    var observer=new MutationObserver(function(){ decorateFurnishingLabels(); decorateNewCustomer(); });
     observer.observe(document.body,{childList:true,subtree:true});
-    enrichFurnishing().then(function(){ decorateFurnishingLabels(); if (baseSaveNewCustomer) decorateNewCustomer(baseSaveNewCustomer); if (state.view!=='detail' && typeof window.renderMain==='function') window.renderMain(); }).catch(function(err){ console.warn('Could not load furnishing types',err); });
+    enrichFurnishing().then(function(){ decorateFurnishingLabels(); decorateNewCustomer(); if (state.view!=='detail' && typeof window.renderMain==='function') window.renderMain(); }).catch(function(err){ console.warn('Could not load furnishing types',err); });
   }
 
   install();
