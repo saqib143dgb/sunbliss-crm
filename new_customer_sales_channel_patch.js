@@ -253,14 +253,14 @@
       });
     }
     t += '<div class="brand-editor-actions" style="margin-top:6px;">';
-    t += '<button class="btn btn-gold" id="ncSave" style="justify-content:center"' + (state.newCustomerFormSaving ? ' disabled' : '') + '>' + (state.newCustomerFormSaving ? 'Saving…' : 'Create customer') + '</button>';
+    t += '<button type="button" class="btn btn-gold" id="ncSave" style="justify-content:center"' + (state.newCustomerFormSaving ? ' disabled' : '') + '>' + (state.newCustomerFormSaving ? 'Saving…' : 'Create customer') + '</button>';
     t += '<button class="btn-paper" id="ncCancel" style="justify-content:center;margin-bottom:0">Cancel</button>';
     t += '</div></div></div>';
 
     mainEl.innerHTML = t;
     document.getElementById('btnNcBack').addEventListener('click',function(){ state.view='list'; renderMain(); window.scrollTo(0,0); });
     document.getElementById('ncCancel').addEventListener('click',function(){ state.newCustomerFormValues=null; state.newCustomerFormError=null; state.view='list'; renderMain(); window.scrollTo(0,0); });
-    document.getElementById('ncSave').addEventListener('click',function(){ saveNewCustomer(); });
+    document.getElementById('ncSave').addEventListener('click',function(event){ if(event) event.preventDefault(); if(typeof window.saveNewCustomer==='function') return window.saveNewCustomer(); return saveNewCustomer(); });
     var unitSelect = document.getElementById('ncUnitNo');
     if (unitSelect){
       unitSelect.addEventListener('change',function(){ syncSelectedUnitFields(); });
