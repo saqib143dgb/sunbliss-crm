@@ -135,7 +135,7 @@
       address:valueOf('ncAddress'), permanentAddress:valueOf('ncPermanentAddress'), coApplicant:valueOf('ncCoApplicant'),
       unitNo:valueOf('ncUnitNo'), unitType:valueOf('ncUnitType'), floor:valueOf('ncFloor'), area:valueOf('ncArea'),
       pricePerSqft:valueOf('ncPricePerSqft'), totalPrice:valueOf('ncTotalPrice'), bookingDate:valueOf('ncBookingDate'),
-      bookingAmount:valueOf('ncBookingAmount'), soldBy:valueOf('ncSoldBy'), source:source,
+      bookingAmount:valueOf('ncBookingAmount'), bookingPaymentDate:valueOf('ncBookingPaymentDate'), soldBy:valueOf('ncSoldBy'), source:source,
       brokerName:valueOf('ncBrokerName'), brokerCompany:valueOf('ncBrokerCompany'),
       brokeragePct:source === 'Broker' ? valueOf('ncBrokeragePct') : (source === 'Individual Buyer' ? valueOf('ncVoucherPct') : ''),
       incentiveType:source === 'Individual Buyer' ? valueOf('ncIncentiveType') : ''
@@ -211,6 +211,7 @@
     t += '<p class="section-label">Sale details</p>';
     t += input('ncBookingDate','Booking date',e('bookingDate'),'date');
     t += input('ncBookingAmount','Booking amount (AED)',e('bookingAmount'),'number',' min="0" step="0.01"');
+    t += input('ncBookingPaymentDate','Booking payment date',e('bookingPaymentDate'),'date');
     t += input('ncSoldBy','Sold by',e('soldBy'),'text');
     t += '<div id="newCustomerChannelCard">';
     t += select('ncSource','Sales channel',source,[
