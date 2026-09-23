@@ -45,7 +45,7 @@
       address:val('ncAddress'), permanentAddress:val('ncPermanentAddress'), coApplicant:val('ncCoApplicant'),
       unitNo:val('ncUnitNo'), unitType:val('ncUnitType'), floor:val('ncFloor'), area:val('ncArea'),
       pricePerSqft:val('ncPricePerSqft'), totalPrice:val('ncTotalPrice'), bookingDate:val('ncBookingDate'),
-      bookingAmount:val('ncBookingAmount'), soldBy:val('ncSoldBy'), source:source,
+      bookingAmount:val('ncBookingAmount'), bookingPaymentDate:val('ncBookingPaymentDate'), soldBy:val('ncSoldBy'), source:source,
       brokerName:val('ncBrokerName'), brokerCompany:val('ncBrokerCompany'), brokeragePct:brokeragePct,
       incentiveType:source==='Individual Buyer'?val('ncIncentiveType'):''
     };
@@ -107,8 +107,8 @@
     if(draft.email && (draft.email.indexOf('@')<=0 || draft.email.lastIndexOf('.')<draft.email.indexOf('@')+2)){
       return preserveAndShowError('Enter a valid email address.','ncEmail');
     }
-    if(bookingAmount!==null&&bookingAmount>0&&!draft.bookingDate){
-      return preserveAndShowError('Choose the booking date for the booking amount.','ncBookingDate');
+    if(bookingAmount!==null&&bookingAmount>0&&!draft.bookingPaymentDate){
+      return preserveAndShowError('Choose the booking payment date.','ncBookingPaymentDate');
     }
 
     if(source==='Broker'){
@@ -160,6 +160,7 @@
       total_price:money(total),
       booking_date:draft.bookingDate||null,
       booking_amount:bookingAmount!==null&&bookingAmount>0?money(bookingAmount):null,
+      booking_payment_date:bookingAmount!==null&&bookingAmount>0?(draft.bookingPaymentDate||null):null,
       sold_by:draft.soldBy||null,
       source:source,
       broker_name:source==='Broker'?(draft.brokerName||null):null,
