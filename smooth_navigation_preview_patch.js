@@ -188,84 +188,6 @@ function completeBoot(token){
   window.setTimeout(function(){completeBoot(token)},70);
 }
 
-function wrap(name,always){
-  var original=window[name];
-  if(typeof original!=='function'||original.__sunblissExecutiveMotionWrapped)return false;
-  function wrapped(){
-    var before=signature();
-    var should=!window.__sunblissSwipeNavigating&&(always||before!==lastSignature);
-    var token=should?begin(viewLabel(),false):0;
-    var output;
-    try{output=original.apply(this,arguments)}
-    catch(error){if(token)finish(token,0,false);throw error}
-    lastSignature=signature();
-    if(token){
-      if(output&&typeof output.then==='function')output.then(function(){settle(token,245,false)},function(){finish(token,0,false)});
-      else settle(token,245,false);
-    }
-    return output;
-  }
-  wrapped.__sunblissExecutiveMotionWrapped=true;
-  wrapped.__sunblissOriginal=original;
-  window[name]=wrapped;
-  return true;
-}
-
-function install(){
-  lastSignature=signature();
-  wrap('goToDetail',true);
-  wrap('renderMain',false);
-  wrap('render',false);
-  if(typeof window.renderMain!=='function'){
-    window.clearTimeout(installTimer);
-    installTimer=window.setTimeout(install,80);
-  }
-}
-
-function rawLabel(element){
-  return String((element.getAttribute&&element.getAttribute('aria-label'))||element.textContent||'').replace(/\s+/g,' ').trim();
-}
-
-function actionLabel(element){
-  var raw=rawLabel(element);
-  var lower=raw.toLowerCase();
-  if(lower.indexOf('overview')===0)return'Opening executive overview';
-  if(lower.indexOf('insights')===0)return'Preparing portfolio insights';
-  if(lower.indexOf('unit')===0||lower.indexOf('customer')===0)return'Opening unit portfolio';
-  if(lower.indexOf('back')===0)return'Returning to previous view';
-  if(lower.indexOf('payment statement')>=0)return'Preparing payment statement';
-  if(lower.indexOf('record payment')>=0)return'Opening payment workspace';
-  if(lower.indexOf('schedule action')>=0)return'Opening action scheduler';
-  if(lower.indexOf('view notes')>=0)return'Opening customer notes';
-  if(lower.indexOf('add customer')>=0)return'Opening customer setup';
-  if(lower.indexOf('edit')===0)return'Opening editor';
-  return raw?'Opening '+(raw.length>30?raw.slice(0,30)+'…':raw):'Opening workspace';
-}
-
-function shouldAnimate(element){
-  if(!element||element.disabled)return false;
-  if(element.closest&&element.closest('form')&&/^(input|select|textarea)$/i.test(element.tagName))return false;
-  if(element.matches&&element.matches('#btnSignOut,.dock-search,[type="submit"]'))return false;
-  if(element.matches&&element.matches('.tabs .tab[data-view],[data-open-unit],[data-ext-unit],#persistentBackButton,#btnAddCustomer,.dock-add,.scheduled-edit,.scheduled-mark-done'))return true;
-  if(element.closest&&element.closest('#customerActionMenu,[data-task-id]'))return true;
-  return /^(back|overview|insights|units|customers|schedule action|view notes|edit |record payment|add customer|payment statement|update status|mark done)/i.test(rawLabel(element));
-}
-
-document.addEventListener('click',function(event){
-  if(window.__sunblissSwipeNavigating)return;
-  var element=event.target&&event.target.closest?event.target.closest('button,a,[role="button"]'):null;
-  if(!shouldAnimate(element)||root.classList.contains('sbx-loading'))return;
-  var token=begin(actionLabel(element),false);
-  settle(token,225,false);
-},true);
-
-window.addEventListener('pageshow',function(event){
-  if(event.persisted){
-    var token=begin('Restoring secure workspace',false);
-    settle(token,245,false);
-  }
-});
-
 installPreload();
 installStyles();
 mount();
@@ -277,5 +199,4 @@ window.setTimeout(function(){
     setProgress(.04,true);
   }
 },4500);
-install();
 })();

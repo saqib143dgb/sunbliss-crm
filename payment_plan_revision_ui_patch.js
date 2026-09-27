@@ -45,7 +45,7 @@ function styles(){
   var s=document.createElement('style');s.id='paymentPlanRevisionStyles';
   s.textContent=[
     'body.rpp-open{overflow:hidden!important}',
-    '.rpp-panel{position:fixed;inset:0;z-index:12650;height:100dvh;box-sizing:border-box;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--paper,#F6F1E4);padding:calc(18px + env(safe-area-inset-top)) 16px calc(100px + env(safe-area-inset-bottom))}',
+    '.rpp-panel{position:fixed;inset:0;z-index:12650;height:100dvh;box-sizing:border-box;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--paper,#F6F1E4);padding:calc(18px + env(safe-area-inset-top)) 16px 0}',
     '.rpp-shell{width:min(760px,100%);margin:auto}',
     '.rpp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}',
     '.rpp-kicker{font:700 10px IBM Plex Mono,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-deep,#8F6A1E)}',
@@ -81,7 +81,7 @@ function styles(){
     '.rpp-history-item{margin-top:7px;padding-top:7px;border-top:1px solid var(--paper-line);font-size:10.8px;line-height:1.45;color:var(--muted)}',
     '.rpp-history-item b{color:var(--ink)}',
     '.rpp-empty{border:1px dashed var(--paper-line);border-radius:11px;padding:14px;color:var(--muted);font-size:11.5px}',
-    '.rpp-actions{position:sticky;bottom:calc(-100px - env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr auto;gap:8px;margin:16px -16px -100px;padding:12px 16px calc(112px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper,#F6F1E4) 76%,rgba(246,241,228,.94));border-top:1px solid var(--paper-line);box-shadow:0 -8px 24px rgba(15,26,38,.08)}',
+    '.rpp-actions{position:sticky;bottom:0;display:grid;grid-template-columns:1fr auto;gap:8px;margin:16px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper,#F6F1E4) 76%,rgba(246,241,228,.94));border-top:1px solid var(--paper-line);box-shadow:0 -8px 24px rgba(15,26,38,.08)}',
     '.rpp-actions button{margin:0!important;justify-content:center}',
     '@media(max-width:520px){.rpp-fields,.rpp-approval-grid{grid-template-columns:1fr}.rpp-actions{grid-template-columns:1fr}.rpp-head .btn-paper{min-width:auto}}'
   ].join('');

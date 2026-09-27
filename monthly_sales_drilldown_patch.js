@@ -126,13 +126,6 @@
     return null;
   }
 
-  function hideOldMonthlySection(label,foot){
-    if(!label)return;
-    label.style.display='none';
-    var node=label.nextElementSibling;
-    while(node&&node!==foot){node.style.display='none';node=node.nextElementSibling;}
-  }
-
   function renderMonthPanel(rows){
     var groups=groupMonths(rows),wrap=document.createElement('div');
     wrap.id='sunblissMonthlySalesDrilldown';wrap.className='monthly-sales-panel';
@@ -152,17 +145,25 @@
     if(!window.state||state.view!=='insights')return;
     var overview=document.querySelector('.overview');
     if(!overview||document.getElementById('sunblissMonthlySalesDrilldown'))return;
+    var old=findOldMonthlyLabel(),panel=document.createElement('div');
+    panel.id='sunblissMonthlySalesDrilldown';panel.className='monthly-sales-panel';
+    panel.innerHTML='<p class="section-label">Monthly sales</p><p role="status">Loading monthly sales…</p>';
+    if(old){
+      var frame=old.closest('.sbx-section-frame');
+      if(frame)frame.replaceWith(panel);
+      else{var next=old.nextElementSibling;old.replaceWith(panel);if(next&&(next.matches('svg,.chart,.chart-wrap,.chart-container')||next.querySelector('svg')))next.remove();}
+    }else{var foot=overview.querySelector('.footnote');if(foot)foot.before(panel);else overview.appendChild(panel);}
     try{
       var rows=await loadArchive();
-      if(!rows.length)return;
-      if(!document.querySelector('.overview')||state.view!=='insights')return;
-      overview=document.querySelector('.overview');
-      if(document.getElementById('sunblissMonthlySalesDrilldown'))return;
-      var foot=overview.querySelector('.footnote'),old=findOldMonthlyLabel();
-      hideOldMonthlySection(old,foot);
-      var panel=renderMonthPanel(rows);
-      if(foot)overview.insertBefore(panel,foot);else overview.appendChild(panel);
-    }catch(err){console.warn('Could not load monthly sales drill-down',err);}
+      if(!panel.isConnected||state.view!=='insights')return;
+      if(rows.length)panel.replaceWith(renderMonthPanel(rows));
+      else panel.innerHTML='<p class="section-label">Monthly sales</p><p>No recorded sales are available for this period.</p>';
+    }catch(err){
+      if(!panel.isConnected)return;
+      panel.innerHTML='<p class="section-label">Monthly sales</p><p role="status">Monthly sales could not be loaded.</p><button type="button" class="btn-paper">Retry</button>';
+      panel.querySelector('button').onclick=function(){panel.remove();decorateInsights();};
+      console.warn('Could not load monthly sales drill-down',err);
+    }
   }
 
   function saleSearchText(r){return [r.unit,r.customer,r.type,r.rm,r.source,r.individualSource,r.broker,r.brokerCompany,r.incentiveType,r.unitStatus].join(' ').toLowerCase();}
@@ -232,7 +233,7 @@
     if(typeof window.renderInsights!=='function'||typeof window.loadFromSupabase!=='function'){window.setTimeout(install,50);return;}
     ensureStyles();
     var baseInsights=window.renderInsights;
-    window.renderInsights=function(){var out=baseInsights.apply(this,arguments);window.setTimeout(decorateInsights,0);return out;};
+    window.renderInsights=function(){var out=baseInsights.apply(this,arguments);decorateInsights();return out;};
     var baseLoad=window.loadFromSupabase;
     window.loadFromSupabase=async function(){archivePromise=null;return await baseLoad.apply(this,arguments);};
     document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&document.getElementById('monthlySalesOverlay'))closeMonth();});

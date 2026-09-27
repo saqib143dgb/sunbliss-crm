@@ -4,6 +4,7 @@
   if (window.__sunblissGlobalDetailNavigationStabilityInstalled) return;
   window.__sunblissGlobalDetailNavigationStabilityInstalled = true;
 
+  var returnScroll = null;
   var repairing = false;
   var rendering = false;
   var verifyScheduled = false;
@@ -111,6 +112,7 @@
     closeSearch();
     var main=currentMain() || repairShell();
     if (!main) return false;
+    if(state.view!=='detail')returnScroll={view:state.view,y:window.scrollY||0};
     state.selectedUnit=customerKey(customer);
     state.detailFrom=from || 'list';
     state.revealedFields={};
@@ -181,6 +183,14 @@
 
   document.addEventListener('click',function(event){
     if (event.defaultPrevented) return;
+    var back=event.target&&event.target.closest&&event.target.closest('#btnBack');
+    if(back&&window.state&&state.view==='detail'&&returnScroll){
+      event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+      state.view=state.detailFrom||returnScroll.view;state.selectedUnit=null;
+      window.renderMain();
+      window.scrollTo({top:state.view===returnScroll.view?returnScroll.y:0,behavior:'instant'});
+      return;
+    }
     var target=navigationTarget(event);
     if (!target) return;
     var customer=resolveCustomer(target.getAttribute('data-unit'),target.getAttribute('data-sno'),target);

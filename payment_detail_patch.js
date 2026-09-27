@@ -49,6 +49,7 @@
     var match=text(label).trim().match(/^(\d+)(?:st|nd|rd|th)\s+Installment$/i);
     return match ? parseInt(match[1],10) : null;
   }
+  function isUnusedStage(s){return !s.due&&!s.dueDate&&!s.paid&&!s.paidDate&&!s.remarks&&!s.creditNoteTotal&&!s.carryApplied;}
   function nextInstallmentNumber(c){
     var max=7;
     (c && c.stages || []).forEach(function(stage){
@@ -83,6 +84,7 @@
       '.payment-detail-row-title{font:700 13px/1.3 Inter,sans-serif;color:var(--ink)}',
       '.payment-detail-row-meta{display:flex;flex-wrap:wrap;gap:5px 10px;margin-top:4px;font-size:10.8px;line-height:1.35;color:var(--muted)}',
       '.payment-detail-row .btn-paper{min-width:70px;margin:0!important;justify-content:center;white-space:nowrap}',
+      '.payment-detail-unused{margin:0 0 18px}.payment-detail-unused summary{cursor:pointer;padding:12px 0;font:600 12px Inter,sans-serif}.payment-detail-unused[open] summary{margin-bottom:8px}',
       '.payment-detail-add{padding:13px;border:1px solid rgba(198,151,46,.34);border-radius:13px;background:rgba(198,151,46,.07)}',
       '.payment-detail-add h4{margin:0 0 3px;font:700 14px/1.3 Inter,sans-serif;color:var(--ink)}',
       '.payment-detail-add p{margin:0 0 11px;font-size:11px;line-height:1.45;color:var(--muted)}',
@@ -168,10 +170,10 @@
       '<h3 id="paymentDetailTitle">Edit payment detail</h3>'+
       '<p class="payment-detail-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+' · edit the existing schedule or add another installment.</p>'+
       '<p class="brand-error" id="paymentDetailError" style="display:none"></p>'+
-      '<div class="payment-detail-list">'+stages.map(stageRowHtml).join('')+'</div>'+
+      '<div class="payment-detail-list">'+stages.map(function(stage,index){return {stage:stage,index:index};}).filter(function(item){return !isUnusedStage(item.stage);}).map(function(item){return stageRowHtml(item.stage,item.index);}).join('')+'</div><details class="payment-detail-unused"><summary>Set up unused installment stages</summary><div class="payment-detail-list">'+stages.map(function(stage,index){return isUnusedStage(stage)?stageRowHtml(stage,index):'';}).join('')+'</div></details>'+
       '<div class="payment-detail-add">'+
-        '<h4>Add '+safe(nextLabel)+'</h4>'+
-        '<p>The new installment starts as Outstanding with AED 0 paid. You can edit payment status later from the installment editor.</p>'+
+        '<h4>Add additional installment</h4>'+
+        '<p>Use Set up above for unused existing stages. This additional stage is ' + safe(nextLabel) + '. It starts as Outstanding with AED 0 paid. You can edit payment status later from the installment editor.</p>'+
         '<div class="payment-detail-add-grid">'+
           '<label class="brand-field">Installment amount (AED)<input type="number" id="pdAddAmount" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 50000" /></label>'+
           '<label class="brand-field">Due date<input type="date" id="pdAddDueDate" /></label>'+
