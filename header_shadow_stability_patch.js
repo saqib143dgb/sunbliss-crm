@@ -40,7 +40,7 @@
       opacity:1!important;
       visibility:visible!important;
     }
-    html.sbx-overview-data-pending:not(.sbx-booting) #sbxLoader{
+    html.sbx-overview-data-pending:not(.sbx-booting):not(.sbx-loading) #sbxLoader{
       opacity:0!important;
       visibility:hidden!important;
       pointer-events:none!important;

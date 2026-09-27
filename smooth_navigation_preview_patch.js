@@ -3,6 +3,7 @@
 if(window.__sunblissExecutiveMotionInstalled)return;
 window.__sunblissExecutiveMotionInstalled=true;
 
+window.__sunblissUnifiedCustomerNotes=true;
 var root=document.documentElement;
 var activeToken=0;
 var busyAt=0;
@@ -171,6 +172,7 @@ function settle(token,minimum,isBoot){
 }
 
 function bootReady(){
+  if(window.__sunblissViewPreparing)return false;
   var app=document.getElementById('app');
   if(!app||!app.children.length)return false;
   if(window.state&&window.state.userRole&&document.getElementById('main'))return true;
@@ -184,17 +186,19 @@ function completeBoot(token){
     decoded.then(function(){settle(token,620,true)});
     return;
   }
-  if(Date.now()-bootStarted>3800){finish(token,0,true);return}
+  if(Date.now()-bootStarted>3800&&!window.__sunblissViewPreparing){finish(token,0,true);return}
   window.setTimeout(function(){completeBoot(token)},70);
 }
 
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button,a,summary,.tx-row');if(!b||b.closest('#sbxLoader,.crm-readiness-error')||b.matches('a[target="_blank"]'))return;if(window.__sunblissBeginRenderInteraction)window.__sunblissBeginRenderInteraction();},true);
+window.__sunblissMotion={begin:function(label){return begin(label,false)},finish:function(token){finish(token,1,false)}};
 installPreload();
 installStyles();
 mount();
 var bootToken=begin('Securing workspace',true);
 completeBoot(bootToken);
 window.setTimeout(function(){
-  if(root.classList.contains('sbx-booting')){
+  if(root.classList.contains('sbx-booting')&&!window.__sunblissViewPreparing){
     root.classList.remove('sbx-loading','sbx-booting','sbx-motion');
     setProgress(.04,true);
   }

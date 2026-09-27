@@ -14,7 +14,7 @@ function styles(){
 }
 function closeActionMenu(){var m=document.getElementById('customerActionMenu'),b=document.getElementById('customerActionMenuButton');if(m)m.style.display='none';if(b)b.setAttribute('aria-expanded','false');}
 function anchor(detail){var b=detail&&detail.querySelector('.badges');if(b&&b.parentNode)return b;var t=detail&&detail.querySelector('.d-type');return t&&t.parentNode?t:null;}
-async function fetchNotes(uid){var r=await sb.from('sales').select('id,customer_note,remarks,partial_booking_note').eq('unit_id',uid).order('id',{ascending:false}).limit(1);if(r.error)throw r.error;return (r.data||[])[0]||{};}
+async function fetchNotes(uid){var r=await sb.from('sales').select('id,customer_note,remarks,partial_booking_note,customer_page_hidden_notes').eq('unit_id',uid).order('id',{ascending:false}).limit(1);if(r.error)throw r.error;return (r.data||[])[0]||{};}
 async function fetchHistory(uid){
   var r=await sb.from('sales_note_history').select('id,old_note,new_note,edited_by,edited_at,note_type').eq('unit_id',uid).eq('note_type','note').order('edited_at',{ascending:false}).limit(100);if(r.error)throw r.error;
   var rows=r.data||[],ids=[];rows.forEach(function(x){if(x.edited_by&&ids.indexOf(x.edited_by)<0)ids.push(x.edited_by);});var names={};
@@ -39,6 +39,7 @@ async function showPanel(){
     if(txt(sale.remarks).trim())panel.appendChild(currentBlock(sale.remarks,'Special Note','Managed separately in Edit Sale.'));
     if(txt(sale.partial_booking_note).trim())panel.appendChild(currentBlock(sale.partial_booking_note,'Partial Booking Note','Managed separately and linked to partial-booking follow-up.'));
 
+    if(window.__sunblissCustomerWorkspace)window.__sunblissCustomerWorkspace.decorateNotesEditor(panel,sale,uid);
     var actions=document.createElement('div');actions.className='notes-management-actions';actions.innerHTML='<button type="button" class="notes-management-action" id="notesHistoryBtn">History</button><button type="button" class="notes-management-action" id="notesEditBtn">Add / Edit Note</button>';panel.appendChild(actions);
     var history=document.createElement('div');history.id='notesHistorySection';history.className='notes-subpanel';history.hidden=true;panel.appendChild(history);
     var editor=document.createElement('div');editor.id='notesEditorSection';editor.className='notes-subpanel';editor.hidden=true;editor.innerHTML='<p class="section-label" style="margin:0">Add / Edit Note</p><textarea class="notes-editor-textarea" id="notesEditorText" placeholder="Write the internal Note for this customer.">'+esc(txt(sale.customer_note))+'</textarea><div class="notes-editor-actions"><button type="button" class="btn btn-gold" id="notesSaveBtn" style="justify-content:center">Save Note</button><button type="button" class="btn-paper" id="notesCancelEditBtn" style="justify-content:center;margin:0">Cancel</button></div><p class="notes-management-error" id="notesEditorError" style="display:none"></p>';panel.appendChild(editor);
@@ -53,6 +54,7 @@ async function showPanel(){
       try{
         var r=await sb.rpc('crm_save_sales_note',{p_unit_id:uid,p_note:ta.value});if(r.error)throw r.error;
         sale.customer_note=ta.value.trim()||null;
+        if(window.__sunblissCustomerWorkspace)window.__sunblissCustomerWorkspace.invalidate(uid);
         var blocks=panel.querySelectorAll('.notes-current');if(blocks[0])blocks[0].replaceWith(currentBlock(sale.customer_note,'Note','Managed here. Adding, editing or deleting this Note does not change Special Note.'));
         editor.hidden=true;history.hidden=false;renderHistory(history,await fetchHistory(uid));
         if(typeof window.renderDetail==='function')setTimeout(function(){try{window.renderDetail();}catch(e){}},30);

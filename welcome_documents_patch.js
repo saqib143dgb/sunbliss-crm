@@ -163,8 +163,8 @@ install();
 'use strict';
 if(window.__sunblissSectionFrames)return;window.__sunblissSectionFrames=true;
 var queued=false,running=false;
-function excluded(h){return !!h.closest('.sbx-section-frame,.stat-hero,.kpi-card,.kpi-tile,.summary-card,.summary-tile');}
-function stopNode(n){return !n||n.classList.contains('section-label')||n.classList.contains('footnote')||n.classList.contains('tabs');}
+function excluded(h){return !!h.closest('.sbx-section-frame,.stat-hero,.kpi-card,.kpi-tile,.summary-card,.summary-tile,#scheduledActionsOverview,#scheduledActionsDetail,#customerNoteTags,.brand-editor');}
+function stopNode(n){return !n||n.matches('#scheduledActionsOverview,#scheduledActionsDetail,#customerNoteTags,#customerFinancialSummary')||n.classList.contains('section-label')||n.classList.contains('footnote')||n.classList.contains('tabs');}
 function frameHeading(h){
   if(!h||!h.isConnected||excluded(h)||h.dataset.sbxSectionFramed==='1')return;
   var parent=h.parentElement;if(!parent||parent.classList.contains('sbx-section-body'))return;

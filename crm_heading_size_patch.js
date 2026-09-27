@@ -44,14 +44,14 @@
 
   function frameSection(label){
     if(!label || !label.parentElement) return;
-    if(label.closest('.sbx-section-frame') || isProtectedKpi(label)) return;
+    if(label.closest('.sbx-section-frame,#scheduledActionsOverview,#scheduledActionsDetail,#customerNoteTags,.brand-editor') || isProtectedKpi(label)) return;
 
     var parent=label.parentElement;
     var nodes=[];
     var cursor=label.nextSibling;
 
     while(cursor){
-      if(cursor.nodeType===1 && cursor.classList && cursor.classList.contains('section-label')) break;
+      if(cursor.nodeType===1 && cursor.classList && (cursor.classList.contains('section-label')||cursor.matches('#scheduledActionsOverview,#scheduledActionsDetail,#customerNoteTags,#customerFinancialSummary,.footnote'))) break;
       nodes.push(cursor);
       cursor=cursor.nextSibling;
     }

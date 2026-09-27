@@ -109,14 +109,7 @@
       empty.innerHTML=genericEmptyCopy(filter);
       return;
     }
-    empty.innerHTML='<div class="scheduled-empty-clear"><strong>No actions today</strong><span>Your schedule is clear.</span></div><div class="scheduled-empty-clear" data-next-placeholder="1"><span>Checking next action…</span></div>';
-    loadNextUpcoming().then(function(task){
-      var currentSection=document.getElementById('scheduledActionsOverview'),currentHost=document.getElementById('scheduledOverviewList'),currentSelect=document.getElementById('scheduledOverviewFilter');
-      if(!currentSection||!currentHost||!currentSelect||currentSelect.value!=='today'||currentHost.querySelector('.scheduled-overview-row'))return;
-      var currentEmpty=currentHost.querySelector('.scheduled-empty');if(!currentEmpty)return;
-      currentEmpty.innerHTML='<div class="scheduled-empty-clear"><strong>No actions today</strong><span>Your schedule is clear.</span></div>'+(task?nextButtonHtml(task):'<div class="scheduled-empty-clear"><span>No upcoming scheduled actions.</span></div>');
-      bindNext(currentSection);
-    });
+    empty.innerHTML='<div class="scheduled-empty-clear"><strong>No actions today</strong><span>Your schedule is clear.</span></div>';
   }
 
   function attachOverviewObserver(){

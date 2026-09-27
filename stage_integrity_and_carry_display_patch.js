@@ -199,6 +199,7 @@ async function refreshIntegrity(options){
   })();
   return refreshPromise.then(function(v){refreshPromise=null;return v},function(e){refreshPromise=null;throw e});
 }
+window.__sunblissEnsureFinancialReady=function(){return window.__sunblissOverviewFinancialReady?Promise.resolve():refreshIntegrity({render:false}).then(function(){emitFinancialState(true)})};
 function wrapRender(name){
   var base=window[name];
   if(typeof base!=='function'||base.__sunblissStageIntegrityWrapped)return;

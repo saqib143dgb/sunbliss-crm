@@ -136,7 +136,7 @@
     var old=document.getElementById('scheduledActionsOverview');if(old)old.remove();
     var section=document.createElement('section');section.id='scheduledActionsOverview';
     section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
-    var foot=overview.querySelector('.footnote');if(foot)overview.insertBefore(section,foot);else overview.appendChild(section);
+    var foot=overview.querySelector(':scope > .footnote');if(foot)overview.insertBefore(section,foot);else overview.appendChild(section);
     document.getElementById('scheduledOverviewFilter').onchange=function(){cache.overviewFilter=this.value;renderOverviewList();};
     renderOverviewList();
   }
@@ -218,6 +218,8 @@
     if(!window.state||!window.sb||typeof window.renderDetail!=='function'||typeof window.renderOverview!=='function'){setTimeout(install,60);return;}
     ensureStyles();
     window.__sunblissRefreshScheduledActions=function(){return loadTasks(true);};
+  window.__sunblissScheduledActionRows=function(){return cache.loaded?cache.rows:null;};
+  window.__sunblissEnsureScheduledActions=async function(){await loadTasks(false);renderScheduledViews();};
     var rd=window.renderDetail;window.renderDetail=function(){var out=rd.apply(this,arguments);loadTasks(false).then(renderScheduledViews).catch(function(){});return out;};
     var ro=window.renderOverview;window.renderOverview=function(){var out=ro.apply(this,arguments);loadTasks(false).then(renderScheduledViews).catch(function(){});return out;};
     loadTasks(false).then(renderScheduledViews).catch(function(){});

@@ -1,0 +1,12 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const source=fs.readFileSync('automatic_payment_actions_v2_patch.js','utf8').replace('install();\n})();','window.testRun=run;\n})();');
+async function run({delta=5,status='pending',paid=0}={}){
+ const now=new Date();now.setHours(0,0,0,0);const due=new Date(now);due.setDate(due.getDate()+delta);const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ const rows={payment_schedule:[{id:1,unit_id:2,stage_name:'5th Installment',due_amount:10000,paid_amount:paid,due_date:iso(due)}],scheduled_actions:[{id:3,unit_id:2,source:'automatic',auto_kind:'demand_letter',auto_key:'demand_letter|schedule:1|due:'+iso(due),status,action_label:'Send Demand Letter',due_date:iso(now),priority:'Medium'}],credit_notes:[],payment_extensions:[]};
+ const writes=[];const sb={auth:{getUser:async()=>({data:{user:{id:'officer'}}})},from(table){let operation='read',value;const q=new Proxy({then(resolve){if(operation!=='read')writes.push({table,operation,value});return Promise.resolve({data:rows[table]||[],error:null}).then(resolve)}},{get(t,k){if(k==='then')return t.then;if(['update','insert'].includes(k))return v=>{operation=k;value=v;return q};return()=>q}});return q}};
+ const document={getElementById:()=>true,querySelectorAll:()=>[]};const context={window:null,state:{userRole:'crm_officer',dues:[{sno:2,stages:[]}]},sb,document,console,Date,setTimeout,clearTimeout};context.window=context;vm.runInNewContext(source,context);await context.testRun();return writes;
+}
+test('pending demand letter survives after its trigger day and after payment due date',async()=>{for(const delta of [5,-4]){const writes=await run({delta});assert(!writes.some(x=>x.operation==='update'&&x.value.status==='cancelled'));}});
+test('paid installment does not silently remove the unfinished demand-letter task',async()=>{const writes=await run({paid:10000});assert(!writes.some(x=>x.value.status==='cancelled'));});
+test('completed demand letter is not reopened during automatic sync',async()=>{const writes=await run({status:'completed'});assert(!writes.some(x=>x.operation==='update'&&x.value.status==='pending'));});
+test('gentle reminder remains available two days before payment due',async()=>{const writes=await run({delta:2});assert(writes.some(x=>x.operation==='insert'&&x.value.auto_kind==='gentle_reminder'));});

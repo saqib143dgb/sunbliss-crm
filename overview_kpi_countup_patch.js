@@ -219,6 +219,14 @@
   /* Called by renderers that own the final Overview DOM. Keeping this explicit
      avoids watching the whole document for child mutations. */
   window.__sunblissOverviewKpiRendered=prepareFromRenderedOverview;
+  window.__sunblissCompleteOverviewKpis=function(){
+    if(completed)return true;
+    if(!targets)prepareFromRenderedOverview();
+    if(!targets)return false;
+    if(frameId)cancelAnimationFrame(frameId);
+    started=true;completed=true;currentProgress=1;applyProgress(1);
+    root.classList.remove('sbx-kpi-pending');return true;
+  };
 
   /* The only observer left watches loader state on <html>. It cannot see KPI text
      mutations, so it cannot feed back into the animation. */

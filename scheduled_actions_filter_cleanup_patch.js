@@ -14,7 +14,7 @@
 
   function extensionCount(){
     var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
-    var rows=C&&Array.isArray(C.t)?C.t:[];
+    var rows=window.__sunblissScheduledActionRows&&window.__sunblissScheduledActionRows()||C&&C.t||[];
     return rows.filter(function(t){
       return t&&t.status==='pending'&&t.auto_kind==='extension_active';
     }).length;
@@ -40,10 +40,11 @@
 
   function sourceCounts(){
     var C=window.PaymentExtensionsCore&&window.PaymentExtensionsCore.cache;
-    if(!C||!Array.isArray(C.t)||!C.loaded)return null;
+    var rows=window.__sunblissScheduledActionRows&&window.__sunblissScheduledActionRows()||C&&C.loaded&&C.t;
+    if(!Array.isArray(rows))return null;
     var today=todayIso();
     var counts={today:0,overdue:0,upcoming:0,extensions:0};
-    C.t.forEach(function(t){
+    rows.forEach(function(t){
       if(!t)return;
       if(t.auto_kind==='extension_active'){
         if(t.status==='pending')counts.extensions++;
