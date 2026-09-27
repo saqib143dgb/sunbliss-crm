@@ -34,6 +34,10 @@ async function record(page){await page.locator('#recordPaymentReliablePanel #pfA
   await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'),{},{timeout:12000});
   assert.deepEqual(errors,[]);
   assert.equal(await page.locator('#customerNoteTags').count(),1);
+  assert.equal(await page.locator('#scheduledActionsDetail').count(),0);
+  assert.match(await page.locator('#customerNoteTags .note-tag-preview').innerText(),/Call before visiting|Approved payment note/);
+  assert(await page.locator('#actionRequiredCard .action-required-meta-block').first().evaluate(el=>getComputedStyle(el).borderTopWidth==='1px'));
+  assert.match(await page.locator('#actionRequiredCard .action-required-message').innerText(),/overdue/);
   assert.equal(await page.locator('#customerNoteTags').getAttribute('open'),null);
   assert(await page.evaluate(()=>{const a=document.querySelector('#actionRequiredCard'),n=document.querySelector('#customerNoteTags'),f=document.querySelector('#customerFinancialSummary');return a.nextElementSibling===n&&n.nextElementSibling===f&&!!f.querySelector('.cust-progress')}));
   const row=page.locator('.tx-list .tx-row:not(.credit-note-tx-row)').first();
@@ -48,6 +52,8 @@ async function record(page){await page.locator('#recordPaymentReliablePanel #pfA
   await page.waitForTimeout(400);assert(await page.evaluate(()=>document.documentElement.classList.contains('sbx-loading')),'Logo remains until data resolves');
   await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'),{},{timeout:8000});
   assert.equal(await page.locator('.crm-readiness-error').count(),0);
+  await page.locator('#actionRequiredCard').screenshot({path:'/workspace/scratch/b505e86594fb/review2/action-'+width+'.png'});
+  await page.locator('#customerNoteTags').screenshot({path:'/workspace/scratch/b505e86594fb/review2/note-'+width+'.png'});
   await page.screenshot({path:'/workspace/scratch/b505e86594fb/review2/customer-workspace-'+width+'.png',fullPage:true});
   await page.evaluate(()=>document.getElementById('actionScheduleAction').click());await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'));
   assert(await page.locator('#scheduledActionPanel').isVisible(),'Schedule action opens on both layouts');await page.locator('#saClose').click();

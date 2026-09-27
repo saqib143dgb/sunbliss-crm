@@ -9,6 +9,18 @@ function ensureHeadlineSize(){
   var style=document.createElement('style');
   style.id='actionRequiredHeadlineSizeRefine';
   style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n.action-required-card[data-tone="danger"] .action-required-status-wrap{color:var(--rust,#B44732)!important;border-color:var(--rust,#B44732)!important;background:rgba(180,71,50,.07)!important;}\n.action-required-card[data-action-status="upcoming"]{border-left-color:var(--sage,#3F7A57)!important;}\n.action-required-card[data-action-status="upcoming"] .action-required-status-wrap{color:var(--sage,#3F7A57)!important;border-color:var(--sage,#3F7A57)!important;background:rgba(63,122,87,.07)!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}.action-required-card .action-required-meta{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.8fr)!important;padding:0 10px!important;}.action-required-card .action-required-meta-block{display:block!important;min-width:0!important;min-height:auto!important;padding:10px 7px!important;text-align:center!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:7px!important;}.action-required-card .action-required-meta-icon{display:none!important;}.action-required-card .action-required-meta-label{margin:0 0 3px!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;}.action-required-card .action-required-meta-value{display:block!important;font-size:10.4px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;word-break:normal!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}.action-required-card .action-required-meta{padding:0 7px!important;}.action-required-card .action-required-meta-block{padding:9px 5px!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:5px!important;}.action-required-card .action-required-meta-label{font-size:8.5px!important;}.action-required-card .action-required-meta-value{font-size:9.6px!important;}}';
+  style.textContent+=`
+#actionRequiredCard .action-required-divider{display:none!important}
+#actionRequiredCard .action-required-meta{display:grid!important;grid-template-columns:1.1fr 1fr 1.05fr!important;gap:6px!important;padding:0 10px 8px!important;border:0!important}
+#actionRequiredCard .action-required-meta-block,#actionRequiredCard .action-required-meta-block+.action-required-meta-block{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;min-width:0!important;min-height:62px!important;padding:8px 5px 10px!important;border:1px solid #dfd2c0!important;border-radius:7px!important;background:transparent!important;text-align:center!important}
+#actionRequiredCard .action-required-meta-icon{display:none!important}
+#actionRequiredCard .action-required-meta-block>span:last-child{width:100%;min-width:0}
+#actionRequiredCard .action-required-meta-label{display:table!important;min-width:60px;max-width:100%;margin:0 auto 8px!important;padding:4px 12px!important;border:1px solid #b5aa98!important;border-radius:999px!important;background:transparent!important;color:#746b5e!important;font:600 11px/1.1 Inter,sans-serif!important;box-sizing:border-box}
+#actionRequiredCard .action-required-meta-value{display:block!important;font:500 12.5px/1.35 Inter,sans-serif!important;color:var(--ink)!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important}
+#actionRequiredCard .action-required-meta-block:last-child .action-required-meta-value{color:#bb2634!important;font-weight:700!important}
+#actionRequiredCard .action-required-upcoming{margin:0!important;padding:0 14px 12px;font:500 12px/1.45 Inter,sans-serif;color:var(--muted)}
+@media(min-width:720px){#actionRequiredCard .action-required-meta{gap:12px!important;padding:0 18px 16px!important}#actionRequiredCard .action-required-meta-block{padding:12px!important}#actionRequiredCard .action-required-meta-label{font-size:12px!important}#actionRequiredCard .action-required-meta-value{font-size:14px!important}}
+`;
   document.head.appendChild(style);
 }
 function parse(status,message,detail){
@@ -20,9 +32,9 @@ function parse(status,message,detail){
   if(!stage&&/installments overdue/i.test(detail))stage='Multiple installments';
   if(!stage&&/up to date/i.test(status))stage='No pending stage';
   if(!stage)stage='Next installment';
-  m=message.match(/\bdue on\s+([0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4})/i);if(m)by=m[1];
-  if(!by){m=message.match(/\bwas due on\s+([0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4})/i);if(m)by=m[1]}
-  if(!by){var all=[],re=/(?:Extended to|Revised to|By)\s+([0-9]{1,2}\s+[A-Za-z]{3}\s+[0-9]{4})/gi,x;while((x=re.exec(detail)))all.push(x[1]);if(all.length)by=all[all.length-1]}
+  m=message.match(/\bdue on\s+([0-9]{1,2}\s+[A-Za-z]{3,4}\s+[0-9]{4})/i);if(m)by=m[1];
+  if(!by){m=message.match(/\bwas due on\s+([0-9]{1,2}\s+[A-Za-z]{3,4}\s+[0-9]{4})/i);if(m)by=m[1]}
+  if(!by){var all=[],re=/(?:Extended to|Revised to|By)\s+([0-9]{1,2}\s+[A-Za-z]{3,4}\s+[0-9]{4})/gi,x;while((x=re.exec(detail)))all.push(x[1]);if(all.length)by=all[all.length-1]}
   if(!by&&/due today/i.test(status))by='Today';
   if(!by&&/date needed/i.test(status))by='Not set';
   if(!by&&/(?:due|payable) at handover/i.test(detail+' '+message))by='At handover';
@@ -35,7 +47,7 @@ function parse(status,message,detail){
   return{stage:stage,by:by,due:due};
 }
 function compactDate(value){
-  var raw=text(value).trim(),m=raw.match(/^([0-9]{1,2})\s+([A-Za-z]{3})\s+([0-9]{4})$/);
+  var raw=text(value).trim(),m=raw.match(/^([0-9]{1,2})\s+([A-Za-z]{3,4})\s+([0-9]{4})$/);
   return m?m[1]+' '+m[2]+' '+m[3].slice(-2):raw;
 }
 function compactDue(value){
@@ -46,7 +58,7 @@ function escapeRegExp(value){return text(value).replace(/[.*+?^${}()|[\]\\]/g,'\
 function cleanHeadline(value,by){
   var out=text(value).trim(),exact=text(by).trim();
   if(!out)return out;
-  if(/^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/.test(exact)){
+  if(/^\d{1,2}\s+[A-Za-z]{3,4}\s+\d{4}$/.test(exact)){
     var d=escapeRegExp(exact);
     out=out.replace(new RegExp('\\s+(?:It|They)\\s+(?:was|were)\\s+due\\s+on\\s+'+d+'\\.?','gi'),'');
     out=out.replace(new RegExp('\\s+was\\s+due\\s+on\\s+'+d,'gi'),' is overdue');
@@ -75,6 +87,7 @@ function sync(){
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value'),labels=card.querySelectorAll('.action-required-meta-label');
   if(!status||!message||values.length<3)return;
   var targets=[status,message,detail].filter(Boolean),statusText=text(status.textContent).trim(),meta=parse(statusText,message.textContent,detail&&detail.textContent),byDisplay=compactDate(meta.by),dueDisplay=compactDue(meta.due),isOverdue=/overdue/i.test(statusText)||/overdue/i.test(text(meta.due)),isUpcoming=/^upcoming$/i.test(statusText),headline=upcomingHeadline(message.textContent,statusText,isOverdue)||cleanHeadline(message.textContent,meta.by);
+  try{var exact=JSON.parse(card.dataset.actionMeta||'null');if(exact&&exact.stage){meta=exact;byDisplay=compactDate(exact.by);dueDisplay=compactDue(exact.due);isOverdue=!!exact.overdue;}}catch(e){}
   syncing=true;
   if(observer)observer.disconnect();
   try{

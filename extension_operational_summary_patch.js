@@ -49,7 +49,7 @@ function extensionContext(customer){
 function setText(node,value){if(node&&text(node.textContent)!==text(value))node.textContent=value}
 function applyActionSummary(ctx){
   if(!ctx||ctx.outsideOverdue||ctx.outsideEarlier||!ctx.selected||ctx.selected.items.length<2)return;
-  var card=document.getElementById('actionRequiredCard');if(!card||card.hidden||card.getAttribute('aria-hidden')==='true')return;
+  var card=document.getElementById('actionRequiredCard');if(!card||card.hidden||card.dataset.effectiveReady==='true'||card.getAttribute('aria-hidden')==='true')return;
   // Keep the deadline in detail/By only; observer refreshes must not reinsert it into the headline.
   var g=ctx.selected,d=daysUntil(g.due),count=g.items.length,stage=count+' outstanding component'+(count===1?'':'s'),dueText=formatDate(g.due),message=money(g.total)+' under extension.',detail='Stage: '+stage+' · Extended to '+dueText+(d==null?'':d===0?' · Due today.':d>0?' · Due in '+d+' day'+(d===1?'':'s')+'.':' · '+Math.abs(d)+' day'+(Math.abs(d)===1?'':'s')+' overdue.'),sig=[ctx.unit,g.due,g.total,count,d].join('|');
   if(card.dataset.extensionOperationalSig===sig&&text((card.querySelector('.action-required-message')||{}).textContent)===message)return;
