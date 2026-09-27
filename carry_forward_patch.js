@@ -484,9 +484,10 @@
       var out=await baseLoad.apply(this,arguments);
       try{
         await enrichCarryForward();
-        if (typeof window.renderMain==='function' && state.view && state.view!=='empty') window.renderMain();
+        if (!(arguments[0]&&arguments[0].render===false) && typeof window.renderMain==='function' && state.view && state.view!=='empty') window.renderMain();
       }catch(ex){
         console.warn('Could not load carry-forward ledger',ex);
+        if(arguments[0]&&arguments[0].render===false)throw ex;
       }
       return out;
     };

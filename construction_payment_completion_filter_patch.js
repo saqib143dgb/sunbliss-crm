@@ -210,10 +210,10 @@ async function exportConstructionStatus(rows){
   a.href=url;a.download='Sunbliss-Payment-Report-'+reportIndex.asOf+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},30000);
 }
 window.exportFilteredList=exportConstructionStatus;
-window.__sunblissRefreshConstructionCompletionReport=function(){reportIndex=null;return loadReportIndex(true).then(function(){if(typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();return true;});};
+window.__sunblissRefreshConstructionCompletionReport=function(options){reportIndex=null;return loadReportIndex(true).then(function(){if(!(options&&options.render===false)&&typeof window.renderList==='function'&&window.state&&state.view==='list')window.renderList();return true;});};
 window.__sunblissPaymentReportApi={entries:currentEntries,refresh:function(){return loadReportIndex(true);},export:exportConstructionStatus,filters:reportFilters};
 var previousLoad=window.loadFromSupabase;
-if(typeof previousLoad==='function')window.loadFromSupabase=async function(){var result=await previousLoad.apply(this,arguments);reportIndex=null;await window.__sunblissRefreshConstructionCompletionReport();return result;};
+if(typeof previousLoad==='function')window.loadFromSupabase=async function(){var result=await previousLoad.apply(this,arguments);reportIndex=null;await window.__sunblissRefreshConstructionCompletionReport(arguments[0]);return result;};
 
 installStyles();
 loadReportIndex(false).catch(function(){});

@@ -67,11 +67,11 @@
     });
   }
 
-  function refreshPaymentTruth(){
+  function refreshPaymentTruth(options){
     if(typeof window.__sunblissRefreshPaymentScheduleSourceTruth==='function'){
-      return window.__sunblissRefreshPaymentScheduleSourceTruth();
+      return window.__sunblissRefreshPaymentScheduleSourceTruth(options);
     }
-    if(typeof window.renderMain==='function'&&window.state&&state.view&&state.view!=='empty')window.renderMain();
+    if(!(options&&options.render===false)&&typeof window.renderMain==='function'&&window.state&&state.view&&state.view!=='empty')window.renderMain();
     return Promise.resolve();
   }
 
@@ -84,7 +84,7 @@
     if(!baseLoad.__carryForwardAuditWrapped){
       var wrapped=async function(){
         var out=await baseLoad.apply(this,arguments);
-        try{await applyActiveAllocations();await refreshPaymentTruth()}catch(ex){console.warn('Could not refresh active carry allocations',ex)}
+        try{await applyActiveAllocations();await refreshPaymentTruth(arguments[0])}catch(ex){console.warn('Could not refresh active carry allocations',ex)}
         return out;
       };
       wrapped.__carryForwardAuditWrapped=true;
@@ -92,7 +92,7 @@
     }
 
     applyActiveAllocations().then(refreshPaymentTruth).catch(function(ex){console.warn('Could not initialize active carry allocations',ex)});
-    window.__sunblissCarryForwardAuditFix={refresh:async function(){await applyActiveAllocations();await refreshPaymentTruth()}};
+    window.__sunblissCarryForwardAuditFix={refresh:async function(options){await applyActiveAllocations();await refreshPaymentTruth(options)}};
   }
 
   install();

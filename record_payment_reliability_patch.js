@@ -5,7 +5,9 @@ window.__sunblissRecordPaymentReliabilityInstalled=true;
 window.__sunblissRecordPaymentFixV4=true;
 
 var cache={customer:null,rows:[],credits:{},loading:false,saving:false,lastResult:null};
-var returningToCustomer=false;
+var refreshJob=null,refreshVersion=0,refreshRecords={};
+var panelSession=0;
+var viewportCleanup=null;
 function text(v){return v==null?'':String(v)}
 function safe(v){if(typeof window.esc==='function')return window.esc(text(v));return text(v).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function money(v){return typeof window.fmtAED==='function'?window.fmtAED(Number(v)||0):'AED '+(Number(v)||0).toLocaleString('en-AE',{maximumFractionDigits:2})}
@@ -27,8 +29,11 @@ function resetState(){
   if(window.state){state.paymentFormOpen=false;state.paymentFormSaving=false;state.paymentFormError=null}
 }
 function closePanel(){
+  if(cache.saving)return false;
+  panelSession++;
+  if(viewportCleanup){viewportCleanup();viewportCleanup=null;}
+  document.body.classList.remove('record-payment-open');
   var p=document.getElementById('recordPaymentReliablePanel');if(p)p.remove();
-  returningToCustomer=false;
   resetState();
 }
 function errorText(err){
@@ -43,7 +48,7 @@ function errorText(err){
 function setError(msg){
   var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('#recordPaymentReliableError');
   if(e){e.textContent=msg;e.style.display='block';window.setTimeout(function(){try{e.scrollIntoView({block:'center',behavior:'smooth'})}catch(_err){}},0)}
-  cache.saving=false;
+  cache.saving=false;setBusy(false);
   if(window.state)state.paymentFormSaving=false;
   var b=panel&&panel.querySelector('#pfSave');if(b){b.disabled=false;b.textContent='Save payment'}
 }
@@ -51,30 +56,59 @@ function clearError(){var panel=document.getElementById('recordPaymentReliablePa
 
 function ensureStyles(){
   if(document.getElementById('recordPaymentReliableStyles'))return;
-  var s=document.createElement('style');s.id='recordPaymentReliableStyles';s.textContent=[
-    '#recordPaymentReliablePanel{margin:0!important;max-width:100%!important;box-sizing:border-box!important;overflow-x:hidden!important}',
-    '#recordPaymentReliablePanel #recordPaymentReliableForm{display:block;margin:0;padding:0;max-width:100%;box-sizing:border-box}',
-    '#recordPaymentReliablePanel .record-payment-summary{margin:-4px 0 14px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper-dim);font-size:11.5px;line-height:1.45;color:var(--muted);max-width:100%;box-sizing:border-box}',
-    '#recordPaymentReliablePanel .brand-field{display:block;min-width:0!important;max-width:100%!important;overflow:visible!important}',
-    '#recordPaymentReliablePanel select,#recordPaymentReliablePanel input{display:block;width:100%!important;max-width:100%!important;min-width:0!important;margin-top:5px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:8px;font:500 16px/1.25 Inter,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box!important}',
-    '#recordPaymentReliablePanel input[type=date]{width:100%!important;max-width:100%!important;min-width:0!important;inline-size:100%!important;max-inline-size:100%!important;min-inline-size:0!important;-webkit-appearance:none!important;appearance:none!important}',
-    '#recordPaymentReliablePanel input[type=date]::-webkit-date-and-time-value{min-width:0!important;text-align:center!important}',
-    '#recordPaymentReliablePanel select{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;padding-right:34px!important;font-size:15px!important}',
-    '#recordPaymentReliablePanel .record-payment-stage-note{margin:-4px 0 12px;font-size:10.8px;line-height:1.45;color:var(--muted)}',
-    '#recordPaymentReliablePanel .record-payment-empty{padding:14px;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper-dim);font-size:12px;line-height:1.5;color:var(--muted);margin-bottom:14px}',
-    '#recordPaymentReliablePanel .credit-note-toggle{margin-top:2px}',
-    '#recordPaymentReliablePanel #pfCreditFields{max-width:100%;box-sizing:border-box}',
-    '#recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:block!important}',
-    '#recordPaymentReliablePanel .brand-editor-actions{margin-top:16px;pointer-events:auto!important}',
-    '#recordPaymentReliablePanel.crm-full-page-inline .brand-editor-actions{position:sticky!important;bottom:0!important;z-index:40!important;margin:18px -16px 0!important;padding:12px 16px calc(12px + env(safe-area-inset-bottom))!important;background:var(--paper,#F6F1E4)!important;border-top:1px solid var(--paper-line,#DCD2B6)!important;box-shadow:0 -8px 20px rgba(15,26,38,.08)!important;pointer-events:auto!important}',
-    '#recordPaymentReliablePanel #pfSave{position:relative!important;z-index:41!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:rgba(0,0,0,0)}',
-    '#recordPaymentReliablePanel .record-payment-success{margin:8px 0 14px;padding:18px 14px;border:1px solid rgba(44,112,75,.28);border-radius:12px;background:rgba(44,112,75,.08);text-align:center}',
-    '#recordPaymentReliablePanel .record-payment-success-title{margin:0 0 6px;font:700 18px/1.3 Fraunces,serif;color:var(--ink)}',
-    '#recordPaymentReliablePanel .record-payment-success-copy{margin:0;font:500 12px/1.55 Inter,sans-serif;color:var(--muted)}',
-    '#recordPaymentReliablePanel .record-payment-success-ref{margin:10px 0 0;font:600 11px/1.4 IBM Plex Mono,monospace;color:var(--ink)}',
-    '@media(max-width:520px){#recordPaymentReliablePanel .brand-editor-actions{flex-direction:column!important}#recordPaymentReliablePanel .brand-editor-actions button{width:100%!important;min-height:48px!important}}'
-  ].join('');
-  document.head.appendChild(s);
+  var style=document.createElement('style');style.id='recordPaymentReliableStyles';
+  style.textContent=`
+body.record-payment-open{overflow:hidden!important;overscroll-behavior:none}
+body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,body.record-payment-open>#sunblissDockSearchPanel{display:none!important}
+#recordPaymentReliablePanel{position:fixed;top:var(--payment-top,0px);left:0;right:0;z-index:12600;display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:var(--payment-height,100dvh);width:100%;max-width:none;margin:0!important;padding:0!important;border:0;border-radius:0;background:var(--paper,#F6F1E4);box-shadow:none;overflow:hidden;box-sizing:border-box;color:var(--ink);}
+#recordPaymentReliablePanel *{box-sizing:border-box}
+#recordPaymentReliablePanel .record-payment-head{padding:calc(18px + env(safe-area-inset-top)) 18px 14px;border-bottom:1px solid var(--paper-line);background:var(--paper)}
+#recordPaymentReliablePanel .record-payment-head h2{margin:0 0 5px;font:650 23px/1.2 Fraunces,Georgia,serif}
+#recordPaymentReliablePanel .record-payment-summary{margin:0;color:var(--muted);font:500 12px/1.45 Inter,system-ui,sans-serif}
+#recordPaymentReliablePanel .record-payment-body{min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px;scroll-padding:18px}
+#recordPaymentReliablePanel .record-payment-content{max-width:680px;margin:0 auto}
+#recordPaymentReliablePanel #recordPaymentReliableForm{margin:0;padding:0}
+#recordPaymentReliablePanel .brand-field{display:block;margin:0 0 15px;min-width:0;font:600 12px/1.4 Inter,system-ui,sans-serif;color:var(--muted)}
+#recordPaymentReliablePanel input,#recordPaymentReliablePanel select{display:block;width:100%!important;min-width:0!important;max-width:100%!important;min-height:46px;margin-top:6px;padding:11px 12px;border:1px solid var(--paper-line);border-radius:9px;font:500 16px/1.3 Inter,system-ui,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box}
+#recordPaymentReliablePanel input:focus-visible,#recordPaymentReliablePanel select:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+#recordPaymentReliablePanel input[type=date]{-webkit-appearance:none;appearance:none}
+#recordPaymentReliablePanel input[type=date]::-webkit-date-and-time-value{min-height:20px;text-align:left}
+#recordPaymentReliablePanel .credit-note-toggle{margin:0;padding:7px 0;min-height:36px}
+#recordPaymentReliablePanel #pfCreditFields{margin-top:12px;padding:14px;border:1px solid var(--paper-line);border-radius:10px}
+#recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:block!important}
+#recordPaymentReliablePanel .record-payment-footer{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--paper-line);background:var(--paper)}
+#recordPaymentReliablePanel .record-payment-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:680px;margin:0 auto}
+#recordPaymentReliablePanel .record-payment-actions:has(>button:only-child){grid-template-columns:1fr}
+#recordPaymentReliablePanel .record-payment-actions button{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:0!important;border-radius:10px;font:600 14px/1.2 Inter,system-ui,sans-serif;touch-action:manipulation}
+#recordPaymentReliablePanel button:disabled{opacity:.65;cursor:default}
+#recordPaymentReliablePanel .record-payment-success{margin:0;padding:22px 18px;border:1px solid rgba(44,112,75,.28);border-radius:12px;background:rgba(44,112,75,.08);text-align:center}
+#recordPaymentReliablePanel .record-payment-success-title{margin:0 0 8px;font:650 21px/1.3 Fraunces,Georgia,serif}
+#recordPaymentReliablePanel .record-payment-success-copy{margin:0;font:500 13px/1.6 Inter,system-ui,sans-serif;color:var(--muted)}
+#recordPaymentReliablePanel .record-payment-success-ref{margin:12px 0 0;font:500 12px/1.4 IBM Plex Mono,monospace}
+#recordPaymentReliablePanel .record-payment-empty{font:400 14px/1.5 Inter,system-ui,sans-serif;color:var(--muted)}
+.record-payment-refresh-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:11px 12px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font:500 12px/1.45 Inter,system-ui,sans-serif;color:var(--ink)}
+.record-payment-refresh-status button{flex:none;margin:0;min-height:36px;padding:7px 10px;border:1px solid var(--paper-line);border-radius:7px;background:var(--paper);color:var(--ink);font:600 12px Inter,sans-serif}
+@media(min-width:720px){#recordPaymentReliablePanel .record-payment-head{padding-left:max(24px,calc((100vw - 680px)/2));padding-right:max(24px,calc((100vw - 680px)/2))}}
+`;
+  document.head.appendChild(style);
+}
+function renderPanel(body,actions){
+  var panel=document.getElementById('recordPaymentReliablePanel');if(!panel)return;
+  var c=cache.customer||{};
+  panel.innerHTML='<header class="record-payment-head"><h2 id="recordPaymentTitle">Record payment</h2><p class="record-payment-summary">'+safe(c.unit)+' · '+safe(c.name)+'</p></header><div class="record-payment-body"><div class="record-payment-content"><p class="brand-error" id="recordPaymentReliableError" role="alert" style="display:none"></p>'+body+'</div></div><footer class="record-payment-footer"><div class="record-payment-actions">'+actions+'</div></footer>';
+  var cancel=panel.querySelector('#pfCancel');if(cancel)cancel.onclick=closePanel;
+}
+function syncViewport(panel){
+  function fit(){if(!panel.isConnected)return;var v=window.visualViewport;panel.style.setProperty('--payment-height',(v?v.height:window.innerHeight)+'px');panel.style.setProperty('--payment-top',(v?v.offsetTop:0)+'px');}
+  var viewport=window.visualViewport;fit();
+  if(viewport){viewport.addEventListener('resize',fit);viewport.addEventListener('scroll',fit);}
+  window.addEventListener('resize',fit);
+  viewportCleanup=function(){if(viewport){viewport.removeEventListener('resize',fit);viewport.removeEventListener('scroll',fit);}window.removeEventListener('resize',fit);};
+}
+function setBusy(busy){
+  var panel=document.getElementById('recordPaymentReliablePanel');if(!panel)return;
+  panel.setAttribute('aria-busy',busy?'true':'false');
+  panel.querySelectorAll('input,select,button').forEach(function(el){el.disabled=busy;});
 }
 function optionLabel(r){var rem=Math.max(0,remaining(r)),stage=text(r.stage_name).trim();if(isDld(r))stage='DLD + Admin Fees';return stage+' · '+(rem<=1?'Fully settled':money(rem))}
 
@@ -93,7 +127,6 @@ function renderForm(){
   if(rows.length){
     body='<form id="recordPaymentReliableForm" novalidate>'+ 
       '<label class="brand-field">Installment<select id="pfStage">'+options+'</select></label>'+ 
-      '<p class="record-payment-stage-note">Select the exact payment schedule. Payment is saved first; the customer page refresh happens only after confirmation.</p>'+ 
       '<label class="brand-field">Amount paid (AED)<input type="number" id="pfAmount" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 50000" /></label>'+ 
       '<label class="brand-field">Payment date<input type="date" id="pfDate" value="'+today()+'" /></label>'+ 
       '<label class="brand-field">Reference (optional)<input type="text" id="pfRef" placeholder="e.g. cheque or transfer no." /></label>'+ 
@@ -104,42 +137,42 @@ function renderForm(){
       '<label class="brand-field">Issue date<input type="date" id="pfCreditDate" value="'+today()+'" /></label>'+ 
       '<label class="brand-field">Reason<input type="text" id="pfCreditReason" placeholder="Reason for credit note" /></label>'+ 
       '<label class="brand-field">Reference number (optional)<input type="text" id="pfCreditRef" placeholder="e.g. CN-2026-014" /></label></div>'+ 
-      '<div class="brand-editor-actions"><button class="btn btn-gold" type="submit" id="pfSave" style="justify-content:center">Save payment</button><button class="btn-paper" type="button" id="pfCancel" style="justify-content:center;margin-bottom:0">Cancel</button></div>'+ 
       '</form>';
   }else{
-    body='<div class="record-payment-empty">No payment schedule is available for this unit. Review the installment ledger before recording a payment.</div><div class="brand-editor-actions"><button class="btn-paper" type="button" id="pfCancel" style="justify-content:center;margin-bottom:0">Close</button></div>';
+    body='<div class="record-payment-empty">No payment schedule is available for this unit. Review the installment ledger before recording a payment.</div>';
   }
-  p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c&&c.unit||'')+' · '+safe(c&&c.name||'')+'</p><p class="brand-error" id="recordPaymentReliableError" style="display:none"></p>'+body;
-  var cancel=p.querySelector('#pfCancel');if(cancel)cancel.onclick=closePanel;
+  renderPanel(body,(rows.length?'<button class="btn btn-gold" type="submit" form="recordPaymentReliableForm" id="pfSave">Save payment</button>':'')+'<button class="btn-paper" type="button" id="pfCancel">'+(rows.length?'Cancel':'Close')+'</button>');
   var form=p.querySelector('#recordPaymentReliableForm');
   if(form)form.addEventListener('submit',function(e){e.preventDefault();e.stopPropagation();savePayment()},true);
   var save=p.querySelector('#pfSave');
   if(save)save.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();savePayment()},true);
-  var amount=p.querySelector('#pfAmount');if(amount)setTimeout(function(){try{amount.focus()}catch(_e){}},0);
+
 }
 
-async function loadRows(c){
+async function loadRows(c,session){
   var uid=unitId(c);if(!uid)throw new Error('This unit is not linked to its database record. Refresh the CRM and try again.');
   var q=await Promise.all([
     sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,paid_date,status').eq('unit_id',uid).order('due_date',{ascending:true}).order('id',{ascending:true}),
     sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',uid)
   ]);
   q.forEach(function(r){if(r.error)throw r.error});
+  if(session!==panelSession)return;
   cache.rows=(q[0].data||[]).filter(function(r){return Number(r.due_amount)>0&&!/\bbooking\b/i.test(text(r.stage_name))});
   cache.credits={};
   (q[1].data||[]).forEach(function(n){if(n.payment_schedule_id!=null){var k=String(n.payment_schedule_id);cache.credits[k]=Math.round(((cache.credits[k]||0)+(Number(n.amount)||0))*100)/100}});
 }
 
 async function openPanel(){
-  if(!window.state||state.userRole!=='crm_officer'||!window.sb)return;
+  if(!window.state||state.userRole!=='crm_officer'||!window.sb||cache.saving)return;
   closePanel();ensureStyles();
-  var c=currentCustomer();if(!c){window.alert('Could not identify the selected customer. Refresh the CRM and try again.');return}
-  cache.customer=c;cache.loading=true;state.paymentFormOpen=true;
-  var p=document.createElement('div');p.id='recordPaymentReliablePanel';p.className='brand-editor record-payment-panel';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');
-  p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c.unit||'')+' · '+safe(c.name||'')+'</p><p class="stat-sub">Loading payment schedule…</p>';
-  document.body.appendChild(p);
-  try{await loadRows(c);cache.loading=false;renderForm()}
-  catch(e){cache.loading=false;p.innerHTML='<p class="section-label" style="margin-top:0">Record Payment</p><p class="record-payment-summary">Unit '+safe(c.unit||'')+' · '+safe(c.name||'')+'</p><p class="brand-error">'+safe(errorText(e))+'</p><div class="brand-editor-actions"><button class="btn-paper" type="button" id="pfCancel" style="justify-content:center;margin-bottom:0">Close</button></div>';var close=p.querySelector('#pfCancel');if(close)close.onclick=closePanel}
+  var c=currentCustomer();if(!c){window.alert('Could not identify the selected customer. Refresh the CRM and try again.');return;}
+  var session=panelSession;
+  cache.customer=c;cache.loading=true;state.paymentFormOpen=false;
+  var panel=document.createElement('div');panel.id='recordPaymentReliablePanel';panel.className='brand-editor record-payment-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','recordPaymentTitle');
+  document.body.appendChild(panel);document.body.classList.add('record-payment-open');syncViewport(panel);
+  renderPanel('<p class="record-payment-empty" role="status">Loading installments…</p>','<button class="btn-paper" type="button" id="pfCancel">Cancel</button>');
+  try{await loadRows(c,session);if(session!==panelSession||!panel.isConnected)return;cache.loading=false;renderForm();}
+  catch(e){if(session!==panelSession||!panel.isConnected)return;cache.loading=false;renderPanel('<p class="brand-error" role="alert">'+safe(errorText(e))+'</p>','<button class="btn-paper" type="button" id="pfCancel">Close</button>');}
 }
 function val(id){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('[id="'+id+'"]');return e?text(e.value).trim():''}
 
@@ -148,39 +181,52 @@ function renderCurrentDetail(key,from){
   state.selectedUnit=key;state.detailFrom=from||'list';state.view='detail';
   try{if(typeof window.renderMain==='function')window.renderMain();else if(typeof window.renderDetail==='function')window.renderDetail()}catch(e){console.error('[Sunbliss] detail render failed',e)}
 }
-function pendingTaskIdsForUnit(uid){
-  if(!window.sb||!uid)return Promise.resolve([]);
-  return sb.from('scheduled_actions').select('id').eq('unit_id',uid).eq('status','pending').then(function(r){if(r.error)throw r.error;return(r.data||[]).map(function(x){return Number(x.id)}).filter(Boolean).sort(function(a,b){return a-b})});
+function mountRefreshStatus(){
+  var current=window.state&&state.view==='detail'&&refreshRecords[state.selectedUnit],detail=document.querySelector('#main .detail');
+  if(!current||!detail)return;
+  var note=detail.querySelector('.record-payment-refresh-status');
+  if(!note){note=document.createElement('div');note.className='record-payment-refresh-status';note.setAttribute('role','status');var anchor=detail.querySelector('#btnOpenPaymentForm');if(anchor)anchor.before(note);else detail.prepend(note);}
+  var copy=current.status==='ready'?'Payment saved. Customer details updated.':current.status==='error'?'Payment saved. Customer details could not refresh.':current.status==='slow'?'Payment saved. Updating customer details is taking longer than expected.':'Payment saved. Updating balances and history…';
+  if(note.dataset.status===current.status)return;
+  note.dataset.status=current.status;note.innerHTML='<span>'+safe(copy)+'</span>'+(current.status==='error'?'<button type="button">Retry refresh</button>':'');
+  var retry=note.querySelector('button');if(retry)retry.onclick=function(){startCustomerRefresh(state.selectedUnit);};
 }
-function scheduledTaskIds(){
-  var section=document.getElementById('scheduledActionsDetail');if(!section)return[];
-  return Array.prototype.slice.call(section.querySelectorAll('.scheduled-task-card[data-task-id]')).map(function(el){return Number(el.getAttribute('data-task-id'))}).filter(Boolean).sort(function(a,b){return a-b});
+function refreshVisibleCustomer(){
+  if(!window.state||state.view!=='detail'||!refreshRecords[state.selectedUnit])return;
+  if(document.querySelector('[aria-modal="true"],.rpp-panel,#scheduledActionPanel,#paymentExtensionPanel')){mountRefreshStatus();return;}
+  var key=state.selectedUnit,y=window.scrollY||0;
+  renderCurrentDetail(key,state.detailFrom);mountRefreshStatus();
+  window.scrollTo({top:y,behavior:'instant'});
+  requestAnimationFrame(function(){if(state.view==='detail'&&state.selectedUnit===key)window.scrollTo({top:y,behavior:'instant'});});
 }
-function sameIds(a,b){if(a.length!==b.length)return false;for(var i=0;i<a.length;i++)if(Number(a[i])!==Number(b[i]))return false;return true}
-function waitForScheduledActions(expected,timeout){
-  var started=Date.now();
-  return new Promise(function(resolve){
-    function check(){if(sameIds(scheduledTaskIds(),expected)||Date.now()-started>(timeout||1800)){resolve();return}setTimeout(check,35)}
-    check();
-  });
-}
-async function refreshBeforeReturn(key,from){
-  var c=currentCustomer(),uid=unitId(c);
-  if(typeof window.loadFromSupabase==='function')await window.loadFromSupabase();
-  var expected=[];
-  try{expected=await pendingTaskIdsForUnit(uid)}catch(e){console.warn('[Sunbliss] could not verify scheduled actions after payment',e)}
-  try{window.dispatchEvent(new Event('pageshow'));await waitForScheduledActions(expected,1800)}catch(e){console.warn('[Sunbliss] scheduled action refresh wait failed',e)}
-  closePanel();
-  renderCurrentDetail(key,from);
+function startCustomerRefresh(key){
+  refreshRecords[key]={status:'loading'};refreshVersion++;mountRefreshStatus();
+  if(refreshJob)return refreshJob;
+  var slowTimer=setTimeout(function(){Object.keys(refreshRecords).forEach(function(k){if(refreshRecords[k].status==='loading')refreshRecords[k].status='slow';});mountRefreshStatus();},15000);
+  refreshJob=Promise.resolve().then(async function(){
+    var version;
+    do{
+      version=refreshVersion;
+      if(typeof window.loadFromSupabase!=='function')throw Error('Customer refresh is unavailable.');
+      await window.loadFromSupabase({preserveView:true,render:false});
+      if(typeof window.__sunblissRefreshScheduledActions==='function')await window.__sunblissRefreshScheduledActions();
+    }while(version!==refreshVersion);
+    Object.keys(refreshRecords).forEach(function(k){refreshRecords[k].status='ready';});
+    refreshVisibleCustomer();
+  }).catch(function(err){
+    console.warn('[Sunbliss] payment saved; customer refresh failed',err);
+    Object.keys(refreshRecords).forEach(function(k){if(refreshRecords[k].status!=='ready')refreshRecords[k].status='error';});
+    mountRefreshStatus();
+  }).finally(function(){clearTimeout(slowTimer);refreshJob=null;});
+  return refreshJob;
 }
 function returnToCustomer(key,from){
-  var panel=document.getElementById('recordPaymentReliablePanel'),btn=panel&&panel.querySelector('#pfReturn');
-  returningToCustomer=true;
-  if(btn){btn.disabled=true;btn.textContent='Returning…'}
-  refreshBeforeReturn(key,from).catch(function(e){
-    console.error('[Sunbliss] post-payment refresh failed',e);
-    closePanel();renderCurrentDetail(key,from);
-  });
+  closePanel();
+  var record=refreshRecords[key];
+  if(!window.state||state.selectedUnit!==key||state.view!=='detail'||!document.querySelector('#main .detail')||record&&record.status==='ready'){
+    var y=window.scrollY||0;renderCurrentDetail(key,from);window.scrollTo({top:y,behavior:'instant'});
+  }
+  mountRefreshStatus();
 }
 function showSuccess(result,row,cash,credit,key,from){
   cache.saving=false;cache.lastResult=result||{};
@@ -191,17 +237,14 @@ function showSuccess(result,row,cash,credit,key,from){
   if(cash>0)summary.push(money(cash)+' cash');
   if(credit>0)summary.push(money(credit)+' credit note');
   var refs=[];if(txId)refs.push('Transaction #'+txId);if(cnId)refs.push('Credit note #'+cnId);
-  p.innerHTML='<p class="section-label" style="margin-top:0">Payment recorded</p>'+ 
-    '<p class="record-payment-summary">Unit '+safe(cache.customer&&cache.customer.unit||'')+' · '+safe(cache.customer&&cache.customer.name||'')+'</p>'+ 
-    '<div class="record-payment-success"><p class="record-payment-success-title">Payment recorded successfully</p>'+ 
-    '<p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?' · '+safe(summary.join(' + ')):'')+'</p>'+ 
-    (refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>'+ 
-    '<div class="brand-editor-actions"><button class="btn btn-gold" type="button" id="pfReturn" style="justify-content:center">Return to customer</button></div>';
+  setBusy(false);
+  renderPanel('<div class="record-payment-success" role="status"><p class="record-payment-success-title">Payment recorded</p><p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?'<br>'+safe(summary.join(' + ')):'')+'</p>'+(refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>','<button class="btn btn-gold" type="button" id="pfReturn">Return to customer</button>');
+  startCustomerRefresh(key);
   var back=p.querySelector('#pfReturn');if(back)back.onclick=function(){returnToCustomer(key,from)};
 }
 
 async function savePayment(){
-  if(cache.saving)return;
+  if(cache.saving||cache.lastResult)return;
   clearError();
   var sid=Number(val('pfStage'))||0,row=cache.rows.find(function(r){return Number(r.id)===sid})||null,
       cash=val('pfAmount')===''?0:Number(val('pfAmount')),date=val('pfDate'),ref=val('pfRef'),remarks=val('pfRemarks'),
@@ -219,6 +262,8 @@ async function savePayment(){
 
   var btn=panel&&panel.querySelector('#pfSave'),key=state.selectedUnit,from=state.detailFrom||'list';
   cache.saving=true;state.paymentFormSaving=true;
+  if(document.activeElement&&panel&&panel.contains(document.activeElement))document.activeElement.blur();
+  setBusy(true);
   if(btn){btn.disabled=true;btn.textContent='Recording…'}
   try{
     var r=await sb.rpc('crm_record_payment_with_credit_note',{
@@ -244,7 +289,8 @@ function targetFromEvent(e){if(!e||!e.target||!e.target.closest)return null;retu
 document.addEventListener('click',function(e){var target=targetFromEvent(e);if(!target)return;if(!window.state||state.userRole!=='crm_officer')return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openPanel()},true);
 document.addEventListener('click',function(e){var toggle=e&&e.target&&e.target.closest?e.target.closest('#recordPaymentReliablePanel #pfCreditToggle'):null;if(!toggle)return;e.preventDefault();e.stopPropagation();toggleCreditFields()},true);
 window.addEventListener('popstate',closePanel);
-window.addEventListener('pageshow',function(){if(!returningToCustomer&&document.getElementById('recordPaymentReliablePanel'))closePanel()});
+window.addEventListener('pageshow',function(event){if(event.persisted&&!cache.saving)closePanel();});
+var baseDetail=window.renderDetail;if(typeof baseDetail==='function')window.renderDetail=function(){var result=baseDetail.apply(this,arguments);mountRefreshStatus();return result;};
 window.__sunblissOpenRecordPayment=openPanel;
 window.__sunblissRecordPaymentSave=savePayment;
 ensureStyles();

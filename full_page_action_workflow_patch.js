@@ -4,7 +4,7 @@
   window.__sunblissFullPageActionWorkflowInstalled = true;
 
   var inlineSelectors = [
-    '#customerEditPanel','#unitEditPanel','#saleComplianceEditPanel','#unitCancellationPanel','#transactionEditPanel','#creditNoteEditPanel','#inlineComplianceEditor','#customerNotesManagementPanel','.record-payment-panel'
+    '#customerEditPanel','#unitEditPanel','#saleComplianceEditPanel','#unitCancellationPanel','#transactionEditPanel','#creditNoteEditPanel','#inlineComplianceEditor','#customerNotesManagementPanel','.record-payment-panel:not(#recordPaymentReliablePanel)'
   ];
   var overlaySelectors = ['#auditLogOverlay','#installmentEditOverlay','#installmentDeleteOverlay','#paymentDetailOverlay','#cancelledUnitEditModal'];
   var dialogSelectors = ['#auditLogDialog','#installmentEditDialog','#installmentDeleteDialog','#paymentDetailDialog','.cancelled-edit-card'];

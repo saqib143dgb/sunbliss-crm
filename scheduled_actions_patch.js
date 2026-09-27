@@ -217,6 +217,7 @@
   function install(){
     if(!window.state||!window.sb||typeof window.renderDetail!=='function'||typeof window.renderOverview!=='function'){setTimeout(install,60);return;}
     ensureStyles();
+    window.__sunblissRefreshScheduledActions=function(){return loadTasks(true);};
     var rd=window.renderDetail;window.renderDetail=function(){var out=rd.apply(this,arguments);loadTasks(false).then(renderScheduledViews).catch(function(){});return out;};
     var ro=window.renderOverview;window.renderOverview=function(){var out=ro.apply(this,arguments);loadTasks(false).then(renderScheduledViews).catch(function(){});return out;};
     loadTasks(false).then(renderScheduledViews).catch(function(){});

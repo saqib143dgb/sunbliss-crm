@@ -187,13 +187,13 @@ function installPortfolioFix(){
     window.portfolioStats=stablePortfolioStats;
   }
 }
-async function refreshIntegrity(){
+async function refreshIntegrity(options){
   if(refreshPromise)return refreshPromise;
   refreshPromise=(async function(){
     await fetchScheduleRows();
     normalizeAll();
     if(window.__sunblissCarryForwardApi&&typeof window.__sunblissCarryForwardApi.enrich==='function')await window.__sunblissCarryForwardApi.enrich();
-    if(window.__sunblissCarryForwardAuditFix&&typeof window.__sunblissCarryForwardAuditFix.refresh==='function')await window.__sunblissCarryForwardAuditFix.refresh();
+    if(window.__sunblissCarryForwardAuditFix&&typeof window.__sunblissCarryForwardAuditFix.refresh==='function')await window.__sunblissCarryForwardAuditFix.refresh(options);
     normalizeAll();
     return true;
   })();
@@ -219,13 +219,15 @@ function install(){
   var baseLoad=window.loadFromSupabase;
   if(!baseLoad.__sunblissStageIntegrityLoad){
     var wrappedLoad=async function(){
-      emitFinancialState(false);
+      var quiet=arguments[0]&&arguments[0].render===false;
+      if(!quiet)emitFinancialState(false);
       var out=await baseLoad.apply(this,arguments);
       try{
-        await refreshIntegrity();
-        renderFinalState();
+        await refreshIntegrity(arguments[0]);
+        if(!quiet)renderFinalState();else emitFinancialState(true);
       }catch(err){
         console.warn('[Sunbliss] stage integrity refresh failed',err);
+        if(quiet)throw err;
       }
       return out;
     };

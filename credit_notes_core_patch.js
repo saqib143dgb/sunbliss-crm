@@ -155,7 +155,7 @@
     if(!window.state||!window.sb||typeof window.loadFromSupabase!=='function'||typeof window.renderPaymentForm!=='function'||typeof window.savePayment!=='function'){setTimeout(install,50);return;}
     ensureStyles();
     window.__sunblissCreditNoteApi={text:text,safe:safe,number:number,money:money,today:today,dateLabel:dateLabel,isDldStage:isDldStage,selectedCustomer:selectedCustomer,allCustomers:allCustomers,enrichCreditNotes:enrichCreditNotes,ensureStyles:ensureStyles};
-    var load=window.loadFromSupabase;window.loadFromSupabase=async function(){var out=await load.apply(this,arguments);try{await enrichCreditNotes();if(typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();}catch(e){console.warn('Could not load credit notes',e);}return out;};
+    var load=window.loadFromSupabase;window.loadFromSupabase=async function(){var out=await load.apply(this,arguments);try{await enrichCreditNotes();if(!(arguments[0]&&arguments[0].render===false)&&typeof window.renderMain==='function'&&state.view&&state.view!=='empty')window.renderMain();}catch(e){console.warn('Could not load credit notes',e);if(arguments[0]&&arguments[0].render===false)throw e;}return out;};
     if(typeof window.portfolioStats==='function'){var stats=window.portfolioStats;window.portfolioStats=function(){return fixStageBreakdown(stats.apply(this,arguments));};}
     window.renderPaymentForm=renderPaymentForm;window.savePayment=savePayment;
     enrichCreditNotes().then(function(){if(state.view&&state.view!=='empty'&&typeof window.renderMain==='function')window.renderMain();}).catch(function(e){console.warn('Could not initialize credit notes',e);});

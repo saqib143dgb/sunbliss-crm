@@ -9,7 +9,7 @@
     window.loadFromSupabase = async function(){
       var result = await previousLoad.apply(this,arguments);
       var main = document.getElementById('main');
-      if (main && typeof window.renderMain === 'function') window.renderMain();
+      if (!(arguments[0] && arguments[0].render === false) && main && typeof window.renderMain === 'function') window.renderMain();
       return result;
     };
   }
