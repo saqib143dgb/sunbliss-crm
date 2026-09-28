@@ -56,17 +56,22 @@
     var style=document.createElement('style');
     style.id='sunblissCarryForwardStyles';
     style.textContent=[
-      '.carry-forward-card{border:1px solid var(--paper-line);border-left:4px solid var(--slate);border-radius:12px;padding:13px 14px;margin:-4px 0 16px;background:var(--paper-dim)}',
-      '.carry-forward-card[data-tone="positive"]{border-left-color:var(--sage);background:rgba(63,122,87,.07)}',
-      '.carry-forward-card[data-tone="negative"]{border-left-color:var(--rust);background:rgba(174,59,43,.07)}',
-      '.carry-forward-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}',
-      '.carry-forward-title{font-family:IBM Plex Mono,monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}',
-      '.carry-forward-status{font-size:10px;font-weight:700;border:1px solid currentColor;border-radius:999px;padding:3px 8px;white-space:nowrap;color:var(--slate)}',
+      '.carry-forward-card{position:relative;overflow:hidden;border:1px solid #d9ccb0;border-left:7px solid var(--slate);border-radius:22px;padding:0;margin:18px 0 20px;background:linear-gradient(135deg,#fffdf8 0%,#f7f2e6 100%);box-shadow:0 4px 14px rgba(75,56,32,.035)}',
+      '.carry-forward-card[data-tone="positive"]{border-left-color:var(--sage);background:linear-gradient(135deg,#fffef9 0%,#f6f2e8 100%)}',
+      '.carry-forward-card[data-tone="negative"]{border-left-color:var(--rust);background:linear-gradient(135deg,#fffaf7 0%,#f8eee8 100%)}',
+      '.carry-forward-primary{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);align-items:stretch;padding:28px 30px}',
+      '.carry-forward-left{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:4px 34px 4px 8px}',
+      '.carry-forward-right{display:flex;flex-direction:column;justify-content:center;gap:28px;min-width:0;padding:4px 4px 4px 34px;border-left:1px solid #ddd3bf}',
+      '.carry-forward-title{font:500 clamp(11px,1.2vw,16px)/1.2 Inter,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);white-space:nowrap}',
+      '.carry-forward-status{display:inline-flex;align-items:center;justify-content:center;gap:10px;align-self:stretch;min-width:0;border:1.5px solid currentColor;border-radius:999px;padding:10px 18px;white-space:nowrap;color:var(--slate);font:600 clamp(14px,1.55vw,20px)/1.15 Inter,sans-serif}',
+      '.carry-forward-status svg,.carry-forward-history-toggle svg{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
       '.carry-forward-card[data-tone="positive"] .carry-forward-status,.carry-forward-card[data-tone="positive"] .carry-forward-value{color:var(--sage)}',
       '.carry-forward-card[data-tone="negative"] .carry-forward-status,.carry-forward-card[data-tone="negative"] .carry-forward-value{color:var(--rust)}',
-      '.carry-forward-value{font:700 19px/1.2 IBM Plex Mono,monospace;color:var(--ink);margin:0}',
-      '.carry-forward-note{font-size:11.5px;line-height:1.45;color:var(--muted);margin:5px 0 0}',
-      '.carry-forward-history-toggle{border:0;background:transparent;color:var(--gold-deep);font:650 11px/1.3 Inter,sans-serif;padding:8px 0 0;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer}',
+      '.carry-forward-value{font:700 clamp(32px,4.9vw,62px)/1.02 Inter,sans-serif;letter-spacing:-.035em;color:var(--ink);margin:18px 0 0;font-variant-numeric:lining-nums tabular-nums}',
+      '.carry-forward-note{font:400 clamp(15px,1.65vw,22px)/1.35 Inter,sans-serif;color:var(--muted);margin:12px 0 0}',
+      '.carry-forward-history-toggle{display:flex;align-items:center;gap:11px;width:100%;min-width:0;border:0;background:transparent;color:var(--gold-deep);font:600 clamp(14px,1.5vw,20px)/1.25 Inter,sans-serif;padding:0;cursor:pointer;text-align:left;white-space:nowrap}',
+      '.carry-forward-history-toggle .carry-forward-chevron{width:.75em;height:.75em;margin-left:auto;stroke-width:2.2}',
+      '.carry-forward-history-toggle:focus-visible{outline:2px solid var(--gold-deep);outline-offset:5px;border-radius:6px}',
       '.carry-forward-history{margin-top:10px;border-top:1px solid var(--paper-line);padding-top:4px}',
       '.carry-forward-history-row{display:grid;grid-template-columns:74px minmax(0,1fr) auto;gap:9px;align-items:start;padding:8px 0;border-bottom:1px solid var(--paper-line)}',
       '.carry-forward-history-row:last-child{border-bottom:0}',
@@ -81,7 +86,7 @@
       '.carry-forward-editor-note{padding:9px 10px;margin:0 0 12px;border:1px solid rgba(69,86,107,.24);border-radius:9px;background:rgba(69,86,107,.06);font-size:10.8px;line-height:1.45;color:var(--muted)}',
       '.ps-carry-summary{display:flex;align-items:center;justify-content:space-between;gap:10mm;margin:-1.2mm 0 3.6mm;padding:2.2mm 3mm;border:1px solid #d9dde2;border-radius:1.6mm;background:#f7f8f9;font:700 2.35mm/1.2 Arial,Inter,sans-serif;color:#26313e}',
       '.ps-carry-summary[data-tone="positive"] strong{color:#25885e}.ps-carry-summary[data-tone="negative"] strong{color:#b64b4f}',
-      '@media(max-width:430px){.carry-forward-history-row{grid-template-columns:62px minmax(0,1fr);}.carry-forward-history-amount{grid-column:2}.carry-forward-head{align-items:flex-start}}',
+      '@media(max-width:640px){.carry-forward-card{border-radius:18px;border-left-width:5px}.carry-forward-primary{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);padding:18px 14px}.carry-forward-left{padding:2px 15px 2px 3px}.carry-forward-right{gap:18px;padding:2px 2px 2px 15px}.carry-forward-title{font-size:9.5px;letter-spacing:.21em}.carry-forward-value{font-size:clamp(25px,8.3vw,34px);margin-top:13px}.carry-forward-note{font-size:12px;margin-top:8px}.carry-forward-status{gap:7px;padding:8px 9px;font-size:11px}.carry-forward-history-toggle{gap:7px;font-size:10.5px;white-space:normal}.carry-forward-history-row{grid-template-columns:62px minmax(0,1fr)}.carry-forward-history-amount{grid-column:2}}',
       '@media print{#printArea .ps-carry-summary{display:flex!important;margin:-1.2mm 0 3.6mm!important;padding:2.2mm 3mm!important}}'
     ].join('');
     document.head.appendChild(style);
@@ -218,7 +223,7 @@
   }
   function carryNote(value){
     var n=round2(value);
-    if (n>0) return 'Customer has paid extra. This credit remains available until it is genuinely applied against a later shortage or otherwise adjusted.';
+    if (n>0) return 'Customer has paid extra.';
     if (n<0) return 'This shortage remains outstanding until later cash or another valid settlement offsets it. Scheduled installment amounts are unchanged.';
     return 'No unsettled carry-forward adjustment is currently outstanding.';
   }
@@ -250,28 +255,36 @@
     card.id='carryForwardCard';
     card.className='carry-forward-card';
     card.setAttribute('data-tone',carryTone(value));
-    var history='';
+    var historyButton='',historyPanel='';
     if (events.length){
-      history='<button type="button" class="carry-forward-history-toggle" id="carryForwardHistoryToggle" aria-expanded="'+(state.carryHistoryOpen?'true':'false')+'">'+(state.carryHistoryOpen?'Hide':'View')+' carry-forward history</button>';
+      historyButton='<button type="button" class="carry-forward-history-toggle" id="carryForwardHistoryToggle" aria-expanded="'+(state.carryHistoryOpen?'true':'false')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9 12h6M9 16h6"/></svg><span>'+(state.carryHistoryOpen?'Hide':'View')+' carry-forward history</span><svg class="carry-forward-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8"/></svg></button>';
       if (state.carryHistoryOpen){
-        history+='<div class="carry-forward-history">';
+        historyPanel='<div class="carry-forward-history">';
         events.forEach(function(e){
           var allocated=allocationAmountForEvent(e);
-          history+='<div class="carry-forward-history-row">'+
+          historyPanel+='<div class="carry-forward-history-row">'+
             '<span class="carry-forward-history-date">'+safe(dateLabel(e.eventDate))+'</span>'+
             '<span class="carry-forward-history-main">'+safe(stageLabelFor(c,e.scheduleId))+
               '<small>'+safe(e.reason)+(allocated>0?' · '+safe(money(allocated))+' allocated':'')+'</small></span>'+
             '<span class="carry-forward-history-amount '+(e.amount>0?'pos':'neg')+'">'+safe(signedMoney(e.amount))+'</span>'+
           '</div>';
         });
-        history+='</div>';
+        historyPanel+='</div>';
       }
     }
     card.innerHTML=
-      '<div class="carry-forward-head"><span class="carry-forward-title">Carry Forward</span><span class="carry-forward-status">'+safe(carryStatus(value))+'</span></div>'+
-      '<p class="carry-forward-value">'+safe(signedMoney(value))+'</p>'+
-      '<p class="carry-forward-note">'+safe(carryNote(value))+'</p>'+
-      history;
+      '<div class="carry-forward-primary">'+
+        '<div class="carry-forward-left">'+
+          '<span class="carry-forward-title">Carry Forward</span>'+
+          '<p class="carry-forward-value">'+safe(signedMoney(value))+'</p>'+
+          '<p class="carry-forward-note">'+safe(carryNote(value))+'</p>'+
+        '</div>'+
+        '<div class="carry-forward-right">'+
+          '<span class="carry-forward-status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4z"/><path d="M4 10h16M7 4h10v3"/><circle cx="16.5" cy="14.5" r="1.25"/></svg><span>'+safe(carryStatus(value))+'</span></span>'+
+          historyButton+
+        '</div>'+
+      '</div>'+
+      historyPanel;
     anchor.insertAdjacentElement('afterend',card);
 
     var toggle=document.getElementById('carryForwardHistoryToggle');
