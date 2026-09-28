@@ -62,6 +62,7 @@ function build(data,c,selection){
  var status=over.length?'Overdue':first.e.kind==='extension'?'Extension Active':first.e.kind==='revised'?'Revised Schedule':delta===0?'Due today':delta!==null&&delta<=10?'Due soon':'Upcoming';
  var result={status:status,tone:over.length||delta===0?'danger':delta!==null&&delta<=10?'warn':'neutral',message:'',detail:'Stage: '+stage+' · '+sourceLine(first),meta:{stage:stage,by:first.e.date?date(first.e.date):'At handover',due:over.length?Math.abs(delta)+' day'+(Math.abs(delta)===1?'':'s'):delta===0?'Today':delta===null?'—':delta+' day'+(delta===1?'':'s'),overdue:!!over.length},upcoming:'',extension:''};
  if(focusOrdered.length===1)result.message=stage+' is '+money(sum)+(delta===null?', payable at handover.':'.');
+ else if(focusOrdered.length===2&&focusOrdered.some(function(x){return x.kind==='dld'}))result.message=stage+' are '+money(sum)+(delta===null?', payable at handover.':'.');
  else result.message=stage+' are '+focusOrdered.map(function(x){return money(x.remaining)}).join(' & ')+' — total '+money(sum)+(delta===null?', payable at handover.':'.');
  var protectedRows=ordered(rows.filter(function(x){var ed=day(x.e.date),contract=day(x.e.contractual);return x.e.kind==='extension'&&ed&&ed>=td&&contract&&contract<td}));
  if(protectedRows.length){
