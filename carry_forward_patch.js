@@ -252,7 +252,7 @@
     card.setAttribute('data-tone',carryTone(value));
     var historyButton='',historyPanel='';
     if (events.length){
-      historyButton='<button type="button" class="carry-forward-history-toggle" id="carryForwardHistoryToggle" aria-expanded="'+(state.carryHistoryOpen?'true':'false')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9 12h6M9 16h6"/></svg><span>'+(state.carryHistoryOpen?'Hide':'View')+' carry-forward history</span><svg class="carry-forward-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8"/></svg></button>';
+      historyButton='<button type="button" class="carry-forward-history-toggle" id="carryForwardHistoryToggle" aria-expanded="'+(state.carryHistoryOpen?'true':'false')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v5h4M9 12h6M9 16h6"/></svg><span>'+(state.carryHistoryOpen?'Hide History':'View History')+'</span><svg class="carry-forward-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4 8 8-8 8"/></svg></button>';
       if (state.carryHistoryOpen){
         historyPanel='<div class="carry-forward-history">';
         events.forEach(function(e){
