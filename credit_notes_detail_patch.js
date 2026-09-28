@@ -36,8 +36,8 @@
     function noteKey(n){var keys=stageKeys(n&&n.stageLabel);return keys[0]||('SCHEDULE:'+A.text(n&&n.scheduleId));}
     function noteRow(n){
       var r=document.createElement('div');r.className='tx-row credit-note-tx-row';r.setAttribute('data-credit-note-id',A.text(n.id));
-      var meta='Credit note';if(n.reason)meta+=' · '+A.safe(n.reason);if(n.reference)meta+=' · Ref '+A.safe(n.reference);
-      r.innerHTML='<span class="tx-date">'+A.safe(A.dateLabel(n.issueDate))+'</span><span class="tx-main"><span class="tx-towards">'+A.safe(n.stageLabel||'Installment')+'</span><br/><span class="tx-status">'+meta+'</span></span><span class="tx-amt">'+A.safe(A.money(n.amount))+'</span>';
+      var stage=A.text(n.stageLabel||'Installment').trim()||'Installment';
+      r.innerHTML='<span class="tx-date">'+A.safe(A.dateLabel(n.issueDate))+'</span><span class="tx-main"><span class="tx-towards">Credit Note • '+A.safe(stage)+'</span></span><span class="tx-amt">'+A.safe(A.money(n.amount))+'</span>';
       return r;
     }
     function placeAfter(anchor,row){if(!anchor||!row)return;if(anchor.nextElementSibling===row)return;anchor.insertAdjacentElement('afterend',row);}
