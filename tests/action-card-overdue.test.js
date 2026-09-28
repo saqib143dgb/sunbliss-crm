@@ -11,7 +11,7 @@ test('overdue remains primary as next installment counts down and joins overdue 
  let a=calculator('2026-09-28')(rows);assert.equal(a.message,'1st Installment is AED 100,000.');assert.equal(a.upcoming,'Next installment is due in 10 days.');
  assert.equal(calculator('2026-09-29')(rows).upcoming,'Next installment is due in 9 days.');
  assert.equal(calculator('2026-10-08')(rows).upcoming,'Next installment is due today.');
- a=calculator('2026-10-09')(rows);assert.equal(a.message,'1st Installment & 2nd Installment are AED 200,000.');assert.equal(a.upcoming,'');
+ a=calculator('2026-10-09')(rows);assert.equal(a.message,'1st Installment & 2nd Installment are AED 100,000 & AED 100,000 — total AED 200,000.');assert.equal(a.upcoming,'');
 });
 test('paid installments advance the action without altering financial records',()=>{
  const partial=[{...rows[0],paid_amount:99500,status:'paid'},rows[1]],before=JSON.stringify(partial),calc=calculator('2026-09-28');
@@ -24,7 +24,7 @@ test('applied credits and carry settle installment actions',()=>{
  assert.equal(calc([{...rows[0],stage_name:'DLD + Admin Fees'}],[{payment_schedule_id:1,amount:100000}]).status,'Up to date');
 });
 test('approved extension protects its installment without displacing unrelated overdue debt',()=>{
- const a=calculator('2026-10-09')(rows,[],[{payment_schedule_id:2,status:'active',extended_due_date:'2026-10-15'}]);assert.equal(a.meta.stage,'1st Installment');assert.equal(a.upcoming,'Next installment is due in 6 days.');
+ const a=calculator('2026-10-09')(rows,[],[{payment_schedule_id:2,status:'active',extended_due_date:'2026-10-15'}]);assert.equal(a.meta.stage,'1st Installment');assert.equal(a.extension,'Extension active: 2nd Installment — AED 100,000 until 15 Oct 2026 (6 days remaining).');assert.equal(a.upcoming,'');
 });
 
 test('tolerance skips small balances, preserves larger overdue debt and honors revised amounts',()=>{
