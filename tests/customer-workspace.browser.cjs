@@ -37,7 +37,7 @@ async function record(page){await page.locator('#recordPaymentReliablePanel #pfA
   assert.equal(await page.locator('#scheduledActionsDetail').count(),0);
   assert.match(await page.locator('#customerNoteTags .note-tag-preview').innerText(),/Call before visiting|Approved payment note/);
   assert(await page.locator('#actionRequiredCard .action-required-meta-block').first().evaluate(el=>getComputedStyle(el).borderTopWidth==='1px'));
-  assert.match(await page.locator('#actionRequiredCard .action-required-message').innerText(),/overdue/);
+  assert.match(await page.locator('#actionRequiredCard .action-required-status').innerText(),/overdue/i);
   assert.equal(await page.locator('#customerNoteTags').getAttribute('open'),null);
   assert(await page.evaluate(()=>{const a=document.querySelector('#actionRequiredCard'),n=document.querySelector('#customerNoteTags'),f=document.querySelector('#customerFinancialSummary');return a.nextElementSibling===n&&n.nextElementSibling===f&&!!f.querySelector('.cust-progress')}));
   const row=page.locator('.tx-list .tx-row:not(.credit-note-tx-row)').first();

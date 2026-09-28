@@ -190,7 +190,7 @@ function completeBoot(token){
   window.setTimeout(function(){completeBoot(token)},70);
 }
 
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button,a,summary,.tx-row');if(!b||b.closest('#sbxLoader,.crm-readiness-error')||b.matches('a[target="_blank"]'))return;if(window.__sunblissBeginRenderInteraction)window.__sunblissBeginRenderInteraction();},true);
+// Route readiness owns loading; local clicks and background updates do not block the page.
 window.__sunblissMotion={begin:function(label){return begin(label,false)},finish:function(token){finish(token,1,false)}};
 installPreload();
 installStyles();

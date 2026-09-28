@@ -187,7 +187,7 @@
   document.addEventListener('pointerdown',function(event){
     if (!window.__sunblissDockSearchOpen) return;
     var panel = document.getElementById('sunblissDockSearchPanel');
-    var trigger = event.target && event.target.closest ? event.target.closest('.dock-search') : null;
+    var trigger = event.target && event.target.closest ? event.target.closest('.dock-search,#sbRefSidebar [data-action="search"]') : null;
     if (trigger || (panel && panel.contains(event.target))) return;
     setSearchOpen(false);
   },true);

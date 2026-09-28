@@ -11,7 +11,7 @@ function ensureHeadlineSize(){
   style.textContent='\n.action-required-card .action-required-message{font-size:14.4px!important;}\n#actionRequiredCard .action-required-detail{display:none!important;}\n.action-required-card[data-tone="danger"] .action-required-status-wrap{color:var(--rust,#B44732)!important;border-color:var(--rust,#B44732)!important;background:rgba(180,71,50,.07)!important;}\n.action-required-card[data-action-status="upcoming"]{border-left-color:var(--sage,#3F7A57)!important;}\n.action-required-card[data-action-status="upcoming"] .action-required-status-wrap{color:var(--sage,#3F7A57)!important;border-color:var(--sage,#3F7A57)!important;background:rgba(63,122,87,.07)!important;}\n@media(max-width:520px){.action-required-card .action-required-message{font-size:12px!important;}.action-required-card .action-required-meta{grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr) minmax(0,.8fr)!important;padding:0 10px!important;}.action-required-card .action-required-meta-block{display:block!important;min-width:0!important;min-height:auto!important;padding:10px 7px!important;text-align:center!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:7px!important;}.action-required-card .action-required-meta-icon{display:none!important;}.action-required-card .action-required-meta-label{margin:0 0 3px!important;font-size:9px!important;line-height:1.1!important;white-space:nowrap!important;}.action-required-card .action-required-meta-value{display:block!important;font-size:10.4px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;word-break:normal!important;}}\n@media(max-width:380px){.action-required-card .action-required-message{font-size:10.8px!important;}.action-required-card .action-required-meta{padding:0 7px!important;}.action-required-card .action-required-meta-block{padding:9px 5px!important;}.action-required-card .action-required-meta-block+.action-required-meta-block{padding-left:5px!important;}.action-required-card .action-required-meta-label{font-size:8.5px!important;}.action-required-card .action-required-meta-value{font-size:9.6px!important;}}';
   style.textContent+=`
 #actionRequiredCard .action-required-divider{display:none!important}
-#actionRequiredCard .action-required-meta{display:grid!important;grid-template-columns:1.1fr 1fr 1.05fr!important;gap:6px!important;padding:0 10px 8px!important;border:0!important}
+#actionRequiredCard .action-required-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:0 10px 8px!important;border:0!important}
 #actionRequiredCard .action-required-meta-block,#actionRequiredCard .action-required-meta-block+.action-required-meta-block{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;min-width:0!important;min-height:62px!important;padding:8px 5px 10px!important;border:1px solid #dfd2c0!important;border-radius:7px!important;background:transparent!important;text-align:center!important}
 #actionRequiredCard .action-required-meta-icon{display:none!important}
 #actionRequiredCard .action-required-meta-block>span:last-child{width:100%;min-width:0}
@@ -85,16 +85,15 @@ function sync(){
   if(syncing||!window.state||state.view!=='detail')return;
   var card=document.getElementById('actionRequiredCard');if(!card)return;
   var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail'),values=card.querySelectorAll('.action-required-meta-value'),labels=card.querySelectorAll('.action-required-meta-label');
-  if(!status||!message||values.length<3)return;
-  var targets=[status,message,detail].filter(Boolean),statusText=text(status.textContent).trim(),meta=parse(statusText,message.textContent,detail&&detail.textContent),byDisplay=compactDate(meta.by),dueDisplay=compactDue(meta.due),isOverdue=/overdue/i.test(statusText)||/overdue/i.test(text(meta.due)),isUpcoming=/^upcoming$/i.test(statusText),headline=upcomingHeadline(message.textContent,statusText,isOverdue)||cleanHeadline(message.textContent,meta.by);
+  if(!status||!message||values.length<2)return;
+  var targets=[status,message,detail].filter(Boolean),statusText=text(status.textContent).trim(),meta=parse(statusText,message.textContent,detail&&detail.textContent),byDisplay=compactDate(meta.by),dueDisplay=compactDue(meta.due),isOverdue=/overdue/i.test(statusText)||/overdue/i.test(text(meta.due)),isUpcoming=/^upcoming$/i.test(statusText),headline=text(message.textContent).trim();
   try{var exact=JSON.parse(card.dataset.actionMeta||'null');if(exact&&exact.stage){meta=exact;byDisplay=compactDate(exact.by);dueDisplay=compactDue(exact.due);isOverdue=!!exact.overdue;}}catch(e){}
   syncing=true;
   if(observer)observer.disconnect();
   try{
-    if(text(values[0].textContent)!==meta.stage)values[0].textContent=meta.stage;
-    if(text(values[1].textContent)!==byDisplay)values[1].textContent=byDisplay;
-    if(text(values[2].textContent)!==dueDisplay)values[2].textContent=dueDisplay;
-    if(labels.length>=3&&text(labels[2].textContent)!==(isOverdue?'Overdue':'Due In'))labels[2].textContent=isOverdue?'Overdue':'Due In';
+    if(text(values[0].textContent)!==byDisplay)values[0].textContent=byDisplay;
+    if(text(values[1].textContent)!==dueDisplay)values[1].textContent=dueDisplay;
+    if(labels.length>=2&&text(labels[1].textContent)!==(isOverdue?'Overdue':'Due In'))labels[1].textContent=isOverdue?'Overdue':'Due In';
     if(isOverdue)card.setAttribute('data-tone','danger');
     if(isUpcoming)card.setAttribute('data-action-status','upcoming');else card.removeAttribute('data-action-status');
     if(headline&&text(message.textContent).trim()!==headline)message.textContent=headline;

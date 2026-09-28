@@ -106,7 +106,7 @@
       document.body.classList.toggle('sunbliss-back-dock-mode',detailVisible||sources.length>0||actionOpen);
       document.body.classList.toggle('sunbliss-action-menu-open',menuOpen);
     }
-    if(shouldShow)closeDockSearch();
+    if(shouldShow&&!(window.matchMedia&&window.matchMedia('(min-width:1024px)').matches))closeDockSearch();
   }
   var queued=false;
   function queueSync(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;sync();});}
