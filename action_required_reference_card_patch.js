@@ -81,7 +81,7 @@ function ensureHeadlineSize(){
   margin:0!important;
   padding:25px 28px 25px!important;
   color:var(--ink,#16232F)!important;
-  font:600 20px/1.3 Inter,sans-serif!important;
+  font:600 17px/1.3 Inter,sans-serif!important;
   letter-spacing:-.018em!important;
 }
 #actionRequiredCard .action-required-detail{display:none!important}
@@ -190,7 +190,7 @@ function ensureHeadlineSize(){
   #actionRequiredCard .action-required-status{font-size:11.5px!important}
   #actionRequiredCard .action-required-message{
     padding:17px 15px 18px!important;
-    font-size:15.5px!important;
+    font-size:13.175px!important;
     line-height:1.34!important;
   }
   #actionRequiredCard .action-required-extension{
@@ -225,7 +225,7 @@ function ensureHeadlineSize(){
   #actionRequiredCard .action-required-status{font-size:10.5px!important}
   #actionRequiredCard .action-required-message{
     padding:15px 12px 16px!important;
-    font-size:14.3px!important;
+    font-size:12.155px!important;
   }
   #actionRequiredCard .action-required-meta{
     padding-left:12px!important;
@@ -267,7 +267,7 @@ function ensureHeadlineSize(){
   }
   #actionRequiredCard .action-required-message{
     padding:22px 30px 22px!important;
-    font-size:22px!important;
+    font-size:18.7px!important;
     line-height:1.28!important;
   }
   #actionRequiredCard .action-required-extension{
