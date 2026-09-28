@@ -64,7 +64,6 @@
     }
     (Array.isArray(c && c.creditNotes) ? c.creditNotes : []).forEach(function(n){
       var towards='Credit note — '+text(n.stageLabel||'Installment');
-      if (n.reason) towards+=' — '+text(n.reason);
       if (n.reference) towards+=' (Ref '+text(n.reference)+')';
       rows.push({date:n.issueDate,towards:towards,amount:n.amount,isCreditNote:true});
     });
