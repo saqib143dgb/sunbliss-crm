@@ -37,6 +37,7 @@
   }
   function normName(v){ return text(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
   function normUnit(v){ return text(v).toLowerCase().replace(/[^a-z0-9]+/g,''); }
+  function statementFee(v){ return /\bdld\b|admin|oqood/i.test(text(v&&v.code)+' '+text(v&&(v.label||v.towards||v.payment_type))); }
   function currentCustomer(){
     if (!window.state || !state.selectedUnit || !Array.isArray(state.dues)) return null;
     return state.dues.find(function(c){
@@ -52,7 +53,7 @@
         var tn=normName(t && t.name);
         if (!tn || tn.length<3) return false;
         var match=tn===cn || cn.indexOf(tn)!==-1 || tn.indexOf(cn)!==-1;
-        if (!match) return false;
+        if (!match || statementFee(t)) return false;
         if (sameNameCount>1){
           var tu=normUnit(t && t.unit);
           return !!tu && !!cu && tu===cu;
@@ -63,6 +64,7 @@
       });
     }
     (Array.isArray(c && c.creditNotes) ? c.creditNotes : []).forEach(function(n){
+      if (statementFee({label:n.stageLabel})) return;
       var towards='Credit note — '+text(n.stageLabel||'Installment');
       if (n.reference) towards+=' (Ref '+text(n.reference)+')';
       rows.push({date:n.issueDate,towards:towards,amount:n.amount,isCreditNote:true});
@@ -96,7 +98,7 @@
     var creditTotal=Number(c.creditNoteTotal)||0;
     var unitLine='UNIT '+text(c.unit).toUpperCase()+(type?' | '+type.toUpperCase():'');
     var customerMeta='Unit '+text(c.unit)+(type?' | '+type:'')+(credit?' | Credit notes '+money(creditTotal):'');
-    var stages=Array.isArray(c.stages) ? c.stages : [];
+    var stages=Array.isArray(c.stages) ? c.stages.filter(function(s){ return !statementFee(s); }) : [];
     var txs=transactionsFor(c);
 
     var html='<div class="professional-payment-statement">';
