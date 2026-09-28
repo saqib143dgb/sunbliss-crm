@@ -15,13 +15,19 @@
     return null;
   }
   function furnishingOf(c){if(c&&c.info&&c.info.furnishingType)return text(c.info.furnishingType).trim();var v=text(c&&c.furniture).trim();if(!v)return '';if(v.toLowerCase()==='signed'||v.toLowerCase()==='furnished')return 'Fully Furnished';if(v.toLowerCase()==='unfurnished')return 'Semi Furnished';return v;}
+  function paymentPlanOf(c){
+    var explicit=text(c&&c.info&&c.info.paymentPlan).trim();if(/^(30\/70|40\/60|50\/50)$/.test(explicit))return explicit;
+    var total=Number(c&&c.total)||0,stages=Array.isArray(c&&c.stages)?c.stages:[];if(total<=0||!stages.length)return '';
+    var pre=stages.reduce(function(sum,stage){var code=text(stage&&stage.code).toUpperCase(),label=text(stage&&stage.label).toLowerCase();if(code==='DLD'||code==='FIN'||/dld|admin fee|final|handover/.test(label))return sum;var due=Number(stage&&stage.due);return sum+(isFinite(due)&&due>0?due:0)},0);
+    var pct=pre/total*100,target=[30,40,50].find(function(n){return Math.abs(pct-n)<=1});return target?target+'/'+(100-target):'';
+  }
   function ensureStyles(){
     if(document.getElementById('sunblissUnitMetaInlineStyle'))return;
     var style=document.createElement('style');style.id='sunblissUnitMetaInlineStyle';style.textContent=[
       '.detail>.d-unit,.detail>.d-type{display:none!important}',
       '#unitMetaInline{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:7px 0 14px;color:var(--muted);font-size:12.5px;line-height:1.35}',
       '#unitMetaInline .unit-meta-number{font-family:"IBM Plex Mono",monospace;font-weight:700;color:var(--gold-deep)}',
-      '#unitMetaInline .unit-meta-type{font-weight:500;color:var(--muted)}','#unitMetaInline .unit-meta-furnishing{font-weight:500;color:var(--muted)}','#unitMetaInline .unit-meta-sep{opacity:.45}',
+      '#unitMetaInline .unit-meta-type{font-weight:500;color:var(--muted)}','#unitMetaInline .unit-meta-furnishing,#unitMetaInline .unit-meta-payment-plan{font-weight:500;color:var(--muted)}','#unitMetaInline .unit-meta-sep{opacity:.45}',
       '@media(max-width:390px){#unitMetaInline{gap:5px;font-size:11.5px}}'
     ].join('');document.head.appendChild(style);
   }
@@ -29,11 +35,11 @@
   function decorate(){
     if(!window.state||state.view!=='detail')return;ensureStyles();
     var c=currentCustomer(),detail=document.querySelector('.detail'),name=detail&&detail.querySelector('.d-name');if(!c||!detail||!name)return;
-    var unit=text(c.unit).trim()||'Unit',type=text(c.type).replace(/\s+/g,' ').trim()||'Unit type not specified',furnishing=furnishingOf(c)||'Furnishing not specified';
-    var signature=unit+'|'+type+'|'+furnishing;
+    var unit=text(c.unit).trim()||'Unit',type=text(c.type).replace(/\s+/g,' ').trim()||'Unit type not specified',furnishing=furnishingOf(c)||'Furnishing not specified',paymentPlan=paymentPlanOf(c);
+    var signature=unit+'|'+type+'|'+furnishing+'|'+paymentPlan;
     var row=document.getElementById('unitMetaInline');
     if(!row){row=document.createElement('div');row.id='unitMetaInline';row.setAttribute('aria-label','Unit details');name.insertAdjacentElement('afterend',row);}
-    if(row.dataset.signature!==signature){row.dataset.signature=signature;row.innerHTML='<span class="unit-meta-number">'+safe(unit)+'</span><span class="unit-meta-sep">—</span><span class="unit-meta-type">'+safe(type)+'</span><span class="unit-meta-sep">—</span><span class="unit-meta-furnishing">'+safe(furnishing)+'</span>';}
+    if(row.dataset.signature!==signature){row.dataset.signature=signature;row.innerHTML='<span class="unit-meta-number">'+safe(unit)+'</span><span class="unit-meta-sep">—</span><span class="unit-meta-type">'+safe(type)+'</span><span class="unit-meta-sep">—</span><span class="unit-meta-furnishing">'+safe(furnishing)+'</span>'+(paymentPlan?'<span class="unit-meta-sep">—</span><span class="unit-meta-payment-plan">'+safe(paymentPlan)+'</span>':'');}
     removeFurnishingBadge(c);
   }
   var queued=false;
