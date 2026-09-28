@@ -46,8 +46,8 @@ function headerIcon(type){
 function makePanelHeader(type){
   var header=document.createElement('div');
   header.className='sb-contact-sales-header sb-'+type+'-header';
-  var title=type==='contact'?'CONTACT':'SALE & COMPLIANCE';
-  var subtitle=type==='contact'?'PERSONAL & CONTACT INFORMATION':'BROKERAGE & REGULATORY DETAILS';
+  var title=type==='unit'?'UNIT DETAILS':type==='contact'?'CONTACT':'SALE & COMPLIANCE';
+  var subtitle=type==='unit'?'PROPERTY INFORMATION':type==='contact'?'PERSONAL & CONTACT INFORMATION':'BROKERAGE & REGULATORY DETAILS';
   header.innerHTML='<span class="sb-contact-sales-header-icon">'+headerIcon(type)+'</span><span class="sb-contact-sales-header-divider" aria-hidden="true"></span><span class="sb-contact-sales-header-copy"><strong>'+title+'</strong><small>'+subtitle+'</small></span>';
   return header;
 }
@@ -60,6 +60,8 @@ function makePanelBody(nodes){
 function restoreLayout(){
   var grid=document.getElementById('sbContactSalesGrid');
   if(!grid)return;
+  var unitNodes=grid.__sbUnitNodes||[],unitAnchor=grid.__sbUnitAnchor;
+  if(unitAnchor&&unitAnchor.parentNode){unitNodes.forEach(function(node){unitAnchor.parentNode.insertBefore(node,unitAnchor)});unitAnchor.remove();}
   var contactNodes=grid.__sbContactNodes||[];
   var salesNodes=grid.__sbSalesNodes||[];
   var contactAnchor=grid.__sbContactAnchor;
@@ -87,6 +89,7 @@ function applyLayout(){
     var sales=findSection(detail,['SALE & COMPLIANCE','SALES & COMPLIANCE']);
     if(!contact||!sales||contact.parentNode!==detail||sales.parentNode!==detail)return;
 
+    var unit=findSection(detail,['UNIT DETAILS']),unitNodes=unit&&unit.parentNode===detail?collectSalesNodes(unit):[];
     var contactNodes=collectContactNodes(contact);
     var salesNodes=collectSalesNodes(sales);
     if(contactNodes.length<2||salesNodes.length<2)return;
@@ -110,6 +113,10 @@ function applyLayout(){
     right.appendChild(makePanelHeader('sales'));
     right.appendChild(makePanelBody(salesNodes));
 
+    if(unitNodes.length){
+      var unitAnchor=document.createComment('sb-unit-original-position');detail.insertBefore(unitAnchor,unit);
+      var unitPanel=document.createElement('section');unitPanel.className='sb-contact-sales-panel sb-unit-panel';unitPanel.appendChild(makePanelHeader('unit'));unitPanel.appendChild(makePanelBody(unitNodes));grid.appendChild(unitPanel);grid.__sbUnitNodes=unitNodes;grid.__sbUnitAnchor=unitAnchor;grid.classList.add('sb-has-unit');
+    }
     grid.appendChild(left);
     grid.appendChild(right);
     grid.__sbContactNodes=contactNodes;
@@ -143,6 +150,7 @@ function installStyles(){
     margin:0 0 24px!important;
     box-sizing:border-box!important;
   }
+  #sbContactSalesGrid.sb-has-unit{grid-template-columns:minmax(0,.8fr) repeat(2,minmax(0,1fr))!important;}
   #sbContactSalesGrid>.sb-contact-sales-panel{
     min-width:0!important;
     width:100%!important;
@@ -201,11 +209,11 @@ function installStyles(){
   #sbContactSalesGrid .sb-contact-sales-header-copy strong{
     color:var(--ink)!important;
     font-family:Inter,Arial,sans-serif!important;
-    font-size:15px!important;
+    font-size:13px!important;
     font-weight:750!important;
     line-height:1!important;
     letter-spacing:.08em!important;
-    white-space:nowrap!important;
+    white-space:normal!important;
   }
   #sbContactSalesGrid .sb-contact-sales-header-copy small{
     color:var(--muted)!important;
@@ -214,7 +222,7 @@ function installStyles(){
     font-weight:600!important;
     line-height:1!important;
     letter-spacing:.18em!important;
-    white-space:nowrap!important;
+    white-space:normal!important;
   }
   #sbContactSalesGrid .sb-contact-sales-body{
     padding:0 18px 16px!important;

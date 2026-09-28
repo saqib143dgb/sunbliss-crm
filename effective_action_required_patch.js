@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV7';
+var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV8';
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
@@ -25,13 +25,13 @@ function hydrate(){try{var raw=sessionStorage.getItem(STORE_KEY);if(!raw)return;
 function persist(){try{sessionStorage.setItem(STORE_KEY,JSON.stringify(cache))}catch(e){}}
 function assemble(rows,credits,extensions,tasks){var credit={},ext={};(credits||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var id=String(c.payment_schedule_id);credit[id]=Math.round(((credit[id]||0)+(Number(c.amount)||0))*100)/100});(extensions||[]).forEach(function(e){if(e.status!=='active'||e.payment_schedule_id==null||!iso(e.extended_due_date))return;var id=String(e.payment_schedule_id),old=ext[id];if(!old||iso(e.extended_due_date)>iso(old.extended_due_date)||(iso(e.extended_due_date)===iso(old.extended_due_date)&&text(e.updated_at)>text(old.updated_at)))ext[id]=e});return{rows:rows||[],credit:credit,ext:ext,tasks:tasks||[]}}
 async function preloadAll(force){if(!window.sb)return false;if(preloading&&!force)return preloading;var ids=unitIds();if(!ids.length)return false;var now=Date.now(),allFresh=!force&&ids.every(function(id){var h=cache[String(id)];return h&&now-h.at<CACHE_TTL});if(allFresh)return true;preloading=(async function(){var q=await Promise.all([
- sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',ids),
+ sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',ids),
  sb.from('credit_notes').select('unit_id,payment_schedule_id,amount').in('unit_id',ids),
  sb.from('payment_extensions').select('id,unit_id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').in('unit_id',ids).neq('status','cancelled'),
  sb.from('scheduled_actions').select('id,unit_id,action_label,note,status,source,auto_kind,auto_key,schedule_id').in('unit_id',ids).eq('status','pending')
 ]);q.forEach(function(r){if(r.error)throw r.error});var rows={},credits={},exts={},tasks={};(q[0].data||[]).forEach(function(r){var k=String(r.unit_id);(rows[k]||(rows[k]=[])).push(r)});(q[1].data||[]).forEach(function(r){var k=String(r.unit_id);(credits[k]||(credits[k]=[])).push(r)});(q[2].data||[]).forEach(function(r){var k=String(r.unit_id);(exts[k]||(exts[k]=[])).push(r)});(q[3].data||[]).forEach(function(r){var k=String(r.unit_id);(tasks[k]||(tasks[k]=[])).push(r)});var at=Date.now();ids.forEach(function(id){var k=String(id);cache[k]={at:at,data:assemble(rows[k]||[],credits[k]||[],exts[k]||[],tasks[k]||[])}});persist();return true})().catch(function(e){console.warn('Could not preload effective payment actions',e);return false}).then(function(v){preloading=null;if(v&&window.state&&state.view==='detail')prepare();return v});return preloading}
 async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Date.now()-hit.at<CACHE_TTL)return hit.data;if(!force&&preloading){await preloading;hit=cache[k];if(hit&&Date.now()-hit.at<CACHE_TTL)return hit.data}if(loading[k])return loading[k];loading[k]=(async function(){var q=await Promise.all([
- sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',uid),
+ sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',uid),
  sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',uid),
  sb.from('payment_extensions').select('id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').eq('unit_id',uid).neq('status','cancelled'),
  sb.from('scheduled_actions').select('id,unit_id,action_label,note,status,source,auto_kind,auto_key,schedule_id').eq('unit_id',uid).eq('status','pending')
@@ -41,12 +41,14 @@ function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[
 function coverage(data){var exact={};(data.tasks||[]).forEach(function(t){if(t.status!=='pending'||t.auto_kind==='demand_letter'||/send demand letter/i.test(text(t.action_label))||t.auto_kind==='extension_active')return;var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);ids.forEach(function(id){exact[id]=1})});return exact}
 function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.push('By '+date(x.e.contractual));if(x.e.revised&&x.e.revised!==x.e.contractual)p.push('Revised to '+date(x.e.revised));p.push('Extended to '+date(x.e.date));return p.join(' · ')}if(x.e.kind==='revised')return 'By '+date(x.e.contractual)+' · Revised to '+date(x.e.date);return 'By '+date(x.e.date)}
 function build(data,c,selection){
- var rows=[],carry={};(c&&c.stages||[]).forEach(function(s){carry[String(s.id||s.scheduleId)]=Math.max(0,Number(s.carryApplied)||0)});
+ var rows=[],carry={},stages={};(c&&c.stages||[]).forEach(function(s){var id=String(s.id||s.scheduleId);carry[id]=Math.max(0,Number(s.carryApplied)||0);stages[id]=s});
  data.rows.forEach(function(r){
   var kind=stageKind(r);if(!kind)return;
-  var credit=kind==='dld'?0:(data.credit[String(r.id)]||0);
-  var remaining=Math.round(Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-credit-(carry[String(r.id)]||0))*100)/100;
-  if(remaining<=0)return;
+  var credit=data.credit[String(r.id)]||0,stage=stages[String(r.id)],due=Number(r.revised_due_amount)||Number(r.due_amount)||0;
+  if(norm(r.status)==='paid'||(stage&&norm(stage.status)==='paid'))return;
+  var remaining=Math.round(Math.max(0,due-(Number(r.paid_amount)||0)-credit-(carry[String(r.id)]||0))*100)/100;
+  var tolerance=kind==='dld'?200:(window.__sunblissPaymentTolerance?window.__sunblissPaymentTolerance.amount:1000);
+  if(remaining<=tolerance)return;
   var e=effective(r,data.ext);if(!e.date&&!/(final|handover)/i.test(text(r.stage_name)))return;
   rows.push({r:r,remaining:remaining,e:e,kind:kind});
  });

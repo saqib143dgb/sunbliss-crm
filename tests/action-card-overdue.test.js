@@ -13,16 +13,24 @@ test('overdue remains primary as next installment counts down and joins overdue 
  assert.equal(calculator('2026-10-08')(rows).upcoming,'Next installment is due today.');
  a=calculator('2026-10-09')(rows);assert.equal(a.message,'1st & 2nd Instalments are AED 100,000 & AED 100,000, total AED 200,000.');assert.equal(a.upcoming,'');
 });
-test('small unpaid balance survives paid flags and scheduled tasks until actually settled',()=>{
+test('paid installments advance the action without altering financial records',()=>{
  const partial=[{...rows[0],paid_amount:99500,status:'paid'},rows[1]],before=JSON.stringify(partial),calc=calculator('2026-09-28');
- const a=calc(partial,[],[],[{schedule_id:1,status:'pending',action_label:'Follow up'}],[{id:1,carryForwardManaged:true}]);assert.equal(a.message,'1st Installment is overdue: AED 500.');assert.equal(JSON.stringify(partial),before);
+ const a=calc(partial,[],[],[{schedule_id:1,status:'pending',action_label:'Follow up'}],[{id:1,carryForwardManaged:true}]);assert.equal(a.meta.stage,'2nd Installment');assert.equal(JSON.stringify(partial),before);
  assert.equal(calc([{...rows[0],paid_amount:100000},rows[1]]).meta.stage,'2nd Installment');
 });
-test('applied credits and carry settle balances but DLD credits do not settle cash dues',()=>{
+test('applied credits and carry settle installment actions',()=>{
  const calc=calculator('2026-09-28'),partial=[{...rows[0],paid_amount:99000},rows[1]];
  assert.equal(calc(partial,[{payment_schedule_id:1,amount:500}],[],[],[{id:1,carryApplied:500}]).meta.stage,'2nd Installment');
- assert.match(calc([{...rows[0],stage_name:'DLD + Admin Fees'}],[{payment_schedule_id:1,amount:100000}]).message,/overdue/);
+ assert.equal(calc([{...rows[0],stage_name:'DLD + Admin Fees'}],[{payment_schedule_id:1,amount:100000}]).status,'Up to date');
 });
 test('approved extension protects its installment without displacing unrelated overdue debt',()=>{
  const a=calculator('2026-10-09')(rows,[],[{payment_schedule_id:2,status:'active',extended_due_date:'2026-10-15'}]);assert.equal(a.meta.stage,'1st Installment');assert.equal(a.upcoming,'Next installment is due in 6 days.');
+});
+
+test('tolerance skips small balances, preserves larger overdue debt and honors revised amounts',()=>{
+ const calc=calculator('2026-09-28');
+ assert.equal(calc([{...rows[0],paid_amount:99886},rows[1]]).meta.stage,'2nd Installment');
+ assert.equal(calc([{...rows[0],paid_amount:98999},rows[1]]).meta.stage,'1st Installment');
+ assert.equal(calc([{...rows[0],revised_due_amount:90000,paid_amount:90000},rows[1]]).meta.stage,'2nd Installment');
+ assert.equal(calc(rows,[],[],[],[{id:1,status:'Paid'}]).meta.stage,'2nd Installment');
 });
