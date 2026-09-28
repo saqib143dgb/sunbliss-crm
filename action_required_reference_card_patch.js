@@ -32,7 +32,7 @@ function ensureHeadlineSize(){
 }
 #actionRequiredCard .action-required-title{
   color:var(--amber,#9C5A12)!important;
-  font:700 14px/1 "IBM Plex Mono",monospace!important;
+  font:600 14px/1 "IBM Plex Mono",monospace!important;
   letter-spacing:.105em!important;
   text-transform:uppercase!important;
   white-space:nowrap!important;
@@ -62,7 +62,7 @@ function ensureHeadlineSize(){
 }
 #actionRequiredCard .action-required-status{
   color:inherit!important;
-  font:700 15px/1 Inter,sans-serif!important;
+  font:600 15px/1 Inter,sans-serif!important;
   white-space:nowrap!important;
 }
 #actionRequiredCard[data-tone="danger"] .action-required-status-wrap{
@@ -81,7 +81,7 @@ function ensureHeadlineSize(){
   margin:0!important;
   padding:25px 28px 25px!important;
   color:var(--ink,#16232F)!important;
-  font:700 20px/1.3 Inter,sans-serif!important;
+  font:600 20px/1.3 Inter,sans-serif!important;
   letter-spacing:-.018em!important;
 }
 #actionRequiredCard .action-required-detail{display:none!important}
@@ -117,8 +117,8 @@ function ensureHeadlineSize(){
   align-items:center!important;
   gap:16px!important;
   min-width:0!important;
-  min-height:56px!important;
-  padding:8px 18px!important;
+  min-height:42px!important;
+  padding:6px 12px!important;
   border:1px solid var(--paper-line,#dfd2c0)!important;
   border-radius:10px!important;
   background:transparent!important;
@@ -129,7 +129,7 @@ function ensureHeadlineSize(){
   content:""!important;
   grid-column:2!important;
   width:1px!important;
-  height:32px!important;
+  height:24px!important;
   background:var(--paper-line,#dfd2c0)!important;
 }
 #actionRequiredCard .action-required-meta-icon{display:none!important}
@@ -145,7 +145,7 @@ function ensureHeadlineSize(){
   border-radius:0!important;
   background:transparent!important;
   color:var(--muted,#746b5e)!important;
-  font:600 14px/1.15 Inter,sans-serif!important;
+  font:500 14px/1.15 Inter,sans-serif!important;
   white-space:nowrap!important;
 }
 #actionRequiredCard .action-required-meta-value{
@@ -154,7 +154,7 @@ function ensureHeadlineSize(){
   display:block!important;
   min-width:0!important;
   color:var(--ink,#16232F)!important;
-  font:700 17px/1.15 Inter,sans-serif!important;
+  font:500 17px/1.15 Inter,sans-serif!important;
   text-align:center!important;
   white-space:nowrap!important;
   overflow:hidden!important;
@@ -162,7 +162,7 @@ function ensureHeadlineSize(){
 }
 #actionRequiredCard .action-required-meta-block:last-child .action-required-meta-value{
   color:var(--rust,#B44732)!important;
-  font-weight:700!important;
+  font-weight:600!important;
 }
 
 @media(max-width:719px){
@@ -210,11 +210,11 @@ function ensureHeadlineSize(){
   #actionRequiredCard .action-required-meta-block+.action-required-meta-block{
     grid-template-columns:auto 1px minmax(0,1fr)!important;
     gap:8px!important;
-    min-height:52px!important;
-    padding:7px 9px!important;
+    min-height:40px!important;
+    padding:5px 8px!important;
     border-radius:9px!important;
   }
-  #actionRequiredCard .action-required-meta-block:before{height:27px!important}
+  #actionRequiredCard .action-required-meta-block:before{height:22px!important}
   #actionRequiredCard .action-required-meta-label{font-size:10.7px!important}
   #actionRequiredCard .action-required-meta-value{font-size:12.2px!important}
 }
@@ -235,7 +235,7 @@ function ensureHeadlineSize(){
   #actionRequiredCard .action-required-meta-block,
   #actionRequiredCard .action-required-meta-block+.action-required-meta-block{
     gap:6px!important;
-    padding:7px!important;
+    padding:5px 7px!important;
   }
   #actionRequiredCard .action-required-meta-label{font-size:10px!important}
   #actionRequiredCard .action-required-meta-value{font-size:11.2px!important}
@@ -243,7 +243,7 @@ function ensureHeadlineSize(){
 
 @media(min-width:720px){
   #actionRequiredCard{
-    min-height:218px!important;
+    min-height:0!important;
     border-radius:18px!important;
   }
   #actionRequiredCard .action-required-head{
@@ -266,7 +266,7 @@ function ensureHeadlineSize(){
     font-size:18px!important;
   }
   #actionRequiredCard .action-required-message{
-    padding:28px 30px 26px!important;
+    padding:22px 30px 22px!important;
     font-size:22px!important;
     line-height:1.28!important;
   }
@@ -284,17 +284,17 @@ function ensureHeadlineSize(){
   }
   #actionRequiredCard .action-required-meta-block,
   #actionRequiredCard .action-required-meta-block+.action-required-meta-block{
-    min-height:52px!important;
-    gap:18px!important;
-    padding:8px 20px!important;
+    min-height:40px!important;
+    gap:12px!important;
+    padding:6px 14px!important;
     border-radius:9px!important;
   }
-  #actionRequiredCard .action-required-meta-block:before{height:30px!important}
+  #actionRequiredCard .action-required-meta-block:before{height:24px!important}
   #actionRequiredCard .action-required-meta-label{
-    font-size:17px!important;
+    font-size:15px!important;
   }
   #actionRequiredCard .action-required-meta-value{
-    font-size:19px!important;
+    font-size:17px!important;
   }
 }
 `;
