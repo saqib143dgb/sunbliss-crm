@@ -202,7 +202,7 @@
        Never recapture from the in-flight DOM because the animation itself changes
        textContent every frame. Recapturing those mutations was the source of the
        desktop main-thread feedback loop. */
-    if(started&&targets)return false;
+    if(started&&targets){applyProgress(currentProgress);return true;}
 
     var next=captureTargets(nodes);
     if(!next)return false;
@@ -219,13 +219,11 @@
   /* Called by renderers that own the final Overview DOM. Keeping this explicit
      avoids watching the whole document for child mutations. */
   window.__sunblissOverviewKpiRendered=prepareFromRenderedOverview;
+  // Readiness may prepare counters, but must never finish their animation.
   window.__sunblissCompleteOverviewKpis=function(){
     if(completed)return true;
     if(!targets)prepareFromRenderedOverview();
-    if(!targets)return false;
-    if(frameId)cancelAnimationFrame(frameId);
-    started=true;completed=true;currentProgress=1;applyProgress(1);
-    root.classList.remove('sbx-kpi-pending');return true;
+    return loaderReleased()?startTimeline():false;
   };
 
   /* The only observer left watches loader state on <html>. It cannot see KPI text
