@@ -35,11 +35,11 @@
   function decorate(){
     if(!window.state||state.view!=='detail')return;ensureStyles();
     var c=currentCustomer(),detail=document.querySelector('.detail'),name=detail&&detail.querySelector('.d-name');if(!c||!detail||!name)return;
-    var unit=text(c.unit).trim()||'Unit',type=text(c.type).replace(/\s+/g,' ').trim()||'Unit type not specified',furnishing=furnishingOf(c)||'Furnishing not specified',paymentPlan=paymentPlanOf(c);
+    var unit=text(c.unit).trim()||'Unit',type=text(c.type).replace(/\bstore\b/ig,'Store').replace(/\s+/g,' ').trim()||'Unit type not specified',furnishing=furnishingOf(c)||'Furnishing not specified',paymentPlan=paymentPlanOf(c);
     var signature=unit+'|'+type+'|'+furnishing+'|'+paymentPlan;
     var row=document.getElementById('unitMetaInline');
     if(!row){row=document.createElement('div');row.id='unitMetaInline';row.setAttribute('aria-label','Unit details');name.insertAdjacentElement('afterend',row);}
-    if(row.dataset.signature!==signature){row.dataset.signature=signature;row.innerHTML='<span class="unit-meta-number">'+safe(unit)+'</span><span class="unit-meta-sep">—</span><span class="unit-meta-type">'+safe(type)+'</span><span class="unit-meta-sep">—</span><span class="unit-meta-furnishing">'+safe(furnishing)+'</span>'+(paymentPlan?'<span class="unit-meta-sep">—</span><span class="unit-meta-payment-plan">'+safe(paymentPlan)+'</span>':'');}
+    if(row.dataset.signature!==signature){row.dataset.signature=signature;row.innerHTML='<span class="unit-meta-number">'+safe(unit)+'</span><span class="unit-meta-sep">•</span><span class="unit-meta-type">'+safe(type)+'</span><span class="unit-meta-sep">•</span><span class="unit-meta-furnishing">'+safe(furnishing)+'</span>'+(paymentPlan?'<span class="unit-meta-sep">•</span><span class="unit-meta-payment-plan">'+safe(paymentPlan)+'</span>':'');}
     removeFurnishingBadge(c);
   }
   var queued=false;
