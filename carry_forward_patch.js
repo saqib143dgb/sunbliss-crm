@@ -221,12 +221,7 @@
     var n=round2(value);
     return n>0?'Customer credit':n<0?'Amount to recover':'Clear';
   }
-  function carryNote(value){
-    var n=round2(value);
-    if (n>0) return 'Customer has paid extra.';
-    if (n<0) return 'This shortage remains outstanding until later cash or another valid settlement offsets it. Scheduled installment amounts are unchanged.';
-    return 'No unsettled carry-forward adjustment is currently outstanding.';
-  }
+  function carryNote(){ return ''; }
   function allocationAmountForEvent(e){
     if (!window.state) return 0;
     if (Number(e.amount)>0) return round2((state.carryForwardAllocatedFromPositive||{})[text(e.id)]||0);
@@ -277,7 +272,6 @@
         '<div class="carry-forward-left">'+
           '<span class="carry-forward-title">Carry Forward</span>'+
           '<p class="carry-forward-value">'+safe(signedMoney(value))+'</p>'+
-          '<p class="carry-forward-note">'+safe(carryNote(value))+'</p>'+
         '</div>'+
         '<div class="carry-forward-right">'+
           '<span class="carry-forward-status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4z"/><path d="M4 10h16M7 4h10v3"/><circle cx="16.5" cy="14.5" r="1.25"/></svg><span>'+safe(carryStatus(value))+'</span></span>'+
