@@ -124,6 +124,13 @@
       var title=card.querySelector('.stage-name');
       var stamp=card.querySelector('.stamp');
       if (title && stamp && stamp.nextElementSibling!==title) card.insertBefore(stamp,title);
+      card.querySelectorAll('.stage-row span:first-child').forEach(function(label){
+        var key=text(label.textContent).replace(/:\s*$/,'').trim().toLowerCase();
+        if (key==='due') label.textContent='Due:';
+        else if (key==='by') label.textContent='By:';
+        else if (key==='paid' || key==='cash') label.textContent='Cash:';
+        else if (key==='on') label.textContent='On:';
+      });
       if (card.querySelector('.installment-menu-btn')) return;
       var stage=c.stages[index];
       if (!stage) return;
