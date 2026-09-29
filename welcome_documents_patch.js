@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissWelcomeDocuments)return;window.__sunblissWelcomeDocuments=true;
 let dialog=null,opening=false;
-const TYPES={welcome:'Welcome Letter',receipt:'Payment Receipt',soa:'SOA'};
+const TYPES={welcome:'Welcome Letter',receipt:'Payment Receipt',soa:'SOA',spa:'SPA'};
 const GENERATOR_STYLE_ID='crmDocumentGeneratorGlobalStyles';
 function current(){return window.state&&state.view==='detail'&&(state.dues||[]).find(c=>c.unit+'::'+c.sno===state.selectedUnit)}
 function unwrap(r){if(r.error)throw r.error;return r.data}
@@ -128,7 +128,19 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 }
 function mount(){const c=current();if(!c)return;styles();document.getElementById('crmDocuments')?.remove();document.getElementById('actionGenerateDocument')?.remove();document.getElementById('btnPrintWelcomeLetter')?.remove();const old=document.getElementById('btnPrintStatement');if(old){const b=document.createElement('button');b.id='btnGenerateDocument';b.className='btn-paper';b.type='button';b.textContent='Generate Document';b.onclick=()=>open(c);old.replaceWith(b)}}
 function documentSnapshot(value){if(value instanceof Date)return isNaN(value.getTime())?null:value.getFullYear()+'-'+String(value.getMonth()+1).padStart(2,'0')+'-'+String(value.getDate()).padStart(2,'0');if(Array.isArray(value))return value.map(documentSnapshot);if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,documentSnapshot(item)]));return value;}
-async function context(c){const unit=unwrap(await sb.from('units').select('id,customer_id,unit_no,unit_type,area,project_name,status').eq('id',c.sno).single());if(!unit.customer_id||unit.status==='Cancelled')throw Error('Select an active customer unit.');const [customer,transactions]=await Promise.all([sb.from('customers').select('id,customer_name,address,permanent_address,phone,email').eq('id',unit.customer_id).single(),sb.from('payment_transactions').select('*').eq('unit_id',unit.id).eq('customer_id',unit.customer_id).order('payment_date',{ascending:true}).order('id',{ascending:true})]);const snapshot=documentSnapshot(c);snapshot.paidPercent=window.__sunblissPaymentPercentageRules?window.__sunblissPaymentPercentageRules.progressPct(c):null;return {unit,customer:unwrap(customer),transactions:(unwrap(transactions)||[]).filter(t=>Number(t.amount)>0),soaTransactions:unwrap(transactions)||[],account:snapshot}}
+async function context(c){
+  const unit=unwrap(await sb.from('units').select('id,customer_id,unit_no,unit_type,area,unit_area_sqft,balcony_terrace_area_sqft,project_name,status,floor,furnishing_status,layout_type,total_price').eq('id',c.sno).single());
+  if(!unit.customer_id||unit.status==='Cancelled')throw Error('Select an active customer unit.');
+  const results=await Promise.all([
+    sb.from('customers').select('id,customer_name,address,permanent_address,phone,email,nationality,date_of_birth,passport_no,eid_no,co_applicant').eq('id',unit.customer_id).single(),
+    sb.from('payment_transactions').select('*').eq('unit_id',unit.id).eq('customer_id',unit.customer_id).order('payment_date',{ascending:true}).order('id',{ascending:true}),
+    sb.from('payment_schedule').select('id,stage_name,due_amount,due_date,revised_due_amount,revised_due_date,status,remarks').eq('unit_id',unit.id).eq('customer_id',unit.customer_id).order('id',{ascending:true}),
+    sb.from('sales').select('id,booking_date,booking_amount,spa_status,spa_date,oqood_status,furniture_status,commercial_sale_price').eq('unit_id',unit.id).eq('customer_id',unit.customer_id).maybeSingle()
+  ]);
+  const customer=unwrap(results[0]),transactions=unwrap(results[1])||[],paymentSchedule=unwrap(results[2])||[],sale=unwrap(results[3]);
+  const snapshot=documentSnapshot(c);snapshot.paidPercent=window.__sunblissPaymentPercentageRules?window.__sunblissPaymentPercentageRules.progressPct(c):null;
+  return {unit,customer,transactions:transactions.filter(t=>Number(t.amount)>0),soaTransactions:transactions,paymentSchedule,sale,account:snapshot};
+}
 async function open(c){
   if(dialog||opening)return;opening=true;const opener=document.activeElement;
   try{
@@ -143,12 +155,12 @@ async function open(c){
     dialog.querySelector('.document-customer').textContent=ctx.customer.customer_name+' · '+ctx.unit.unit_no;
     const options=dialog.querySelector('.document-options');
     const back=dialog.querySelector('.document-back');
-    const descriptions={welcome:'Customer welcome and payment acknowledgement',receipt:'Receipt for a recorded payment',soa:'Statement of account and payment history'};
+    const descriptions={welcome:'Customer welcome and payment acknowledgement',receipt:'Receipt for a recorded payment',soa:'Statement of account and payment history',spa:'Bilingual SPA preparation, Arabic verification and unit-layout readiness'};
     back.onclick=()=>{frame?.remove();frame=null;kind=null;dialog.classList.remove('document-workspace');options.hidden=false;back.hidden=true;dialog.querySelector('.document-dialog-title').textContent='Generate Document';grid.querySelector('button')?.focus()};
     const grid=dialog.querySelector('.document-options-grid');
     for(const [key,label] of Object.entries(TYPES)){
       const b=document.createElement('button');b.type='button';b.innerHTML='<span><span class="document-option-label">'+label+'</span><span class="document-option-description">'+descriptions[key]+'</span></span>';
-      b.onclick=()=>{kind=key;dialog.querySelector('.document-dialog-title').textContent=key==='soa'?'Statement of Account':label;options.hidden=true;back.hidden=false;dialog.classList.add('document-workspace');back.focus();frame=document.createElement('iframe');frame.title=label+' generator';frame.src='welcome-letter.html';frame.addEventListener('load',()=>styleGeneratorFrame(frame));dialog.append(frame)};
+      b.onclick=()=>{kind=key;dialog.querySelector('.document-dialog-title').textContent=key==='soa'?'Statement of Account':(key==='spa'?'Sale & Purchase Agreement':label);options.hidden=true;back.hidden=false;dialog.classList.add('document-workspace');back.focus();frame=document.createElement('iframe');frame.title=label+' generator';frame.src=key==='spa'?'spa-generator.html':'welcome-letter.html';if(key!=='spa')frame.addEventListener('load',()=>styleGeneratorFrame(frame));dialog.append(frame)};
       grid.append(b);
     }
     dialog.showModal();
