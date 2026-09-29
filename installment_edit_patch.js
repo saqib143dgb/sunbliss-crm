@@ -51,9 +51,9 @@
     style.textContent=[
       '.stage-card{position:relative;overflow:visible}',
       '.installment-menu-btn{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:38px;height:26px;border:0;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;line-height:1;letter-spacing:2px;cursor:pointer;z-index:3}',
-      '.stage-name{white-space:nowrap;font-size:12px!important;letter-spacing:-.01em}',
+      '.stage-name{white-space:nowrap;font-size:12px!important;letter-spacing:-.01em;text-align:center!important;width:100%}',
       '.stage-percent-tag{display:inline;font:400 1em/1 Inter,sans-serif;color:var(--muted);white-space:nowrap;vertical-align:baseline;letter-spacing:0}',
-      '.stage-card .stamp.is-paid,.stage-card .stamp.is-upcoming,.stage-card .stamp.is-overdue,.stage-card .stamp.is-partial{padding:3.4px 8.5px!important;margin-bottom:8.5px!important;border-width:1.275px!important;box-shadow:0 0 0 2.55px var(--paper)!important;outline-width:1.275px!important;outline-offset:2.55px!important;font-size:8.075px!important}',
+      '.stage-card .stamp.is-paid,.stage-card .stamp.is-upcoming,.stage-card .stamp.is-overdue,.stage-card .stamp.is-partial,.stage-card .stamp.is-pending{display:table!important;padding:3.4px 8.5px!important;margin:0 auto 8.5px!important;border-width:1.275px!important;box-shadow:0 0 0 2.55px var(--paper)!important;outline-width:1.275px!important;outline-offset:2.55px!important;font-size:8.075px!important}',
       '.installment-menu-btn:hover,.installment-menu-btn:focus-visible{background:var(--paper-dim);color:var(--ink);outline:none}',
       '.installment-menu-pop{position:absolute;top:38px;right:7px;z-index:20;min-width:146px;padding:5px;background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;box-shadow:0 8px 24px rgba(15,26,38,.18)}',
       '.installment-menu-pop button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;color:var(--ink);font:600 12px/1.2 Inter,sans-serif;cursor:pointer}',
