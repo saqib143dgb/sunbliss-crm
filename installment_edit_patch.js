@@ -91,15 +91,19 @@
       var stage=c.stages[index];
       if (!stage) return;
       var title=card.querySelector('.stage-name');
-      if (title && !title.querySelector('.stage-percent-tag')){
-        var due=Number(stage.due), total=Number(c.total);
-        if (isFinite(due) && due>0 && isFinite(total) && total>0){
-          var pct=Math.round((due/total*100)*100)/100;
-          var pctText=String(Math.round(pct*100)/100);
-          var tag=document.createElement('span');
-          tag.className='stage-percent-tag';
-          tag.textContent=' • '+pctText+'%';
-          title.appendChild(tag);
+      if (title){
+        if (stage.code==='DLD'){
+          title.textContent='4% DLD+Admin Fees';
+        }else if (!title.querySelector('.stage-percent-tag')){
+          var due=Number(stage.due), total=Number(c.total);
+          if (isFinite(due) && due>0 && isFinite(total) && total>0){
+            var pct=Math.round((due/total*100)*100)/100;
+            var pctText=String(Math.round(pct*100)/100);
+            var tag=document.createElement('span');
+            tag.className='stage-percent-tag';
+            tag.textContent=' • '+pctText+'%';
+            title.appendChild(tag);
+          }
         }
       }
       var button=document.createElement('button');
