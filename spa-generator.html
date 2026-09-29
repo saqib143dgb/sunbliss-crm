@@ -5,52 +5,109 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SPA Generator</title>
 <style>
-:root{--ink:#16232f;--ink2:#0f1a26;--paper:#f6f1e4;--panel:#fffdf7;--line:#dcd2b6;--muted:#736c5c;--gold:#c6972e;--gold2:#8f6a1e;--good:#3f7a57;--warn:#9c5a12;--bad:#ae3b2b}
+:root{--ink:#16232f;--ink2:#0f1a26;--paper:#f6f1e4;--panel:#fffdf7;--line:#dcd2b6;--muted:#736c5c;--gold:#c6972e;--gold2:#8f6a1e;--good:#3f7a57;--warn:#9c5a12;--bad:#ae3b2b;--shadow:0 10px 30px rgba(15,26,38,.06)}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
-h1{margin:0 0 4px;font:600 26px/1.15 Georgia,serif}
-.sub{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
-h2{margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line);font-size:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-label{display:block;color:var(--muted);font-size:12px;font-weight:600}
-input,select,textarea{width:100%;min-height:42px;margin-top:6px;padding:9px 10px;border:1px solid #d2c7aa;border-radius:6px;background:white;color:var(--ink);font:14px/1.35 Inter,system-ui,sans-serif}
-textarea{min-height:78px;resize:vertical}
+html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+body{overflow-x:hidden}
+main{max-width:1480px;margin:0 auto;padding:24px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+section{min-width:0}
+aside{min-width:0;position:sticky;top:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:20px;margin-bottom:16px;box-shadow:0 1px 0 rgba(15,26,38,.02)}
+.hero-card{padding:22px}
+h1{margin:0 0 5px;font:600 28px/1.15 Georgia,serif;letter-spacing:-.015em}
+.sub{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+h2{margin:0 0 16px;padding-bottom:11px;border-bottom:1px solid var(--line);font-size:16px;line-height:1.3}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+label{display:block;min-width:0;color:var(--muted);font-size:12px;font-weight:600;line-height:1.35}
+input,select,textarea{display:block;width:100%;min-width:0;min-height:44px;margin-top:6px;padding:10px 11px;border:1px solid #d2c7aa;border-radius:7px;background:white;color:var(--ink);font:14px/1.4 Inter,system-ui,sans-serif;box-shadow:inset 0 1px 1px rgba(15,26,38,.02)}
+textarea{min-height:82px;resize:vertical}
 input[readonly],textarea[readonly]{background:#f0eadb;color:#59574f}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-color:var(--gold2)}
 .ar{direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif}
-.status{display:flex;align-items:flex-start;gap:9px;padding:10px 0;border-bottom:1px solid rgba(220,210,182,.6);font-size:13px;line-height:1.4}
+.status{display:flex;align-items:flex-start;gap:9px;padding:11px 0;border-bottom:1px solid rgba(220,210,182,.62);font-size:13px;line-height:1.42}
 .status:last-child{border-bottom:0}
 .dot{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--warn);flex:none}
 .status.good .dot{background:var(--good)} .status.bad .dot{background:var(--bad)}
-.status strong{display:block}
-.status span{color:var(--muted)}
-.actions{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(transparent,var(--paper) 22%)}
-button{width:100%;min-height:46px;border-radius:7px;border:1px solid var(--gold);background:var(--gold);color:var(--ink2);font-weight:700;font-size:14px;cursor:pointer}
+.status strong{display:block;color:var(--ink)}
+.status span{display:block;color:var(--muted);margin-top:1px}
+.actions{padding-top:4px}
+button{width:100%;min-height:47px;border-radius:8px;border:1px solid var(--gold);background:var(--gold);color:var(--ink2);font-weight:700;font-size:14px;cursor:pointer}
 button.secondary{margin-top:9px;background:white;border-color:var(--line);color:var(--ink)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.notice{margin-top:10px;font-size:12px;line-height:1.45;color:var(--muted)}
-.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:7px}
-table{border-collapse:collapse;width:100%;min-width:720px;font-size:12px}
-th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+button:disabled{opacity:.48;cursor:not-allowed}
+.notice{margin-top:10px;font-size:12px;line-height:1.5;color:var(--muted)}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:12px}
+th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 th{background:#f0eadb;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
 tr:last-child td{border-bottom:0}
 .arcell{direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif}
-.pill{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#faf6ea;font-size:11px;color:var(--muted)}
-.small{font-size:11px;color:var(--muted)}
-.topline{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
-@media(max-width:900px){main{grid-template-columns:1fr;padding:14px}.grid{grid-template-columns:1fr}.topline{display:block}.pill{margin-top:8px}aside{order:-1}.actions{position:static;background:none}}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:#faf6ea;font-size:11px;color:var(--muted);white-space:nowrap}
+.pill.temp{border-color:#d6b36a;color:#805d16;background:#fff8e8}
+.small{font-size:11px;color:var(--muted);line-height:1.5}
+.topline{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px}
+.mobile-section-index{display:none}
+.mode-note{margin-top:12px;padding:10px 12px;border:1px dashed #d7bc7a;border-radius:7px;background:#fff9ec;color:#765515;font-size:12px;line-height:1.5}
+@media(min-width:1100px){
+  .card{padding:22px}
+  .hero-card{padding:24px}
+  .grid{gap:16px}
+  aside .card{box-shadow:var(--shadow)}
+}
+@media(max-width:900px){
+  html,body{background:#f7f2e6}
+  main{grid-template-columns:1fr;gap:12px;padding:12px 12px calc(118px + env(safe-area-inset-bottom))}
+  section{order:1}
+  aside{order:0;position:static}
+  .card{border-radius:10px;padding:15px;margin-bottom:12px;box-shadow:none}
+  .hero-card{padding:16px}
+  h1{font-size:23px}
+  h2{font-size:15px;margin-bottom:13px;padding-bottom:9px}
+  .grid{grid-template-columns:1fr;gap:11px}
+  input,select,textarea{min-height:46px;font-size:16px;padding:10px 11px}
+  textarea{min-height:76px}
+  .topline{display:block;margin-bottom:10px}
+  .pill{margin-top:9px}
+  aside .card{margin-bottom:10px}
+  aside .card:nth-child(2){display:none}
+  .mobile-section-index{display:flex;gap:7px;overflow-x:auto;padding:1px 0 10px;scrollbar-width:none}
+  .mobile-section-index::-webkit-scrollbar{display:none}
+  .mobile-section-index span{flex:0 0 auto;padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:#fffaf0;color:var(--muted);font-size:10px;font-weight:700}
+  .actions{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(246,241,228,.97);border-top:1px solid var(--line);backdrop-filter:blur(14px);box-shadow:0 -10px 26px rgba(15,26,38,.08)}
+  .actions button{min-height:48px}
+  .actions button.secondary{margin-top:0}
+  .actions .notice{grid-column:1/-1;margin:0 2px 2px;max-height:32px;overflow:hidden;font-size:10.5px;line-height:1.35}
+  .tablewrap{border:0;background:transparent;overflow:visible}
+  table{min-width:0;display:block}
+  thead{display:none}
+  tbody{display:grid;gap:9px}
+  tr{display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
+  td{display:block;border:0;padding:5px 7px;font-size:12px;min-width:0;overflow-wrap:anywhere}
+  td::before{content:attr(data-label);display:block;margin-bottom:2px;color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.045em}
+  td:first-child{grid-column:1/-1;font-weight:700;font-size:13px}
+  td:first-child::before{display:none}
+  .arcell{text-align:right}
+  .mode-note{font-size:11px}
+}
+@media(max-width:390px){
+  main{padding-left:9px;padding-right:9px}
+  .card{padding:13px}
+  h1{font-size:21px}
+  .actions{padding-left:9px;padding-right:9px}
+  button{font-size:13px}
+}
 </style>
 </head>
 <body>
 <main>
 <section>
-  <div class="card">
+  <div class="card hero-card">
     <div class="topline">
       <div><h1>Sale &amp; Purchase Agreement</h1><p class="sub" id="summary">Loading customer and unit details…</p></div>
-      <span class="pill">Preparation &amp; verification</span>
+      <span class="pill temp" id="templateMode">Temporary draft template</span>
     </div>
     <p class="sub">English values are fetched from the CRM. Arabic identity details are stored separately and must be verified before final SPA generation. Existing legal clauses are not translated or rewritten here.</p>
+    <div class="mode-note" id="modeNote">For now, the CRM uses a temporary development template so you can test the complete SPA workflow. It is marked DRAFT and is not for signing or execution.</div>
+    <div class="mobile-section-index"><span>Purchaser</span><span>Unit</span><span>Payment plan</span><span>Verification</span></div>
   </div>
 
   <div class="card">
@@ -124,8 +181,8 @@ tr:last-child td{border-bottom:0}
   </div>
   <div class="actions">
     <button id="saveBtn" type="button">Save Arabic &amp; Verification</button>
-    <button id="generateBtn" type="button" class="secondary" disabled>Generate SPA</button>
-    <div class="notice" id="notice">Final PDF generation will unlock only when the approved template, verified Arabic identity details, and the correct verified unit layout are available.</div>
+    <button id="generateBtn" type="button" class="secondary">Generate Draft SPA</button>
+    <div class="notice" id="notice">Temporary draft generation is available now. Final executable SPA generation will switch on after the approved clean template and verified unit layouts are uploaded.</div>
   </div>
 </aside>
 </main>
