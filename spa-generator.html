@@ -437,8 +437,8 @@ function draftSnapshot(){
     payment_plan:contractPlan()
   };
 }
-function wrapCanvas(ctx,text,maxWidth){
-  var raw=text(textValue).split(/\n/),lines=[];
+function wrapCanvas(ctx,value,maxWidth){
+  var raw=text(value).split(/\n/),lines=[];
   raw.forEach(function(part){
     var words=part.split(/\s+/).filter(Boolean),line='';
     if(!words.length){lines.push('');return;}
