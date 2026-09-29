@@ -195,6 +195,10 @@ var role='';
 var profile=null,layout=null,template=null;
 
 function text(v){return v==null?'':String(v)}
+function html(v){return text(v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
+function value(id){var e=document.getElementById(id);return e?e.value.trim():''}
+function temporaryTemplate(){return {template_version:'TEMP-DRAFT-2026-09',master_plan_page:47,floor_unit_plan_page:48,temporary:true}}
+function activeTemplate(){return template||temporaryTemplate()}
 function money(v){var n=Number(v);return isFinite(n)?'AED '+n.toLocaleString('en-AE',{minimumFractionDigits:0,maximumFractionDigits:2}):''}
 function pct(amount,total){var a=Number(amount),t=Number(total);if(!(a>=0)||!(t>0))return '';var p=a/t*100;return (Math.round(p*100)/100).toLocaleString('en',{maximumFractionDigits:2})+'%'}
 function enDate(v){if(!v)return '';var d=new Date(String(v).slice(0,10)+'T00:00:00');return isNaN(d)?text(v):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
@@ -245,7 +249,7 @@ function render(){
   rows.forEach(function(r){
     var amount=Number(r.revised_due_amount||r.due_amount||0),due=r.revised_due_date||r.due_date;
     var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+text(r.stage_name)+'</td><td class="arcell">'+stageAr(r.stage_name)+'</td><td>'+pct(amount,total)+'</td><td>'+money(amount)+'</td><td>'+enDate(due)+'</td><td class="arcell">'+arDate(due)+'</td>';
+    tr.innerHTML='<td data-label="Installment">'+html(r.stage_name)+'</td><td data-label="Arabic" class="arcell">'+html(stageAr(r.stage_name))+'</td><td data-label="Percent">'+html(pct(amount,total))+'</td><td data-label="Amount">'+html(money(amount))+'</td><td data-label="Due date">'+html(enDate(due))+'</td><td data-label="Arabic date" class="arcell">'+html(arDate(due))+'</td>';
     body.appendChild(tr);
   });
   if(!rows.length)body.innerHTML='<tr><td colspan="6">No payment schedule found.</td></tr>';
@@ -253,17 +257,23 @@ function render(){
   var nameOk=!!(profile&&profile.arabic_name_verified);
   var layoutOk=!!(layout&&layout.verified&&layout.unit_plan_storage_path);
   var templateOk=!!template;
+  var t=activeTemplate(),temporary=!template||!layoutOk;
   document.getElementById('readiness').innerHTML=
-    statusRow('Arabic purchaser details',arabicOk,arabicOk?'Arabic purchaser fields recorded':'Arabic purchaser fields incomplete')+
-    statusRow('Arabic name verification',nameOk,nameOk?'Verified against '+text(profile.arabic_name_source||'recorded source').replace(/_/g,' '):'Must be checked against an official document')+
-    statusRow('Unit layout',layoutOk,layoutOk?'Verified layout linked to this unit':'Correct unit layout has not yet been verified/linked')+
-    statusRow('Approved SPA template',templateOk,templateOk?'Template '+text(template.template_version)+' is active':'No active SPA template uploaded yet');
+    statusRow('Arabic purchaser details',arabicOk,arabicOk?'Arabic purchaser fields recorded':'Draft can be previewed; final SPA needs the Arabic purchaser fields')+
+    statusRow('Arabic name verification',nameOk,nameOk?'Verified against '+text(profile.arabic_name_source||'recorded source').replace(/_/g,' '):'Draft preview allowed; final SPA requires official-name verification')+
+    statusRow('Unit layout',layoutOk,layoutOk?'Verified layout linked to this unit':'Temporary layout placeholder will be used in the draft')+
+    statusRow('SPA template',templateOk,templateOk?'Approved template '+text(template.template_version)+' is active':'Temporary development template is active');
   var mp=document.getElementById('masterPage'),up=document.getElementById('unitPage');
-  mp.querySelector('span').textContent=template&&template.master_plan_page?'Page '+template.master_plan_page:'Template setting not loaded';
-  up.querySelector('span').textContent=template&&template.floor_unit_plan_page?'Page '+template.floor_unit_plan_page:'Template setting not loaded';
-  mp.className='status '+(template&&template.master_plan_page?'good':'');
-  up.className='status '+(template&&template.floor_unit_plan_page?'good':'');
-  document.getElementById('generateBtn').disabled=!(arabicOk&&nameOk&&layoutOk&&templateOk);
+  mp.querySelector('span').textContent='Page '+(t.master_plan_page||47)+(templateOk?'':' · temporary');
+  up.querySelector('span').textContent='Page '+(t.floor_unit_plan_page||48)+(layoutOk?'':' · placeholder');
+  mp.className='status '+(t.master_plan_page?'good':'');
+  up.className='status '+(layoutOk&&t.floor_unit_plan_page?'good':'');
+  var mode=document.getElementById('templateMode'),note=document.getElementById('modeNote'),generate=document.getElementById('generateBtn');
+  mode.textContent=temporary?'Temporary draft template':'Approved SPA template';
+  mode.className='pill'+(temporary?' temp':'');
+  note.textContent=temporary?'For now, the CRM uses a temporary development template and a layout placeholder where required. The output is clearly marked DRAFT and is not for signing or execution.':'Approved template and verified unit layout are available. Final SPA generation can use the controlled template.';
+  generate.disabled=false;
+  generate.textContent=temporary?'Generate Draft SPA':'Generate SPA';
   if(role!=='crm_officer'){
     document.querySelectorAll('input:not([readonly]),textarea:not([readonly]),select,#saveBtn').forEach(function(e){e.disabled=true});
     document.getElementById('notice').textContent='Manager access is review-only. CRM Officer can update Arabic verification fields.';
@@ -292,6 +302,56 @@ async function save(){
   }catch(e){document.getElementById('notice').textContent=e&&e.message?e.message:'Could not save SPA details.'}
   finally{btn.disabled=false;btn.textContent='Save Arabic & Verification'}
 }
+
+function draftSnapshot(){
+  var c=ctx.customer||{},u=ctx.unit||{},sale=ctx.sale||{},t=activeTemplate();
+  var total=Number(sale.commercial_sale_price||u.total_price||ctx.account&&ctx.account.total||0);
+  var plan=(ctx.paymentSchedule||[]).map(function(r){
+    var amount=Number(r.revised_due_amount||r.due_amount||0),due=r.revised_due_date||r.due_date;
+    return {stage_name:r.stage_name,stage_name_ar:stageAr(r.stage_name),percent:pct(amount,total),amount:amount,due_date:due};
+  });
+  return {
+    temporary:!template||!(layout&&layout.verified&&layout.unit_plan_storage_path),
+    template_version:t.template_version,
+    master_plan_page:t.master_plan_page||47,
+    floor_unit_plan_page:t.floor_unit_plan_page||48,
+    customer:{id:c.id,name_en:c.customer_name,name_ar:value('nameAr'),nationality_en:c.nationality,nationality_ar:value('nationalityAr'),passport_no:c.passport_no,eid_no:c.eid_no,address_en:c.address||c.permanent_address,address_ar:value('addressAr'),phone:c.phone,email:c.email,arabic_name_source:value('nameSource'),arabic_name_verified:value('nameVerified')==='true'},
+    unit:{id:u.id,project:u.project_name,unit_no:u.unit_no,unit_type_en:u.unit_type,unit_type_ar:value('unitTypeAr'),furnishing_en:u.furnishing_status||sale.furniture_status,furnishing_ar:value('furnishingAr'),floor:u.floor,area:u.area||u.unit_area_sqft,purchase_price:total,layout_key:layout&&layout.layout_key||u.layout_type||''},
+    payment_plan:plan
+  };
+}
+function draftDocument(s){
+  var rows=s.payment_plan.map(function(r){return '<tr><td>'+html(r.stage_name)+'</td><td dir="rtl">'+html(r.stage_name_ar)+'</td><td>'+html(r.percent)+'</td><td>'+html(money(r.amount))+'</td><td>'+html(enDate(r.due_date))+'</td><td dir="rtl">'+html(arDate(r.due_date))+'</td></tr>'}).join('');
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DRAFT SPA · '+html(s.unit.unit_no)+'</title><style>'+
+  '@page{size:A4;margin:16mm}*{box-sizing:border-box}body{margin:0;color:#152331;font:12px Arial,sans-serif;background:#eee}.toolbar{position:sticky;top:0;z-index:10;padding:10px;background:#10202e;color:white;text-align:center}.toolbar button{padding:9px 18px}.page{position:relative;width:210mm;min-height:297mm;margin:10px auto;padding:18mm;background:white;box-shadow:0 3px 20px #0002;page-break-after:always}.page:last-child{page-break-after:auto}.watermark{position:absolute;left:10%;right:10%;top:44%;transform:rotate(-24deg);font:bold 44px Arial;color:#a43b2b18;text-align:center;pointer-events:none}.head{text-align:center;border-bottom:2px solid #b78c2e;padding-bottom:10px;margin-bottom:18px}.head h1{font-size:20px;margin:0}.bilingual{display:grid;grid-template-columns:1fr 1fr;gap:18px}.ar{direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif}.box{border:1px solid #bbb;padding:10px;margin:10px 0}.row{display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid #eee}.row:last-child{border-bottom:0}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #aaa;padding:6px;vertical-align:top}th{background:#f0eadb}.planbox{height:190mm;border:2px dashed #b78c2e;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#76633b}.warn{padding:10px;border:1px solid #d4b45f;background:#fff7dc;color:#6f5418;margin:12px 0}@media(max-width:800px){body{background:#fff}.toolbar{position:sticky}.page{width:100%;min-height:auto;margin:0;padding:18px;box-shadow:none}.bilingual{grid-template-columns:1fr}.row{grid-template-columns:120px 1fr}}@media print{body{background:white}.toolbar{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:267mm}}'+
+  '</style></head><body><div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button></div>'+
+  '<section class="page"><div class="watermark">DRAFT · TEMPORARY TEMPLATE</div><div class="head"><h1>SALE &amp; PURCHASE AGREEMENT</h1><div dir="rtl">اتفاقية البيع والشراء</div><p>'+html(s.unit.project||'')+' · '+html(s.unit.unit_no||'')+'</p></div><div class="warn">Temporary CRM development template. This document is for workflow testing only and must not be signed or executed.</div><div class="bilingual"><div><h2>Purchaser</h2><div class="box"><div class="row"><b>Name</b><span>'+html(s.customer.name_en)+'</span></div><div class="row"><b>Nationality</b><span>'+html(s.customer.nationality_en)+'</span></div><div class="row"><b>Passport</b><span>'+html(s.customer.passport_no)+'</span></div><div class="row"><b>Emirates ID</b><span>'+html(s.customer.eid_no)+'</span></div><div class="row"><b>Address</b><span>'+html(s.customer.address_en)+'</span></div><div class="row"><b>Mobile</b><span>'+html(s.customer.phone)+'</span></div><div class="row"><b>Email</b><span>'+html(s.customer.email)+'</span></div></div></div><div class="ar"><h2>بيانات المشتري</h2><div class="box"><div class="row"><b>الاسم</b><span>'+html(s.customer.name_ar||'—')+'</span></div><div class="row"><b>الجنسية</b><span>'+html(s.customer.nationality_ar||'—')+'</span></div><div class="row"><b>العنوان</b><span>'+html(s.customer.address_ar||'—')+'</span></div><div class="row"><b>مصدر الاسم</b><span>'+html((s.customer.arabic_name_source||'غير محدد').replace(/_/g,' '))+'</span></div><div class="row"><b>التحقق</b><span>'+(s.customer.arabic_name_verified?'تم التحقق':'غير متحقق')+'</span></div></div></div></div></section>'+
+  '<section class="page"><div class="watermark">DRAFT</div><div class="head"><h1>PARTICULARS OF UNIT / بيانات الوحدة</h1></div><div class="bilingual"><div class="box"><div class="row"><b>Project</b><span>'+html(s.unit.project)+'</span></div><div class="row"><b>Unit No.</b><span>'+html(s.unit.unit_no)+'</span></div><div class="row"><b>Unit Type</b><span>'+html(s.unit.unit_type_en)+'</span></div><div class="row"><b>Furnishing</b><span>'+html(s.unit.furnishing_en)+'</span></div><div class="row"><b>Floor</b><span>'+html(s.unit.floor)+'</span></div><div class="row"><b>Area</b><span>'+html(s.unit.area)+' sq.ft.</span></div><div class="row"><b>Purchase Price</b><span>'+html(money(s.unit.purchase_price))+'</span></div></div><div class="box ar"><div class="row"><b>رقم الوحدة</b><span>'+html(s.unit.unit_no)+'</span></div><div class="row"><b>نوع الوحدة</b><span>'+html(s.unit.unit_type_ar||'—')+'</span></div><div class="row"><b>التأثيث</b><span>'+html(s.unit.furnishing_ar||'—')+'</span></div><div class="row"><b>المساحة</b><span>'+html(s.unit.area)+' قدم مربع</span></div></div></div><h2>Payment Schedule / جدول الدفعات</h2><table><thead><tr><th>Installment</th><th>Arabic</th><th>%</th><th>Amount</th><th>Due</th><th>Arabic date</th></tr></thead><tbody>'+rows+'</tbody></table></section>'+
+  '<section class="page"><div class="watermark">DRAFT</div><div class="head"><h1>SCHEDULE A · MASTER PLAN</h1><div dir="rtl">الجدول (أ) · المخطط الرئيسي</div></div><div class="planbox"><div><strong>Template page '+html(s.master_plan_page)+'</strong><br><br>Temporary master-plan placeholder.<br>The approved master plan from the clean SPA template will be retained here.</div></div></section>'+
+  '<section class="page"><div class="watermark">DRAFT</div><div class="head"><h1>SCHEDULE B / C · FLOOR &amp; UNIT PLAN</h1><div dir="rtl">مخطط الطابق / مخطط الوحدة</div></div><div class="planbox"><div><strong>Template page '+html(s.floor_unit_plan_page)+'</strong><br><br>Unit: '+html(s.unit.unit_no)+'<br>Layout key: '+html(s.unit.layout_key||'Not linked')+'<br><br>'+(s.temporary?'Temporary placeholder — the verified unit-specific layout will replace this area.':'Verified unit layout will be inserted here.')+'</div></div></section>'+
+  '</body></html>';
+}
+async function generateSpa(){
+  if(!ctx||!sb)return;
+  var snapshot=draftSnapshot(),isTemporary=snapshot.temporary;
+  var win=window.open('','_blank');
+  if(!win){document.getElementById('notice').textContent='Your browser blocked the SPA preview. Allow pop-ups for the CRM and try again.';return}
+  win.document.open();win.document.write(draftDocument(snapshot));win.document.close();
+  if(role==='crm_officer'){
+    try{
+      var rec=await sb.from('spa_generation_records').insert({
+        unit_id:ctx.unit.id,customer_id:ctx.customer.id,template_id:template&&template.id||null,snapshot:snapshot,status:'draft'
+      });
+      if(rec.error)throw rec.error;
+      document.getElementById('notice').textContent=isTemporary?'Temporary draft SPA opened. It is for testing only.':'SPA preview opened and the generation record was saved.';
+    }catch(e){
+      document.getElementById('notice').textContent='SPA preview opened, but the draft record could not be saved: '+(e.message||'unknown error');
+    }
+  }else{
+    document.getElementById('notice').textContent='SPA preview opened in review mode.';
+  }
+}
+
 async function loadSpaData(){
   if(!ctx||!sb)return;
   var results=await Promise.all([
@@ -308,9 +368,7 @@ window.addEventListener('message',function(e){
   render();loadSpaData().catch(function(err){document.getElementById('notice').textContent=err.message||'Could not load SPA setup.'});
 });
 document.getElementById('saveBtn').addEventListener('click',save);
-document.getElementById('generateBtn').addEventListener('click',function(){
-  document.getElementById('notice').textContent='PDF generation engine will be connected after the approved blank SPA template and verified unit-layout files are uploaded.';
-});
+document.getElementById('generateBtn').addEventListener('click',generateSpa);
 parent.postMessage({channel:'crm-welcome',action:'ready'},location.origin);
 })();
 </script>
