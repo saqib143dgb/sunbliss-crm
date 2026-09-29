@@ -103,10 +103,10 @@ tr:last-child td{border-bottom:0}
   <div class="card hero-card">
     <div class="topline">
       <div><h1>Sale &amp; Purchase Agreement</h1><p class="sub" id="summary">Loading customer and unit details…</p></div>
-      <span class="pill temp" id="templateMode">Temporary draft template</span>
+      <span class="pill temp" id="templateMode">Sunbliss reference SPA</span>
     </div>
     <p class="sub">English values are fetched from the CRM. Arabic identity details are stored separately and must be verified before final SPA generation. Existing legal clauses are not translated or rewritten here.</p>
-    <div class="mode-note" id="modeNote">For now, the CRM uses a temporary development template so you can test the complete SPA workflow. It is marked DRAFT and is not for signing or execution.</div>
+    <div class="mode-note" id="modeNote">The supplied Sunbliss SPA is now the visual reference. The 60-page structure and static legal content are preserved while CRM variables are populated into the matching fields.</div>
     <div class="mobile-section-index"><span>Purchaser</span><span>Unit</span><span>Payment plan</span><span>Verification</span></div>
   </div>
 
@@ -152,7 +152,8 @@ tr:last-child td{border-bottom:0}
       <label>Furnishing — English<input id="furnishingEn" readonly></label>
       <label>التأثيث — العربية<input id="furnishingAr" class="ar"></label>
       <label>Floor<input id="floor" readonly></label>
-      <label>Area (sq.ft.)<input id="area" readonly></label>
+      <label>Area (sq.ft.)<input id="area"></label>
+      <label>Parking spaces<input id="parkingSpaces" inputmode="numeric" pattern="[0-9]*"></label>
       <label>Purchase price<input id="price" readonly></label>
       <label>Layout key<input id="layoutKey" readonly></label>
     </div>
@@ -182,10 +183,11 @@ tr:last-child td{border-bottom:0}
   <div class="actions">
     <button id="saveBtn" type="button">Save Arabic &amp; Verification</button>
     <button id="generateBtn" type="button" class="secondary">Generate Draft SPA</button>
-    <div class="notice" id="notice">Temporary draft generation is available now. Final executable SPA generation will switch on after the approved clean template and verified unit layouts are uploaded.</div>
+    <div class="notice" id="notice">Generate a reference-matched preview now. Verify Arabic identity details and the correct unit layout before execution.</div>
   </div>
 </aside>
 </main>
+<script src="welcome-pdf-lib.js"></script>
 <script>
 (function(){
 'use strict';
@@ -197,7 +199,7 @@ var profile=null,layout=null,template=null;
 function text(v){return v==null?'':String(v)}
 function html(v){return text(v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function value(id){var e=document.getElementById(id);return e?e.value.trim():''}
-function temporaryTemplate(){return {template_version:'TEMP-DRAFT-2026-09',master_plan_page:47,floor_unit_plan_page:48,temporary:true}}
+function temporaryTemplate(){return {template_version:'SUNBLISS-REF-607-2026-09',template_storage_path:'app://spa-reference.pdf',master_plan_page:46,floor_unit_plan_page:47,temporary:true}}
 function activeTemplate(){return template||temporaryTemplate()}
 function money(v){var n=Number(v);return isFinite(n)?'AED '+n.toLocaleString('en-AE',{minimumFractionDigits:0,maximumFractionDigits:2}):''}
 function pct(amount,total){var a=Number(amount),t=Number(total);if(!(a>=0)||!(t>0))return '';var p=a/t*100;return (Math.round(p*100)/100).toLocaleString('en',{maximumFractionDigits:2})+'%'}
@@ -242,7 +244,7 @@ function render(){
   set('nameSource',profile&&profile.arabic_name_source);set('nameVerified',profile&&profile.arabic_name_verified?'true':'false');
   set('project',u.project_name);set('unitNo',u.unit_no);set('unitTypeEn',u.unit_type);
   set('unitTypeAr',unitAr(u.unit_type));set('furnishingEn',u.furnishing_status||sale.furniture_status);set('furnishingAr',furnishingAr(u.furnishing_status||sale.furniture_status));
-  set('floor',u.floor);set('area',u.area||u.unit_area_sqft);set('price',money(sale.commercial_sale_price||u.total_price));set('layoutKey',layout&&layout.layout_key||u.layout_type||'');
+  set('floor',u.floor);set('area',layout&&layout.area_sqft||u.area||u.unit_area_sqft||ctx.account&&ctx.account.info&&ctx.account.info.area||'');set('parkingSpaces',layout&&layout.parking_spaces||'');set('price',money(sale.commercial_sale_price||u.total_price));set('layoutKey',layout&&layout.layout_key||u.layout_type||'');
   var total=Number(sale.commercial_sale_price||u.total_price||ctx.account&&ctx.account.total||0);
   var rows=(ctx.paymentSchedule||[]).slice().sort(function(a,b){return text(a.due_date).localeCompare(text(b.due_date))||Number(a.id)-Number(b.id)});
   var body=document.getElementById('planBody');body.innerHTML='';
@@ -257,23 +259,23 @@ function render(){
   var nameOk=!!(profile&&profile.arabic_name_verified);
   var layoutOk=!!(layout&&layout.verified&&layout.unit_plan_storage_path);
   var templateOk=!!template;
-  var t=activeTemplate(),temporary=!template||!layoutOk;
+  var t=activeTemplate();
   document.getElementById('readiness').innerHTML=
-    statusRow('Arabic purchaser details',arabicOk,arabicOk?'Arabic purchaser fields recorded':'Draft can be previewed; final SPA needs the Arabic purchaser fields')+
-    statusRow('Arabic name verification',nameOk,nameOk?'Verified against '+text(profile.arabic_name_source||'recorded source').replace(/_/g,' '):'Draft preview allowed; final SPA requires official-name verification')+
-    statusRow('Unit layout',layoutOk,layoutOk?'Verified layout linked to this unit':'Temporary layout placeholder will be used in the draft')+
-    statusRow('SPA template',templateOk,templateOk?'Approved template '+text(template.template_version)+' is active':'Temporary development template is active');
+    statusRow('Reference SPA',true,'60-page Sunbliss reference matched to the supplied format')+
+    statusRow('Arabic purchaser details',arabicOk,arabicOk?'Arabic purchaser fields recorded':'Arabic fields are incomplete')+
+    statusRow('Arabic name verification',nameOk,nameOk?'Verified against '+text(profile.arabic_name_source||'recorded source').replace(/_/g,' '):'Review against the official identity document before execution')+
+    statusRow('Unit layout',layoutOk,layoutOk?'Verified layout linked to this unit':'Reference Unit 607 layout will appear in preview; link the correct layout before execution');
   var mp=document.getElementById('masterPage'),up=document.getElementById('unitPage');
-  mp.querySelector('span').textContent='Page '+(t.master_plan_page||47)+(templateOk?'':' · temporary');
-  up.querySelector('span').textContent='Page '+(t.floor_unit_plan_page||48)+(layoutOk?'':' · placeholder');
-  mp.className='status '+(t.master_plan_page?'good':'');
-  up.className='status '+(layoutOk&&t.floor_unit_plan_page?'good':'');
+  mp.querySelector('span').textContent='Page '+(t.master_plan_page||46)+' · matches reference';
+  up.querySelector('span').textContent='Page '+(t.floor_unit_plan_page||47)+(layoutOk?' · verified for this unit':' · reference layout');
+  mp.className='status good';
+  up.className='status '+(layoutOk?'good':'bad');
   var mode=document.getElementById('templateMode'),note=document.getElementById('modeNote'),generate=document.getElementById('generateBtn');
-  mode.textContent=temporary?'Temporary draft template':'Approved SPA template';
-  mode.className='pill'+(temporary?' temp':'');
-  note.textContent=temporary?'For now, the CRM uses a temporary development template and a layout placeholder where required. The output is clearly marked DRAFT and is not for signing or execution.':'Approved template and verified unit layout are available. Final SPA generation can use the controlled template.';
+  mode.textContent='Sunbliss reference SPA';
+  mode.className='pill';
+  note.textContent='The generated PDF uses the supplied SPA as the visual base: the 60-page structure, bilingual legal pages, tables, spacing, master plan and schedule positions are preserved. Only purchaser, unit and payment-plan variables are populated from CRM data.';
   generate.disabled=false;
-  generate.textContent=temporary?'Generate Draft SPA':'Generate SPA';
+  generate.textContent=(arabicOk&&nameOk&&layoutOk)?'Generate SPA PDF':'Generate SPA Preview';
   if(role!=='crm_officer'){
     document.querySelectorAll('input:not([readonly]),textarea:not([readonly]),select,#saveBtn').forEach(function(e){e.disabled=true});
     document.getElementById('notice').textContent='Manager access is review-only. CRM Officer can update Arabic verification fields.';
@@ -295,60 +297,266 @@ async function save(){
       verified_at:verified?new Date().toISOString():null,
       updated_at:new Date().toISOString()
     };
-    var r=await sb.from('spa_customer_profiles').upsert(payload,{onConflict:'customer_id'}).select('*').single();
-    if(r.error)throw r.error;profile=r.data;
-    document.getElementById('notice').textContent='SPA purchaser details saved.';
+    var areaValue=value('area'),parkingValue=value('parkingSpaces');
+    var layoutPayload={
+      unit_id:ctx.unit.id,
+      layout_key:value('layoutKey')||ctx.unit.layout_type||null,
+      area_sqft:areaValue?Number(areaValue):null,
+      parking_spaces:parkingValue!==''?Number(parkingValue):null,
+      updated_at:new Date().toISOString()
+    };
+    var results=await Promise.all([
+      sb.from('spa_customer_profiles').upsert(payload,{onConflict:'customer_id'}).select('*').single(),
+      sb.from('spa_unit_layouts').upsert(layoutPayload,{onConflict:'unit_id'}).select('*').single()
+    ]);
+    if(results[0].error)throw results[0].error;
+    if(results[1].error)throw results[1].error;
+    profile=results[0].data;layout=results[1].data;
+    document.getElementById('notice').textContent='SPA purchaser and unit preparation details saved.';
     render();
   }catch(e){document.getElementById('notice').textContent=e&&e.message?e.message:'Could not save SPA details.'}
   finally{btn.disabled=false;btn.textContent='Save Arabic & Verification'}
 }
 
+function stageRank(label){
+  var s=text(label).toLowerCase();
+  if(s.indexOf('down')>=0)return 0;
+  var m=s.match(/(\d+)(?:st|nd|rd|th)/);if(m)return Number(m[1])*10;
+  if(s.indexOf('final')>=0||s.indexOf('handover')>=0||s.indexOf('possession')>=0)return 1000;
+  return 900;
+}
+function contractPlan(){
+  var c=ctx.customer||{},u=ctx.unit||{},sale=ctx.sale||{};
+  var total=Number(sale.commercial_sale_price||u.total_price||ctx.account&&ctx.account.total||0);
+  var rows=(ctx.paymentSchedule||[]).filter(function(r){
+    var s=text(r.stage_name).toLowerCase();
+    return s.indexOf('dld')<0&&s.indexOf('admin fee')<0;
+  }).map(function(r){
+    var amount=Number(r.due_amount||0),due=r.due_date||null;
+    return {id:r.id,stage_name:r.stage_name,stage_name_ar:stageAr(r.stage_name),percent:pct(amount,total),amount:amount,due_date:due,rank:stageRank(r.stage_name)};
+  }).sort(function(a,b){return a.rank-b.rank||Number(a.id)-Number(b.id)});
+  var final=rows.find(function(r){return r.rank===1000});
+  var regular=rows.filter(function(r){return r!==final});
+  if(regular.length>6)regular=regular.slice(0,6);
+  while(regular.length<6)regular.push({stage_name:'',stage_name_ar:'',percent:'',amount:0,due_date:null,rank:999});
+  if(!final)final={stage_name:'Final Installment',stage_name_ar:'الدفعة النهائية',percent:'',amount:0,due_date:null,rank:1000};
+  return regular.concat([final]);
+}
+function spaUnitNo(v){
+  var s=text(v).trim(),m=s.match(/-([^-]+)$/);return m?m[1]:s;
+}
+function uaePhone(v){
+  var s=text(v).replace(/\s+/g,'').trim();
+  if(/^05\d{8}$/.test(s))return '+971-'+s.slice(1,3)+s.slice(3);
+  if(/^\+9715\d{8}$/.test(s))return '+971-'+s.slice(4,6)+s.slice(6);
+  return s;
+}
+function titleCase(v){return text(v).toLowerCase().replace(/\b\w/g,function(ch){return ch.toUpperCase()})}
+function arabicDigits(v){return text(v).replace(/[0-9]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'[Number(d)]})}
+function commaNumber(v,decimals){
+  var n=Number(v);if(!isFinite(n))return '';
+  return n.toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
+}
+function ordinalLabel(label,index){
+  var s=text(label).trim();
+  if(s)return s;
+  if(index===0)return 'Down Payment';
+  if(index===6)return 'Final Installment';
+  var n=index,suf=(n%10===1&&n%100!==11)?'st':(n%10===2&&n%100!==12)?'nd':(n%10===3&&n%100!==13)?'rd':'th';
+  return n+suf+' Installment';
+}
+function englishDate(v,isFinal){
+  if(!v)return isFinal?'On the Offer of Possession':'';
+  var d=new Date(String(v).slice(0,10)+'T00:00:00');if(isNaN(d))return text(v);
+  var mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate()+'-'+mons[d.getMonth()]+'-'+String(d.getFullYear()).slice(-2);
+}
+function arabicDateShort(v,isFinal){
+  if(!v)return isFinal?'عند عرض التملك':'';
+  var d=new Date(String(v).slice(0,10)+'T00:00:00');if(isNaN(d))return arabicDigits(v);
+  var mons=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  return arabicDigits(d.getDate())+'-'+mons[d.getMonth()]+'-'+arabicDigits(d.getFullYear());
+}
+function enUnder1000(n){
+  var ones=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+  var tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'],out=[];
+  n=Math.floor(n);
+  if(n>=100){out.push(ones[Math.floor(n/100)]+' hundred');n%=100;}
+  if(n>=20){out.push(tens[Math.floor(n/10)]+(n%10?'-'+ones[n%10]:''));}
+  else if(n>0)out.push(ones[n]);
+  return out.join(' ');
+}
+function englishNumberWords(value){
+  var n=Math.round(Number(value)||0);if(!n)return 'zero';
+  var parts=[],mill=Math.floor(n/1000000);n%=1000000;
+  var thou=Math.floor(n/1000);n%=1000;
+  if(mill)parts.push(enUnder1000(mill)+' million');
+  if(thou)parts.push(enUnder1000(thou)+' thousand');
+  if(n)parts.push(enUnder1000(n));
+  return parts.join(' ');
+}
+function titleWords(v){return text(v).replace(/\b[a-z]/g,function(ch){return ch.toUpperCase()})}
+function arUnder100(n){
+  var one={1:'واحد',2:'اثنان',3:'ثلاثة',4:'أربعة',5:'خمسة',6:'ستة',7:'سبعة',8:'ثمانية',9:'تسعة',10:'عشرة',11:'أحد عشر',12:'اثنا عشر',13:'ثلاثة عشر',14:'أربعة عشر',15:'خمسة عشر',16:'ستة عشر',17:'سبعة عشر',18:'ثمانية عشر',19:'تسعة عشر'};
+  var ten={20:'عشرون',30:'ثلاثون',40:'أربعون',50:'خمسون',60:'ستون',70:'سبعون',80:'ثمانون',90:'تسعون'};
+  n=Math.floor(n);if(n<20)return one[n]||'';
+  var t=Math.floor(n/10)*10,o=n%10;return o?(one[o]+' و'+ten[t]):ten[t];
+}
+function arUnder1000(n){
+  n=Math.floor(n);var h=Math.floor(n/100),r=n%100,out=[];
+  var hs={1:'مائة',2:'مائتان',3:'ثلاثمائة',4:'أربعمائة',5:'خمسمائة',6:'ستمائة',7:'سبعمائة',8:'ثمانمائة',9:'تسعمائة'};
+  if(h)out.push(hs[h]);if(r)out.push(arUnder100(r));return out.join(' و');
+}
+function arabicNumberWords(value){
+  var n=Math.round(Number(value)||0);if(!n)return 'صفر';
+  var out=[],mill=Math.floor(n/1000000);n%=1000000,thou=Math.floor(n/1000);n%=1000;
+  if(mill===1)out.push('مليون');else if(mill===2)out.push('مليونان');else if(mill>2&&mill<=10)out.push(arUnder1000(mill)+' ملايين');else if(mill)out.push(arUnder1000(mill)+' مليون');
+  if(thou===1)out.push('ألف');else if(thou===2)out.push('ألفان');else if(thou>2&&thou<=10)out.push(arUnder1000(thou)+' آلاف');else if(thou)out.push(arUnder1000(thou)+' ألف');
+  if(n)out.push(arUnder1000(n));
+  return out.join(' و');
+}
 function draftSnapshot(){
   var c=ctx.customer||{},u=ctx.unit||{},sale=ctx.sale||{},t=activeTemplate();
   var total=Number(sale.commercial_sale_price||u.total_price||ctx.account&&ctx.account.total||0);
-  var plan=(ctx.paymentSchedule||[]).map(function(r){
-    var amount=Number(r.revised_due_amount||r.due_amount||0),due=r.revised_due_date||r.due_date;
-    return {stage_name:r.stage_name,stage_name_ar:stageAr(r.stage_name),percent:pct(amount,total),amount:amount,due_date:due};
-  });
   return {
-    temporary:!template||!(layout&&layout.verified&&layout.unit_plan_storage_path),
+    temporary:!(profile&&profile.arabic_name_verified&&layout&&layout.verified&&layout.unit_plan_storage_path),
     template_version:t.template_version,
-    master_plan_page:t.master_plan_page||47,
-    floor_unit_plan_page:t.floor_unit_plan_page||48,
-    customer:{id:c.id,name_en:c.customer_name,name_ar:value('nameAr'),nationality_en:c.nationality,nationality_ar:value('nationalityAr'),passport_no:c.passport_no,eid_no:c.eid_no,address_en:c.address||c.permanent_address,address_ar:value('addressAr'),phone:c.phone,email:c.email,arabic_name_source:value('nameSource'),arabic_name_verified:value('nameVerified')==='true'},
-    unit:{id:u.id,project:u.project_name,unit_no:u.unit_no,unit_type_en:u.unit_type,unit_type_ar:value('unitTypeAr'),furnishing_en:u.furnishing_status||sale.furniture_status,furnishing_ar:value('furnishingAr'),floor:u.floor,area:u.area||u.unit_area_sqft,purchase_price:total,layout_key:layout&&layout.layout_key||u.layout_type||''},
-    payment_plan:plan
+    master_plan_page:t.master_plan_page||46,
+    floor_unit_plan_page:t.floor_unit_plan_page||47,
+    customer:{
+      id:c.id,name_en:c.customer_name,name_ar:value('nameAr'),nationality_en:c.nationality,nationality_ar:value('nationalityAr'),
+      passport_no:c.passport_no,eid_no:c.eid_no,address_en:c.address||c.permanent_address,address_ar:value('addressAr'),
+      phone:uaePhone(c.phone),email:c.email,arabic_name_source:value('nameSource'),arabic_name_verified:value('nameVerified')==='true'
+    },
+    unit:{
+      id:u.id,project:u.project_name,unit_no:spaUnitNo(u.unit_no),crm_unit_no:u.unit_no,unit_type_en:u.unit_type,unit_type_ar:value('unitTypeAr'),
+      furnishing_en:u.furnishing_status||sale.furniture_status,furnishing_ar:value('furnishingAr'),floor:u.floor,
+      area:value('area')||layout&&layout.area_sqft||u.area||u.unit_area_sqft||'',parking_spaces:value('parkingSpaces'),
+      purchase_price:total,layout_key:layout&&layout.layout_key||u.layout_type||''
+    },
+    payment_plan:contractPlan()
   };
 }
-function draftDocument(s){
-  var rows=s.payment_plan.map(function(r){return '<tr><td>'+html(r.stage_name)+'</td><td dir="rtl">'+html(r.stage_name_ar)+'</td><td>'+html(r.percent)+'</td><td>'+html(money(r.amount))+'</td><td>'+html(enDate(r.due_date))+'</td><td dir="rtl">'+html(arDate(r.due_date))+'</td></tr>'}).join('');
-  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DRAFT SPA · '+html(s.unit.unit_no)+'</title><style>'+
-  '@page{size:A4;margin:16mm}*{box-sizing:border-box}body{margin:0;color:#152331;font:12px Arial,sans-serif;background:#eee}.toolbar{position:sticky;top:0;z-index:10;padding:10px;background:#10202e;color:white;text-align:center}.toolbar button{padding:9px 18px}.page{position:relative;width:210mm;min-height:297mm;margin:10px auto;padding:18mm;background:white;box-shadow:0 3px 20px #0002;page-break-after:always}.page:last-child{page-break-after:auto}.watermark{position:absolute;left:10%;right:10%;top:44%;transform:rotate(-24deg);font:bold 44px Arial;color:#a43b2b18;text-align:center;pointer-events:none}.head{text-align:center;border-bottom:2px solid #b78c2e;padding-bottom:10px;margin-bottom:18px}.head h1{font-size:20px;margin:0}.bilingual{display:grid;grid-template-columns:1fr 1fr;gap:18px}.ar{direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif}.box{border:1px solid #bbb;padding:10px;margin:10px 0}.row{display:grid;grid-template-columns:150px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid #eee}.row:last-child{border-bottom:0}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #aaa;padding:6px;vertical-align:top}th{background:#f0eadb}.planbox{height:190mm;border:2px dashed #b78c2e;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#76633b}.warn{padding:10px;border:1px solid #d4b45f;background:#fff7dc;color:#6f5418;margin:12px 0}@media(max-width:800px){body{background:#fff}.toolbar{position:sticky}.page{width:100%;min-height:auto;margin:0;padding:18px;box-shadow:none}.bilingual{grid-template-columns:1fr}.row{grid-template-columns:120px 1fr}}@media print{body{background:white}.toolbar{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:267mm}}'+
-  '</style></head><body><div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button></div>'+
-  '<section class="page"><div class="watermark">DRAFT · TEMPORARY TEMPLATE</div><div class="head"><h1>SALE &amp; PURCHASE AGREEMENT</h1><div dir="rtl">اتفاقية البيع والشراء</div><p>'+html(s.unit.project||'')+' · '+html(s.unit.unit_no||'')+'</p></div><div class="warn">Temporary CRM development template. This document is for workflow testing only and must not be signed or executed.</div><div class="bilingual"><div><h2>Purchaser</h2><div class="box"><div class="row"><b>Name</b><span>'+html(s.customer.name_en)+'</span></div><div class="row"><b>Nationality</b><span>'+html(s.customer.nationality_en)+'</span></div><div class="row"><b>Passport</b><span>'+html(s.customer.passport_no)+'</span></div><div class="row"><b>Emirates ID</b><span>'+html(s.customer.eid_no)+'</span></div><div class="row"><b>Address</b><span>'+html(s.customer.address_en)+'</span></div><div class="row"><b>Mobile</b><span>'+html(s.customer.phone)+'</span></div><div class="row"><b>Email</b><span>'+html(s.customer.email)+'</span></div></div></div><div class="ar"><h2>بيانات المشتري</h2><div class="box"><div class="row"><b>الاسم</b><span>'+html(s.customer.name_ar||'—')+'</span></div><div class="row"><b>الجنسية</b><span>'+html(s.customer.nationality_ar||'—')+'</span></div><div class="row"><b>العنوان</b><span>'+html(s.customer.address_ar||'—')+'</span></div><div class="row"><b>مصدر الاسم</b><span>'+html((s.customer.arabic_name_source||'غير محدد').replace(/_/g,' '))+'</span></div><div class="row"><b>التحقق</b><span>'+(s.customer.arabic_name_verified?'تم التحقق':'غير متحقق')+'</span></div></div></div></div></section>'+
-  '<section class="page"><div class="watermark">DRAFT</div><div class="head"><h1>PARTICULARS OF UNIT / بيانات الوحدة</h1></div><div class="bilingual"><div class="box"><div class="row"><b>Project</b><span>'+html(s.unit.project)+'</span></div><div class="row"><b>Unit No.</b><span>'+html(s.unit.unit_no)+'</span></div><div class="row"><b>Unit Type</b><span>'+html(s.unit.unit_type_en)+'</span></div><div class="row"><b>Furnishing</b><span>'+html(s.unit.furnishing_en)+'</span></div><div class="row"><b>Floor</b><span>'+html(s.unit.floor)+'</span></div><div class="row"><b>Area</b><span>'+html(s.unit.area)+' sq.ft.</span></div><div class="row"><b>Purchase Price</b><span>'+html(money(s.unit.purchase_price))+'</span></div></div><div class="box ar"><div class="row"><b>رقم الوحدة</b><span>'+html(s.unit.unit_no)+'</span></div><div class="row"><b>نوع الوحدة</b><span>'+html(s.unit.unit_type_ar||'—')+'</span></div><div class="row"><b>التأثيث</b><span>'+html(s.unit.furnishing_ar||'—')+'</span></div><div class="row"><b>المساحة</b><span>'+html(s.unit.area)+' قدم مربع</span></div></div></div><h2>Payment Schedule / جدول الدفعات</h2><table><thead><tr><th>Installment</th><th>Arabic</th><th>%</th><th>Amount</th><th>Due</th><th>Arabic date</th></tr></thead><tbody>'+rows+'</tbody></table></section>'+
-  '<section class="page"><div class="watermark">DRAFT</div><div class="head"><h1>SCHEDULE A · MASTER PLAN</h1><div dir="rtl">الجدول (أ) · المخطط الرئيسي</div></div><div class="planbox"><div><strong>Template page '+html(s.master_plan_page)+'</strong><br><br>Temporary master-plan placeholder.<br>The approved master plan from the clean SPA template will be retained here.</div></div></section>'+
-  '<section class="page"><div class="watermark">DRAFT</div><div class="head"><h1>SCHEDULE B / C · FLOOR &amp; UNIT PLAN</h1><div dir="rtl">مخطط الطابق / مخطط الوحدة</div></div><div class="planbox"><div><strong>Template page '+html(s.floor_unit_plan_page)+'</strong><br><br>Unit: '+html(s.unit.unit_no)+'<br>Layout key: '+html(s.unit.layout_key||'Not linked')+'<br><br>'+(s.temporary?'Temporary placeholder — the verified unit-specific layout will replace this area.':'Verified unit layout will be inserted here.')+'</div></div></section>'+
-  '</body></html>';
+function wrapCanvas(ctx,text,maxWidth){
+  var raw=text(textValue).split(/\n/),lines=[];
+  raw.forEach(function(part){
+    var words=part.split(/\s+/).filter(Boolean),line='';
+    if(!words.length){lines.push('');return;}
+    words.forEach(function(word){
+      var test=line?line+' '+word:word;
+      if(line&&ctx.measureText(test).width>maxWidth){lines.push(line);line=word;}else line=test;
+    });
+    if(line)lines.push(line);
+  });
+  return lines;
+}
+function paintBox(ctx,textValue,box,opt){
+  opt=opt||{};var s=text(textValue);if(!s)return;
+  var size=opt.size||8,family=opt.family||'Arial, sans-serif',weight=opt.weight||'400',lineHeight=opt.lineHeight||size*1.18;
+  ctx.save();ctx.direction=opt.dir||'ltr';ctx.textBaseline='top';ctx.fillStyle=opt.color||'#000';
+  var align=opt.align||'left';ctx.textAlign=align;
+  function setFont(sz){ctx.font=weight+' '+sz+'px '+family;}
+  setFont(size);
+  var lines=opt.wrap===false?s.split('\n'):wrapCanvas(ctx,s,box.w);
+  while(size>5.4&&(lines.length*lineHeight>box.h||lines.some(function(line){return ctx.measureText(line).width>box.w;}))){
+    size-=.25;lineHeight=opt.lineHeight?Math.min(opt.lineHeight,size*1.25):size*1.18;setFont(size);
+    lines=opt.wrap===false?s.split('\n'):wrapCanvas(ctx,s,box.w);
+  }
+  var total=lines.length*lineHeight,y=box.y+(opt.valign==='middle'?Math.max(0,(box.h-total)/2):0);
+  var x=align==='right'?box.x+box.w:align==='center'?box.x+box.w/2:box.x;
+  lines.forEach(function(line){ctx.fillText(line,x,y);y+=lineHeight;});
+  ctx.restore();
+}
+function overlayCanvas(s,pageIndex){
+  var scale=3,canvas=document.createElement('canvas');canvas.width=612*scale;canvas.height=792*scale;
+  var ctx=canvas.getContext('2d');ctx.scale(scale,scale);
+  if(pageIndex===0){
+    paintBox(ctx,text(s.customer.name_en).toUpperCase(),{x:86,y:97.6,w:112,h:12},{size:9.5});
+    paintBox(ctx,s.customer.name_ar,{x:318,y:92.8,w:208,h:15},{size:10.4,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'right'});
+    paintBox(ctx,s.unit.unit_no,{x:84,y:301.7,w:18,h:10},{size:7.8,weight:'700',wrap:false});
+    paintBox(ctx,arabicDigits(s.unit.unit_no),{x:510,y:299.2,w:18,h:12},{size:8.8,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'right',wrap:false});
+    var en=[
+      [s.customer.name_en,491.0,9.4],[titleCase(s.customer.nationality_en),503.9,9.5],[s.customer.passport_no,517.3,9.3],
+      [s.customer.eid_no,537.9,10.0],[s.customer.address_en,557.7,37.0],[s.customer.phone,599.5,9.5],[s.customer.email,615.6,9.5],['100%',635.7,10]
+    ];
+    en.forEach(function(r,i){paintBox(ctx,r[0],{x:163,y:r[1],w:132,h:r[2]},{size:i===4?7.35:7.7,lineHeight:9.2});});
+    var ar=[
+      [s.customer.name_ar,489.5,12,'rtl'],[s.customer.nationality_ar,502.8,12,'rtl'],[s.customer.passport_no,516.4,11,'ltr'],
+      [s.customer.eid_no,529.5,23,'ltr'],[s.customer.address_ar,555.4,39,'rtl'],[s.customer.phone,597.8,11,'ltr'],[s.customer.email,611.0,15,'ltr'],['١٠٠٪',630.0,18,'rtl']
+    ];
+    ar.forEach(function(r,i){paintBox(ctx,r[0],{x:318,y:r[1],w:155,h:r[2]},{size:i===4?7.5:8.1,family:'Tahoma, Arial, sans-serif',dir:r[3],align:'right',lineHeight:9.2});});
+  }else if(pageIndex===1){
+    var area=s.unit.area?commaNumber(s.unit.area,0)+' SQ. FT':'';
+    var parking=s.unit.parking_spaces;
+    var leftVals=['NAKHEEL','4006','FREEHOLD',s.unit.unit_no,s.unit.unit_type_en,text(s.unit.furnishing_en).toUpperCase().replace(/\s+/g,'-'),area,parking];
+    var leftY=[67.1,85.3,100.8,117.5,137.7,157.1,175.9,195.3];
+    leftVals.forEach(function(v,i){paintBox(ctx,v,{x:183,y:leftY[i],w:108,h:10},{size:7.7,wrap:false,valign:'middle'});});
+    var rightVals=['نخيل','٤٠٠٦','تملك حر',arabicDigits(s.unit.unit_no),s.unit.unit_type_ar,s.unit.furnishing_ar,s.unit.area?arabicDigits(commaNumber(s.unit.area,0))+' قدم مربع':'',parking?arabicDigits(parking):''];
+    var rightY=[66.5,83.2,100.1,118.8,139.9,157.2,174.0,192.8];
+    rightVals.forEach(function(v,i){paintBox(ctx,v,{x:320,y:rightY[i],w:125,h:13},{size:8.2,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'right',wrap:false,valign:'middle'});});
+    var price=Number(s.unit.purchase_price||0);
+    var enPrice=commaNumber(price,0)+'/- '+titleWords(englishNumberWords(price))+' Dirhams Only.';
+    paintBox(ctx,enPrice,{x:116,y:289.5,w:170,h:24},{size:7.6,weight:'700',lineHeight:9.5});
+    var arPrice=arabicDigits(commaNumber(price,0))+'/- '+arabicNumberWords(price)+' درهما إماراتيا فقط لا غير';
+    paintBox(ctx,arPrice,{x:320,y:283.2,w:126,h:36},{size:8.0,weight:'700',family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'right',lineHeight:9.5});
+    var plan=s.payment_plan||[];
+    var enRows=[[396.8,422.8],[424.0,450.0],[451.3,477.1],[478.2,504.3],[505.4,531.4],[532.6,558.6],[559.5,585.5]];
+    var arRows=[[401.1,426.6],[427.7,452.8],[454.0,479.3],[480.4,505.7],[506.8,532.1],[533.2,558.4],[559.5,587.2]];
+    plan.slice(0,7).forEach(function(r,i){
+      var final=i===6,label=ordinalLabel(r.stage_name,i),arLabel=r.stage_name_ar||stageAr(label);
+      var amount=r.amount?commaNumber(r.amount,2):'',date=englishDate(r.due_date,final),arDateText=arabicDateShort(r.due_date,final);
+      var eb=enRows[i],ab=arRows[i];
+      paintBox(ctx,label.replace('Down Payment','Down\nPayment').replace(/^(\\d+(?:st|nd|rd|th)) Installment$/,'$1\\nInstallment').replace('Final Installment','Final\\nInstallment'),{x:58,y:eb[0]+3,w:47,h:eb[1]-eb[0]-6},{size:7.4,align:'center',valign:'middle',lineHeight:8.2});
+      paintBox(ctx,r.percent,{x:110,y:eb[0]+2,w:55,h:eb[1]-eb[0]-4},{size:7.6,align:'center',valign:'middle',wrap:false});
+      paintBox(ctx,amount,{x:169,y:eb[0]+2,w:45,h:eb[1]-eb[0]-4},{size:7.45,align:'center',valign:'middle',wrap:false});
+      paintBox(ctx,date,{x:218,y:eb[0]+2,w:75,h:eb[1]-eb[0]-4},{size:7.2,align:'center',valign:'middle',lineHeight:8.4});
+      paintBox(ctx,arLabel,{x:515,y:ab[0]+2,w:42,h:ab[1]-ab[0]-4},{size:7.7,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'center',valign:'middle',lineHeight:8.3});
+      paintBox(ctx,arabicDigits(r.percent),{x:482,y:ab[0]+2,w:30,h:ab[1]-ab[0]-4},{size:7.9,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'center',valign:'middle',wrap:false});
+      paintBox(ctx,arabicDigits(amount),{x:383,y:ab[0]+2,w:96,h:ab[1]-ab[0]-4},{size:7.8,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'center',valign:'middle',wrap:false});
+      paintBox(ctx,arDateText,{x:318,y:ab[0]+2,w:61,h:ab[1]-ab[0]-4},{size:7.3,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'center',valign:'middle',lineHeight:8.1});
+    });
+  }else if(pageIndex===3){
+    paintBox(ctx,s.customer.name_en,{x:141,y:213.0,w:151,h:10},{size:7.7,wrap:false});
+    paintBox(ctx,s.customer.name_ar,{x:320,y:210.4,w:168,h:13},{size:8.2,family:'Tahoma, Arial, sans-serif',dir:'rtl',align:'right',wrap:false});
+  }
+  return canvas;
+}
+async function canvasPngBytes(canvas){
+  var url=canvas.toDataURL('image/png');return new Uint8Array(await (await fetch(url)).arrayBuffer());
+}
+async function generateReferencePdf(snapshot){
+  if(!window.PDFLib)throw Error('PDF engine is unavailable.');
+  var response=await fetch('spa-reference.pdf?v=20260930');
+  if(!response.ok)throw Error('SPA reference template is unavailable.');
+  var pdf=await PDFLib.PDFDocument.load(await response.arrayBuffer());
+  var pages=pdf.getPages();
+  for(var pageIndex of [0,1,3]){
+    var png=await pdf.embedPng(await canvasPngBytes(overlayCanvas(snapshot,pageIndex)));
+    var page=pages[pageIndex];page.drawImage(png,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});
+  }
+  return await pdf.save();
 }
 async function generateSpa(){
   if(!ctx||!sb)return;
-  var snapshot=draftSnapshot(),isTemporary=snapshot.temporary;
-  var win=window.open('','_blank');
+  var snapshot=draftSnapshot(),isPreview=snapshot.temporary,win=window.open('about:blank','_blank');
   if(!win){document.getElementById('notice').textContent='Your browser blocked the SPA preview. Allow pop-ups for the CRM and try again.';return}
-  win.document.open();win.document.write(draftDocument(snapshot));win.document.close();
-  if(role==='crm_officer'){
-    try{
+  try{
+    win.document.title='Preparing SPA…';
+    win.document.body.innerHTML='<p style="font:16px system-ui;padding:24px">Preparing SPA PDF…</p>';
+    var bytes=await generateReferencePdf(snapshot);
+    var blobUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    win.location.replace(blobUrl);
+    setTimeout(function(){URL.revokeObjectURL(blobUrl)},180000);
+    if(role==='crm_officer'){
       var rec=await sb.from('spa_generation_records').insert({
-        unit_id:ctx.unit.id,customer_id:ctx.customer.id,template_id:template&&template.id||null,snapshot:snapshot,status:'draft'
+        unit_id:ctx.unit.id,customer_id:ctx.customer.id,template_id:template&&template.id||null,snapshot:snapshot,status:isPreview?'draft':'generated',generated_at:isPreview?null:new Date().toISOString()
       });
       if(rec.error)throw rec.error;
-      document.getElementById('notice').textContent=isTemporary?'Temporary draft SPA opened. It is for testing only.':'SPA preview opened and the generation record was saved.';
-    }catch(e){
-      document.getElementById('notice').textContent='SPA preview opened, but the draft record could not be saved: '+(e.message||'unknown error');
     }
-  }else{
-    document.getElementById('notice').textContent='SPA preview opened in review mode.';
+    document.getElementById('notice').textContent=isPreview?'Reference-matched SPA preview opened. Verify Arabic identity details and the unit layout before execution.':'SPA PDF opened using the verified reference template and unit layout.';
+  }catch(e){
+    try{win.close()}catch(_e){}
+    document.getElementById('notice').textContent=e&&e.message?e.message:'Could not generate the SPA PDF.';
   }
 }
 
