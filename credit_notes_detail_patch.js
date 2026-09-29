@@ -16,9 +16,37 @@
       var settled=(Number(c.cashReceived)||0)+(Number(c.creditNoteTotal)||0),total=Number(c.total)||0;if(total>0){var pct=Math.max(0,Math.min(100,Math.round(settled/total*1000)/10)),p=document.querySelector('.detail .cust-progress');if(p){var fill=p.querySelector('.bar-fill');if(fill)fill.style.width=pct+'%';var caps=p.querySelectorAll('.bar-caption span'),left=pct+'% settled',right=(Math.round((100-pct)*10)/10)+'% remaining';if(caps[0]&&A.text(caps[0].textContent).trim()!==left)caps[0].innerHTML='<b>'+pct+'%</b> settled';if(caps[1]&&A.text(caps[1].textContent).trim()!==right)caps[1].innerHTML='<b>'+Math.round((100-pct)*10)/10+'%</b> remaining';}}
     }
     function stageCards(c){
-      if(!c||!Array.isArray(c.stages))return;document.querySelectorAll('.detail .ledger-scroll .stage-card').forEach(function(card,i){var s=c.stages[i];if(!s||!(Number(s.creditNoteTotal)>0))return;var rows=Array.prototype.slice.call(card.querySelectorAll('.stage-row')),paid=rows.find(function(r){var x=r.querySelector('span:first-child');return x&&A.text(x.textContent).trim().toLowerCase()==='paid';});if(paid){var spans=paid.querySelectorAll('span');if(spans[0])spans[0].textContent='Cash';if(spans[1])spans[1].textContent=A.money(s.cashPaid||0);}if(!card.querySelector('.credit-note-stage-row')){var cr=document.createElement('div');cr.className='stage-row credit-note-stage-row';cr.innerHTML='<span>Credit note'+((s.creditNotes||[]).length>1?'s':'')+':</span><span>'+A.safe(A.money(s.creditNoteTotal))+'</span>';if(paid)paid.insertAdjacentElement('afterend',cr);else card.appendChild(cr);}if(!card.querySelector('.credit-note-stage-count')){var badge=document.createElement('span');badge.className='credit-note-stage-count';badge.textContent=(s.creditNotes||[]).length+' credit note'+((s.creditNotes||[]).length===1?'':'s');card.appendChild(badge);}});
+      if(!c||!Array.isArray(c.stages))return;
+      document.querySelectorAll('.detail .ledger-scroll .stage-card').forEach(function(card,i){
+        card.querySelectorAll('.credit-note-stage-count').forEach(function(badge){badge.remove();});
+        var s=c.stages[i];
+        if(!s||!(Number(s.creditNoteTotal)>0))return;
+        var rows=Array.prototype.slice.call(card.querySelectorAll('.stage-row'));
+        function rowKey(r){
+          var x=r&&r.querySelector('span:first-child');
+          return x?A.text(x.textContent).trim().toLowerCase().replace(/:\s*$/,''):'';
+        }
+        var cash=rows.find(function(r){var k=rowKey(r);return k==='paid'||k==='cash';});
+        var on=rows.find(function(r){return rowKey(r)==='on';});
+        if(cash){
+          var spans=cash.querySelectorAll('span');
+          if(spans[0])spans[0].textContent='Cash:';
+          if(spans[1])spans[1].textContent=A.money(s.cashPaid||0);
+        }
+        var cr=card.querySelector('.credit-note-stage-row');
+        if(!cr){
+          cr=document.createElement('div');
+          cr.className='stage-row credit-note-stage-row';
+        }
+        cr.innerHTML='<span>Credit note'+((s.creditNotes||[]).length>1?'s':'')+':</span><span>'+A.safe(A.money(s.creditNoteTotal))+'</span>';
+        if(on)on.insertAdjacentElement('afterend',cr);
+        else if(cash)cash.insertAdjacentElement('afterend',cr);
+        else card.appendChild(cr);
+        var late=card.querySelector('.stage-late');
+        if(late)cr.insertAdjacentElement('afterend',late);
+      });
     }
-    function stageKeys(v){
+        function stageKeys(v){
       var s=A.text(v).trim().toLowerCase(),out=[];
       function add(k){if(out.indexOf(k)===-1)out.push(k);}
       if(s.indexOf('down')!==-1||/\bdp\b/.test(s))add('DP');
