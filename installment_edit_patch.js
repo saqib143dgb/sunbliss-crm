@@ -50,7 +50,8 @@
     style.id='sunblissInstallmentEditorStyles';
     style.textContent=[
       '.stage-card{position:relative;overflow:visible}',
-      '.installment-menu-btn{position:absolute;top:7px;right:7px;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:23px;line-height:1;cursor:pointer;z-index:3}',
+      '.installment-menu-btn{position:absolute;top:-15px;left:50%;transform:translateX(-50%);width:38px;height:26px;border:0;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;line-height:1;letter-spacing:2px;cursor:pointer;z-index:3}',
+      '.stage-percent-tag{display:inline;font:600 .68em/1 Inter,sans-serif;color:var(--muted);white-space:nowrap;vertical-align:baseline}',
       '.installment-menu-btn:hover,.installment-menu-btn:focus-visible{background:var(--paper-dim);color:var(--ink);outline:none}',
       '.installment-menu-pop{position:absolute;top:38px;right:7px;z-index:20;min-width:146px;padding:5px;background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;box-shadow:0 8px 24px rgba(15,26,38,.18)}',
       '.installment-menu-pop button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;color:var(--ink);font:600 12px/1.2 Inter,sans-serif;cursor:pointer}',
@@ -88,12 +89,24 @@
       if (card.querySelector('.installment-menu-btn')) return;
       var stage=c.stages[index];
       if (!stage) return;
+      var title=card.querySelector('.stage-name');
+      if (title && !title.querySelector('.stage-percent-tag')){
+        var due=Number(stage.due), total=Number(c.total);
+        if (isFinite(due) && due>0 && isFinite(total) && total>0){
+          var pct=Math.round((due/total*100)*100)/100;
+          var pctText=(Math.round(pct*100)/100).toFixed(2).replace(/\\.00$/,'').replace(/(\\.\\d)0$/,'$1');
+          var tag=document.createElement('span');
+          tag.className='stage-percent-tag';
+          tag.textContent=' • '+pctText+'%';
+          title.appendChild(tag);
+        }
+      }
       var button=document.createElement('button');
       button.type='button';
       button.className='installment-menu-btn';
       button.setAttribute('aria-label','Installment options for '+text(stage.label));
       button.setAttribute('title','Installment options');
-      button.innerHTML='&#8942;';
+      button.innerHTML='&hellip;';
       button.addEventListener('click',function(ev){
         ev.preventDefault(); ev.stopPropagation();
         var old=card.querySelector('.installment-menu-pop');
