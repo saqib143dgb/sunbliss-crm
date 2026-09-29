@@ -59,6 +59,8 @@
       '.stage-card .stamp.is-overdue{background:rgba(174,59,43,.055)!important}',
       '.stage-card .stamp.is-partial{background:rgba(156,90,18,.06)!important}',
       '.stage-card .stage-row,.stage-card .stage-late{position:relative;z-index:3}',
+      '.stage-card .stage-row{flex-wrap:nowrap!important;white-space:nowrap!important}',
+      '.stage-card .stage-row span{white-space:nowrap!important}',
       '.installment-menu-btn:hover,.installment-menu-btn:focus-visible{background:var(--paper-dim);color:var(--ink);outline:none}',
       '.installment-menu-pop{position:absolute;top:38px;right:7px;z-index:20;min-width:146px;padding:5px;background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;box-shadow:0 8px 24px rgba(15,26,38,.18)}',
       '.installment-menu-pop button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;color:var(--ink);font:600 12px/1.2 Inter,sans-serif;cursor:pointer}',
