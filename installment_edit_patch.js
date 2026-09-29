@@ -144,7 +144,7 @@
             var pctText=String(Math.round(pct*100)/100);
             var tag=document.createElement('span');
             tag.className='stage-percent-tag';
-            tag.textContent=' • '+pctText+'%';
+            tag.textContent=' - '+pctText+'%';
             title.appendChild(tag);
           }
         }
