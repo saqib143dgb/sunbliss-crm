@@ -6,7 +6,7 @@ const BASE = path.join(ROOT, 'vendor', 'base');
 const OUT = path.join(ROOT, 'dist');
 const TEXT_FILES = ['index.html', ...Array.from({ length: 13 }, (_, i) => `chunk_${String(i).padStart(2, '0')}.js`)];
 const OPTIONAL_BINARY_FILES = ['letterhead.jpg'];
-const LOCAL_STATIC_FILES = ['welcome-letter.html','welcome-pdf-lib.js','desktop_header_approved.css','assets/sunbliss-desktop-header-approved-20260914.png','section_headers.css','assets/purvanchal-p-logo.svg','assets/purvanchal-p-dubai.png','assets/purvanchal-p-desktop-previous.png','assets/purvanchal-p-thin-ring.png','assets/sunbliss-mobile-header-background.webp','assets/sunbliss-mobile-skyline-6bf2fc29.jpeg'];
+const LOCAL_STATIC_FILES = ['welcome-letter.html','welcome-pdf-lib.js','spa-generator.html','desktop_header_approved.css','assets/sunbliss-desktop-header-approved-20260914.png','section_headers.css','assets/purvanchal-p-logo.svg','assets/purvanchal-p-dubai.png','assets/purvanchal-p-desktop-previous.png','assets/purvanchal-p-thin-ring.png','assets/sunbliss-mobile-header-background.webp','assets/sunbliss-mobile-skyline-6bf2fc29.jpeg'];
 const LOCAL_REPLACEMENT_FILES = { 'chunk_11.js': 'auth_core_replacement.js' };
 const LOCAL_BROWSER_VENDOR_FILES = {
   'vendor/xlsx.full.min.js': path.join(ROOT,'node_modules','xlsx','dist','xlsx.full.min.js'),
