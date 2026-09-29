@@ -53,7 +53,7 @@
       '.installment-menu-btn{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:38px;height:26px;border:0;border-radius:10px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;line-height:1;letter-spacing:2px;cursor:pointer;z-index:3}',
       '.stage-name{white-space:nowrap;font-size:12px!important;letter-spacing:-.01em;text-align:center!important;width:100%}',
       '.stage-percent-tag{display:inline;font:400 1em/1 Inter,sans-serif;color:var(--muted);white-space:nowrap;vertical-align:baseline;letter-spacing:0}',
-      '.stage-card .stamp.is-paid,.stage-card .stamp.is-upcoming,.stage-card .stamp.is-overdue,.stage-card .stamp.is-partial,.stage-card .stamp.is-pending{position:absolute!important;left:50%!important;top:48%!important;display:block!important;padding:3.4px 8.5px!important;margin:0!important;border-width:1.275px!important;background:transparent!important;box-shadow:none!important;outline-width:1.275px!important;outline-offset:2.55px!important;font-size:8.075px!important;opacity:.88!important;transform:translate(-50%,-50%) rotate(var(--tilt,-4deg))!important;z-index:2!important;pointer-events:none!important}',
+      '.stage-card .stamp.is-paid,.stage-card .stamp.is-upcoming,.stage-card .stamp.is-overdue,.stage-card .stamp.is-partial,.stage-card .stamp.is-pending{position:relative!important;left:auto!important;top:auto!important;display:table!important;padding:3.4px 8.5px!important;margin:10px auto 11px!important;border-width:1.275px!important;background:transparent!important;box-shadow:0 0 0 2.55px var(--paper)!important;outline-width:1.275px!important;outline-offset:2.55px!important;font-size:8.075px!important;opacity:.88!important;transform:rotate(0deg)!important;z-index:2!important;pointer-events:none!important}',
       '.stage-card .stage-row,.stage-card .stage-late{position:relative;z-index:3}',
       '.installment-menu-btn:hover,.installment-menu-btn:focus-visible{background:var(--paper-dim);color:var(--ink);outline:none}',
       '.installment-menu-pop{position:absolute;top:38px;right:7px;z-index:20;min-width:146px;padding:5px;background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;box-shadow:0 8px 24px rgba(15,26,38,.18)}',
@@ -89,10 +89,12 @@
     if (!c || !Array.isArray(c.stages) || !window.state || state.userRole!=='crm_officer') return;
     var cards=document.querySelectorAll('.ledger-scroll .stage-card');
     cards.forEach(function(card,index){
+      var title=card.querySelector('.stage-name');
+      var stamp=card.querySelector('.stamp');
+      if (title && stamp && stamp.nextElementSibling!==title) card.insertBefore(stamp,title);
       if (card.querySelector('.installment-menu-btn')) return;
       var stage=c.stages[index];
       if (!stage) return;
-      var title=card.querySelector('.stage-name');
       if (title){
         if (stage.code==='DLD'){
           title.textContent='4% DLD+Admin Fees';
