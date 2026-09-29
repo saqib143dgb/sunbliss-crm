@@ -100,7 +100,7 @@ function refineSoaDocumentVisuals(source){
   source=source.replace(noteBefore,noteAfter);
 
   const statusBoxBefore="rect(x+13,top+5,widths[j]-26,rowH-10,{fill:value==='Paid'?'#e9f5eb':value==='Overdue'?'#fae9e8':value==='At Possession'?'#e8edf1':'#fff5da',stroke:'none',opacity:.85,r:6});";
-  const statusBoxAfter="if(value!=='Paid'&&value!=='Upcoming'&&value!=='At Possession')rect(x+13,top+5,widths[j]-26,rowH-10,{fill:value==='Paid'?'#e9f5eb':value==='Overdue'?'#fae9e8':value==='At Possession'?'#e8edf1':'#fff5da',stroke:'none',opacity:.85,r:6});";
+  const statusBoxAfter="if(value!=='Paid'&&value!=='Upcoming'&&value!=='At Possession'&&value!=='Overdue')rect(x+13,top+5,widths[j]-26,rowH-10,{fill:value==='Paid'?'#e9f5eb':value==='Overdue'?'#fae9e8':value==='At Possession'?'#e8edf1':'#fff5da',stroke:'none',opacity:.85,r:6});";
   if(!source.includes(statusBoxBefore))throw new Error('SOA installment status-box marker not found in welcome-letter.html');
   source=source.replace(statusBoxBefore,statusBoxAfter);
 
