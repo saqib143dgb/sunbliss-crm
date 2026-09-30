@@ -566,12 +566,12 @@ async function applyVerifiedUnitLayout(pdf){
 async function loadReferenceTemplateBytes(){
   var t=activeTemplate(),path=text(t&&t.template_storage_path),version=text(t&&t.template_version);
   if(version==='REFERENCE-607-EXACT-V1'||path==='templates/sunbliss/reference-exact-v1.pdf'){
-    var exact=await fetch('spa-reference.pdf?v=20260930a');
+    var exact=await fetch('spa-reference.pdf?v=20260930b');
     if(!exact.ok)throw Error('SPA reference template is unavailable.');
     return new Uint8Array(await exact.arrayBuffer());
   }
   if(path&&path.indexOf('app://')===0){
-    var local=await fetch(path.slice(6)+'?v=20260930a');
+    var local=await fetch(path.slice(6)+'?v=20260930b');
     if(!local.ok)throw Error('SPA reference template is unavailable.');
     return new Uint8Array(await local.arrayBuffer());
   }
@@ -579,7 +579,7 @@ async function loadReferenceTemplateBytes(){
     var stored=await sb.storage.from('spa-assets').download(path);
     if(!stored.error&&stored.data)return new Uint8Array(await stored.data.arrayBuffer());
   }
-  var fallback=await fetch('spa-reference.pdf?v=20260930a');
+  var fallback=await fetch('spa-reference.pdf?v=20260930b');
   if(!fallback.ok)throw Error('SPA reference template is unavailable.');
   return new Uint8Array(await fallback.arrayBuffer());
 }
