@@ -563,11 +563,24 @@ async function applyVerifiedUnitLayout(pdf){
   await drawLayoutAsset(pdf,page,assets[1],{x:137,y:94,w:340,h:241});
   return true;
 }
+async function loadReferenceTemplateBytes(){
+  var t=activeTemplate(),path=text(t&&t.template_storage_path);
+  if(path&&path.indexOf('app://')===0){
+    var local=await fetch(path.slice(6)+'?v=20260930');
+    if(!local.ok)throw Error('SPA reference template is unavailable.');
+    return await local.arrayBuffer();
+  }
+  if(path&&sb){
+    var stored=await sb.storage.from('spa-assets').download(path);
+    if(!stored.error&&stored.data)return await stored.data.arrayBuffer();
+  }
+  var fallback=await fetch('spa-reference.pdf?v=20260930');
+  if(!fallback.ok)throw Error('SPA reference template is unavailable.');
+  return await fallback.arrayBuffer();
+}
 async function generateReferencePdf(snapshot){
   if(!window.PDFLib)throw Error('PDF engine is unavailable.');
-  var response=await fetch('spa-reference.pdf?v=20260930');
-  if(!response.ok)throw Error('SPA reference template is unavailable.');
-  var pdf=await PDFLib.PDFDocument.load(await response.arrayBuffer());
+  var pdf=await PDFLib.PDFDocument.load(await loadReferenceTemplateBytes());
   var pages=pdf.getPages();
   for(var pageIndex of [0,1,3]){
     var png=await pdf.embedPng(await canvasPngBytes(overlayCanvas(snapshot,pageIndex)));
