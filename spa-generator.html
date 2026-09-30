@@ -257,7 +257,7 @@ function render(){
   if(!rows.length)body.innerHTML='<tr><td colspan="6">No payment schedule found.</td></tr>';
   var arabicOk=!!(profile&&profile.customer_name_ar&&profile.nationality_ar&&profile.address_ar);
   var nameOk=!!(profile&&profile.arabic_name_verified);
-  var layoutOk=!!(layout&&layout.verified&&layout.unit_plan_storage_path);
+  var layoutOk=!!(layout&&layout.verified&&layout.floor_plan_storage_path&&layout.unit_plan_storage_path);
   var templateOk=!!template;
   var t=activeTemplate();
   document.getElementById('readiness').innerHTML=
@@ -419,7 +419,7 @@ function draftSnapshot(){
   var c=ctx.customer||{},u=ctx.unit||{},sale=ctx.sale||{},t=activeTemplate();
   var total=Number(sale.commercial_sale_price||u.total_price||ctx.account&&ctx.account.total||0);
   return {
-    temporary:!(profile&&profile.arabic_name_verified&&layout&&layout.verified&&layout.unit_plan_storage_path),
+    temporary:!(profile&&profile.arabic_name_verified&&layout&&layout.verified&&layout.floor_plan_storage_path&&layout.unit_plan_storage_path),
     template_version:t.template_version,
     master_plan_page:t.master_plan_page||46,
     floor_unit_plan_page:t.floor_unit_plan_page||47,
@@ -524,6 +524,45 @@ function overlayCanvas(s,pageIndex){
 async function canvasPngBytes(canvas){
   var url=canvas.toDataURL('image/png');return new Uint8Array(await (await fetch(url)).arrayBuffer());
 }
+function fitRect(srcW,srcH,box){
+  var scale=Math.min(box.w/srcW,box.h/srcH);
+  var w=srcW*scale,h=srcH*scale;
+  return {x:box.x+(box.w-w)/2,y:box.y+(box.h-h)/2,w:w,h:h};
+}
+async function signedSpaAsset(path){
+  if(!path)return null;
+  var r=await sb.storage.from('spa-assets').createSignedUrl(path,120);
+  if(r.error)throw r.error;
+  var res=await fetch(r.data.signedUrl);
+  if(!res.ok)throw Error('Could not load SPA layout asset.');
+  return {bytes:new Uint8Array(await res.arrayBuffer()),contentType:(res.headers.get('content-type')||'').toLowerCase(),path:path};
+}
+async function drawLayoutAsset(targetPdf,page,asset,box){
+  if(!asset)return;
+  var type=asset.contentType,lower=text(asset.path).toLowerCase();
+  page.drawRectangle({x:box.x-2,y:box.y-2,width:box.w+4,height:box.h+4,color:PDFLib.rgb(1,1,1)});
+  if(type.indexOf('pdf')>=0||lower.endsWith('.pdf')){
+    var src=await PDFLib.PDFDocument.load(asset.bytes);
+    var embedded=await targetPdf.embedPage(src.getPages()[0]);
+    var rect=fitRect(embedded.width,embedded.height,box);
+    page.drawPage(embedded,{x:rect.x,y:rect.y,width:rect.w,height:rect.h});
+    return;
+  }
+  var img;
+  if(type.indexOf('png')>=0||lower.endsWith('.png'))img=await targetPdf.embedPng(asset.bytes);
+  else img=await targetPdf.embedJpg(asset.bytes);
+  var rect=fitRect(img.width,img.height,box);
+  page.drawImage(img,{x:rect.x,y:rect.y,width:rect.w,height:rect.h});
+}
+async function applyVerifiedUnitLayout(pdf){
+  if(!(layout&&layout.verified&&layout.floor_plan_storage_path&&layout.unit_plan_storage_path))return false;
+  var page=pdf.getPages()[46];
+  if(!page)return false;
+  var assets=await Promise.all([signedSpaAsset(layout.floor_plan_storage_path),signedSpaAsset(layout.unit_plan_storage_path)]);
+  await drawLayoutAsset(pdf,page,assets[0],{x:137,y:414,w:340,h:245});
+  await drawLayoutAsset(pdf,page,assets[1],{x:137,y:94,w:340,h:241});
+  return true;
+}
 async function generateReferencePdf(snapshot){
   if(!window.PDFLib)throw Error('PDF engine is unavailable.');
   var response=await fetch('spa-reference.pdf?v=20260930');
@@ -534,6 +573,7 @@ async function generateReferencePdf(snapshot){
     var png=await pdf.embedPng(await canvasPngBytes(overlayCanvas(snapshot,pageIndex)));
     var page=pages[pageIndex];page.drawImage(png,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});
   }
+  await applyVerifiedUnitLayout(pdf);
   return await pdf.save();
 }
 async function generateSpa(){
