@@ -409,7 +409,7 @@ function arUnder1000(n){
 }
 function arabicNumberWords(value){
   var n=Math.round(Number(value)||0);if(!n)return 'صفر';
-  var out=[],mill=Math.floor(n/1000000);n%=1000000,thou=Math.floor(n/1000);n%=1000;
+  var out=[],mill=Math.floor(n/1000000);n%=1000000;var thou=Math.floor(n/1000);n%=1000;
   if(mill===1)out.push('مليون');else if(mill===2)out.push('مليونان');else if(mill>2&&mill<=10)out.push(arUnder1000(mill)+' ملايين');else if(mill)out.push(arUnder1000(mill)+' مليون');
   if(thou===1)out.push('ألف');else if(thou===2)out.push('ألفان');else if(thou>2&&thou<=10)out.push(arUnder1000(thou)+' آلاف');else if(thou)out.push(arUnder1000(thou)+' ألف');
   if(n)out.push(arUnder1000(n));
