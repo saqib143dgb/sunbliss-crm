@@ -121,8 +121,7 @@
     style.textContent=`
       .sbx-kpi-detail{padding:18px 18px 118px;color:var(--ink)}
       .sbx-kpi-top{display:flex;align-items:center;gap:12px;margin:0 0 16px}
-      .sbx-kpi-back{width:38px;height:38px;flex:none;border:1px solid var(--paper-line);border-radius:12px;background:var(--paper-dim);color:var(--ink);display:grid;place-items:center;padding:0}
-      .sbx-kpi-back svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+      .sbx-kpi-back-source{display:none!important}
       .sbx-kpi-heading{min-width:0}
       .sbx-kpi-eyebrow{font:600 10px/1.1 "IBM Plex Mono",monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--gold-deep);margin:0 0 4px}
       .sbx-kpi-heading h1{font:600 25px/1.08 Fraunces,serif;letter-spacing:-.02em;margin:0;color:var(--ink)}
@@ -165,15 +164,9 @@
     var stats=currentStats();
     var meta=metricMeta(kind,stats,all);
     var rows=all.filter(meta.include).sort(meta.sort);
-    var nav='';
-    if(typeof window.renderTabs==='function'){
-      try{nav=renderTabs('overview');}catch(_){}
-    }
-    var html=nav+'<div class="sbx-kpi-detail" data-kpi-kind="'+safe(kind)+'">'+
+    var html='<button type="button" class="back sbx-kpi-back-source" id="sbxKpiBack" aria-label="Back to overview">Back</button>'+
+      '<div class="sbx-kpi-detail" data-kpi-kind="'+safe(kind)+'">'+
       '<div class="sbx-kpi-top">'+
-        '<button type="button" class="sbx-kpi-back" id="sbxKpiBack" aria-label="Back to overview">'+
-          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>'+
-        '</button>'+
         '<div class="sbx-kpi-heading"><p class="sbx-kpi-eyebrow">'+safe(meta.eyebrow)+'</p><h1>'+safe(meta.title)+'</h1></div>'+
       '</div>'+
       '<section class="sbx-kpi-summary"><p class="sbx-kpi-summary-value">'+safe(meta.summary)+'</p><p class="sbx-kpi-summary-label">'+safe(meta.summaryLabel)+'</p></section>'+
@@ -194,9 +187,6 @@
     html+='</div></div>';
     main.innerHTML=html;
 
-    if(typeof window.wireTabs==='function'){
-      try{wireTabs();}catch(_){}
-    }
     var back=document.getElementById('sbxKpiBack');
     if(back)back.addEventListener('click',function(){
       if(typeof window.renderOverview==='function')renderOverview();
