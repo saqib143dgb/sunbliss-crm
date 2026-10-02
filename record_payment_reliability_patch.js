@@ -76,6 +76,8 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
 #recordPaymentReliablePanel .credit-note-toggle{margin:0;padding:7px 0;min-height:36px}
 #recordPaymentReliablePanel #pfCreditFields{margin-top:12px;padding:14px;border:1px solid var(--paper-line);border-radius:10px}
 #recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:block!important}
+#recordPaymentReliablePanel .credit-note-fields-title{margin:0 0 4px;font:650 13px/1.35 Inter,system-ui,sans-serif;color:var(--ink)}
+#recordPaymentReliablePanel .credit-note-fields-help{margin:0 0 14px;font:500 11px/1.45 Inter,system-ui,sans-serif;color:var(--muted)}
 #recordPaymentReliablePanel .record-payment-footer{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--paper-line);background:var(--paper)}
 #recordPaymentReliablePanel .record-payment-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:680px;margin:0 auto}
 #recordPaymentReliablePanel .record-payment-actions:has(>button:only-child){grid-template-columns:1fr}
@@ -102,10 +104,10 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
   #recordPaymentReliablePanel input,#recordPaymentReliablePanel select{min-height:48px;padding:12px 13px}
   #recordPaymentReliablePanel .credit-note-toggle{grid-column:1/-1;justify-self:start;margin:0;padding:4px 0;min-height:30px}
   #recordPaymentReliablePanel #pfCreditFields{grid-column:1/-1;margin:0;padding:20px}
-  #recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:16px}
+  #recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:16px;align-items:start}
   #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title,#recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{grid-column:1/-1}
-  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title{margin:0}
-  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{margin:-10px 0 0}
+  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title{margin:0 0 -8px;font-size:13px}
+  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{margin:0 0 2px;font-size:11px}
   #recordPaymentReliablePanel #pfCreditFields>.brand-field{margin:0}
   #recordPaymentReliablePanel .record-payment-footer{padding:16px max(36px,calc((100vw - 1120px)/2))}
   #recordPaymentReliablePanel .record-payment-actions{display:flex;justify-content:flex-end;gap:12px;max-width:1120px}
@@ -161,7 +163,7 @@ function syncCreditAvailability(){
 function toggleCreditFields(){
   var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box||toggle.hidden)return;
   var opening=box.hasAttribute('hidden')||box.hidden||window.getComputedStyle(box).display==='none';
-  if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.setProperty('display','block','important');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note';var amount=panel.querySelector('#pfCreditAmount');if(amount)window.setTimeout(function(){try{amount.focus()}catch(_e){}},0)}
+  if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.removeProperty('display');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note';var amount=panel.querySelector('#pfCreditAmount');if(amount)window.setTimeout(function(){try{amount.focus()}catch(_e){}},0)}
   else{closeCreditFields()}
 }
 
