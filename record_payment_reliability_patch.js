@@ -126,15 +126,27 @@ function syncCreditAvailability(){
   var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');
   if(!toggle||!box)return;
   var blocked=isDld(selectedScheduleRow());
-  toggle.hidden=blocked;
-  toggle.style.display=blocked?'none':'';
+  toggle.hidden=false;
+  toggle.style.display='';
+  toggle.disabled=blocked;
+  toggle.setAttribute('aria-disabled',blocked?'true':'false');
   if(blocked){
     closeCreditFields();
+    toggle.disabled=true;
+    toggle.setAttribute('aria-disabled','true');
+    toggle.textContent='Credit note unavailable for DLD + Admin Fees';
     box.querySelectorAll('input').forEach(function(input){if(input.type!=='date')input.value='';});
+  }else{
+    toggle.disabled=false;
+    toggle.setAttribute('aria-disabled','false');
+    if(box.hidden||box.hasAttribute('hidden')||window.getComputedStyle(box).display==='none'){
+      toggle.textContent='+ Add credit note (optional)';
+      toggle.setAttribute('aria-expanded','false');
+    }
   }
 }
 function toggleCreditFields(){
-  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box||toggle.hidden)return;
+  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box||toggle.hidden||toggle.disabled)return;
   var opening=box.hasAttribute('hidden')||box.hidden||window.getComputedStyle(box).display==='none';
   if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.setProperty('display','block','important');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note';var amount=panel.querySelector('#pfCreditAmount');if(amount)window.setTimeout(function(){try{amount.focus()}catch(_e){}},0)}
   else{closeCreditFields()}
