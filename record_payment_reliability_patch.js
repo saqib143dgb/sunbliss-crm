@@ -22,7 +22,7 @@ function currentCustomer(){
 }
 function unitId(c){return Number(c&&(c.dbUnitId!=null?c.dbUnitId:(c.unitId!=null?c.unitId:c.sno)))||0}
 function isDld(row){return /\bdld\b|admin\s*fees?/i.test(text(row&&row.stage_name))}
-function remaining(row){var due=Number(row&&row.due_amount)||0,cash=Number(row&&row.paid_amount)||0,credit=isDld(row)?0:(Number(cache.credits[String(row&&row.id)])||0);return Math.round((due-cash-credit)*100)/100}
+function remaining(row){var due=Number(row&&row.due_amount)||0,cash=Number(row&&row.paid_amount)||0,credit=Number(cache.credits[String(row&&row.id)])||0;return Math.round((due-cash-credit)*100)/100}
 
 function resetState(){
   cache.customer=null;cache.rows=[];cache.credits={};cache.loading=false;cache.saving=false;cache.lastResult=null;
@@ -125,28 +125,17 @@ function closeCreditFields(){
 function syncCreditAvailability(){
   var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');
   if(!toggle||!box)return;
-  var blocked=isDld(selectedScheduleRow());
   toggle.hidden=false;
   toggle.style.display='';
-  toggle.disabled=blocked;
-  toggle.setAttribute('aria-disabled',blocked?'true':'false');
-  if(blocked){
-    closeCreditFields();
-    toggle.disabled=true;
-    toggle.setAttribute('aria-disabled','true');
-    toggle.textContent='Credit note unavailable for DLD + Admin Fees';
-    box.querySelectorAll('input').forEach(function(input){if(input.type!=='date')input.value='';});
-  }else{
-    toggle.disabled=false;
-    toggle.setAttribute('aria-disabled','false');
-    if(box.hidden||box.hasAttribute('hidden')||window.getComputedStyle(box).display==='none'){
-      toggle.textContent='+ Add credit note (optional)';
-      toggle.setAttribute('aria-expanded','false');
-    }
+  toggle.disabled=false;
+  toggle.setAttribute('aria-disabled','false');
+  if(box.hidden||box.hasAttribute('hidden')||window.getComputedStyle(box).display==='none'){
+    toggle.textContent='+ Add credit note (optional)';
+    toggle.setAttribute('aria-expanded','false');
   }
 }
 function toggleCreditFields(){
-  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box||toggle.hidden||toggle.disabled)return;
+  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box||toggle.hidden)return;
   var opening=box.hasAttribute('hidden')||box.hidden||window.getComputedStyle(box).display==='none';
   if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.setProperty('display','block','important');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note';var amount=panel.querySelector('#pfCreditAmount');if(amount)window.setTimeout(function(){try{amount.focus()}catch(_e){}},0)}
   else{closeCreditFields()}
@@ -300,7 +289,6 @@ async function savePayment(){
   if(cash>0&&!date){setError('Select a payment date.');return}
   if(credit>0&&!creditDate){setError('Select the credit note issue date.');return}
   if(credit>0&&!creditReason){setError('Enter the credit note reason.');return}
-  if(isDld(row)&&credit>0){setError('DLD + Admin Fees must be settled in cash. Credit notes cannot be applied to this stage.');return}
 
   var btn=panel&&panel.querySelector('#pfSave'),key=state.selectedUnit,from=state.detailFrom||'list';
   cache.saving=true;state.paymentFormSaving=true;
