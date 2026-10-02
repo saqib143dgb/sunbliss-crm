@@ -155,7 +155,8 @@
     document.head.appendChild(style);
   }
 
-  function renderMetric(kind){
+  function renderMetric(kind,options){
+    options=options||{};
     if(!window.state||!Array.isArray(state.dues))return;
     installStyle();
     var main=document.getElementById('main')||window.mainEl;
@@ -189,21 +190,43 @@
 
     var back=document.getElementById('sbxKpiBack');
     if(back)back.addEventListener('click',function(){
+      window.__sunblissKpiReturnContext=null;
       if(typeof window.renderOverview==='function')renderOverview();
       else if(typeof window.render==='function')render();
     });
     main.querySelectorAll('.sbx-kpi-row').forEach(function(row){
       row.addEventListener('click',function(){
         var unit=row.getAttribute('data-kpi-unit'),sno=row.getAttribute('data-kpi-sno');
+        window.__sunblissKpiReturnContext={
+          kind:kind,
+          scrollY:window.scrollY||0
+        };
         if(typeof window.goToDetail==='function'){
           goToDetail(unit,sno,'overview');
         }
       });
     });
-    window.scrollTo({top:0,behavior:'smooth'});
+    if(options.restoreScroll!==undefined&&options.restoreScroll!==null){
+      var restoreY=Math.max(0,Number(options.restoreScroll)||0);
+      requestAnimationFrame(function(){window.scrollTo(0,restoreY);});
+    }else{
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
   }
 
   window.renderOverviewKpiDrilldown=renderMetric;
+
+  document.addEventListener('click',function(event){
+    var target=event.target&&event.target.closest?event.target.closest('#sunblissPersistentBack'):null;
+    if(!target||!window.state||state.view!=='detail')return;
+    var ctx=window.__sunblissKpiReturnContext;
+    if(!ctx||!ctx.kind)return;
+    event.preventDefault();
+    event.stopPropagation();
+    if(event.stopImmediatePropagation)event.stopImmediatePropagation();
+    window.__sunblissKpiReturnContext=null;
+    renderMetric(ctx.kind,{restoreScroll:ctx.scrollY});
+  },true);
 
   function metricTarget(target){
     if(!target||!target.closest)return null;
