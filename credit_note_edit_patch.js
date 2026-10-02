@@ -61,7 +61,7 @@
         if(!stages.length)throw new Error('No installment schedule is linked to this customer and unit.');
 
         var options='';
-        stages.filter(function(stage){return !(A.isDldStage&&A.isDldStage(stage));}).forEach(function(stage){
+        stages.forEach(function(stage){
           options+='<option value="'+A.safe(stage.id)+'"'+(String(stage.id)===String(note.payment_schedule_id)?' selected':'')+'>'+A.safe(stage.stage_name||'Installment')+'</option>';
         });
 
@@ -133,7 +133,6 @@
 
     function addActions(c,row,n){
       if(!row||!n)return;
-      if(A.isDldStage&&A.isDldStage({label:n.stageLabel}))return;
       if(row.querySelector('[data-credit-note-actions="1"]'))return;
 
       var existing=row.querySelector('.tx-actions-btn');
