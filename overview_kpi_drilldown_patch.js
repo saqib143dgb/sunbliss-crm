@@ -216,17 +216,6 @@
 
   window.renderOverviewKpiDrilldown=renderMetric;
 
-  document.addEventListener('click',function(event){
-    var target=event.target&&event.target.closest?event.target.closest('#sunblissPersistentBack'):null;
-    if(!target||!window.state||state.view!=='detail')return;
-    var ctx=window.__sunblissKpiReturnContext;
-    if(!ctx||!ctx.kind)return;
-    event.preventDefault();
-    event.stopPropagation();
-    if(event.stopImmediatePropagation)event.stopImmediatePropagation();
-    window.__sunblissKpiReturnContext=null;
-    renderMetric(ctx.kind,{restoreScroll:ctx.scrollY});
-  },true);
 
   function metricTarget(target){
     if(!target||!target.closest)return null;
