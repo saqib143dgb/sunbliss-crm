@@ -33,6 +33,16 @@ function ensureStyle(){
     width:100%!important;
     max-width:none!important;
   }
+  body.sunbliss-ref-desktop.sunbliss-desktop-deep-page #customerFinancialSummary .money-label{
+    font-size:clamp(10px,1vw,15px)!important;
+  }
+  body.sunbliss-ref-desktop.sunbliss-desktop-deep-page #customerFinancialSummary .money-value{
+    font-size:clamp(25px,2.8vw,40px)!important;
+    line-height:1.14!important;
+  }
+  body.sunbliss-ref-desktop.sunbliss-desktop-deep-page #customerFinancialSummary .bar-caption{
+    font-size:clamp(12px,1.25vw,18px)!important;
+  }
 }
 `;
   document.head.appendChild(s);
