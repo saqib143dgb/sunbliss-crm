@@ -12,7 +12,6 @@ function text(v){return v==null?'':String(v)}
 function settled(stage){return num(stage&&stage.settledAmount!==undefined?stage.settledAmount:stage&&stage.paid)}
 function remaining(stage){
   if(!stage||stage.due===null||stage.due===undefined)return null;
-  if(text(stage.status).trim().toLowerCase()==='paid')return 0;
   return round2(num(stage.due)-settled(stage));
 }
 function allCustomers(){var out=[];if(!window.state)return out;[state.dues,state.cancelled].forEach(function(list){if(Array.isArray(list))list.forEach(function(c){if(c)out.push(c)})});return out}
@@ -64,14 +63,30 @@ function patchRenderedEditors(){
     var byId={};(c.stages||[]).forEach(function(s){if(s&&s.id!=null)byId[String(s.id)]=s});
     var select=document.getElementById('pfStage');
     if(select){
+      var reliable=!!(select.closest&&select.closest('#recordPaymentReliablePanel'));
       var firstOpen=null;
       Array.prototype.forEach.call(select.options,function(opt){
         var s=byId[String(opt.value)],rem=remaining(s);
-        if(rem!==null&&rem<=TOLERANCE){var parts=text(opt.textContent).split(' · ');setTextIfChanged(opt,parts[0]+' · Fully settled')}
-        else if(firstOpen===null)firstOpen=opt.value;
+        if(rem===null)return;
+        var parts=text(opt.textContent).split(' · '),label=parts[0];
+        if(rem<=0){
+          setTextIfChanged(opt,label+' · Fully settled');
+          return;
+        }
+        if(rem<=TOLERANCE){
+          if(reliable){
+            var amount='AED '+round2(rem).toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});
+            setTextIfChanged(opt,label+' · '+amount+' to recover');
+            if(firstOpen===null)firstOpen=opt.value;
+          }else{
+            setTextIfChanged(opt,label+' · Fully settled');
+          }
+          return;
+        }
+        if(firstOpen===null)firstOpen=opt.value;
       });
       var selectedStage=byId[String(select.value)],selectedRem=remaining(selectedStage);
-      if(selectedRem!==null&&selectedRem<=TOLERANCE&&firstOpen!==null&&String(select.value)!==String(firstOpen))select.value=firstOpen;
+      if(selectedRem!==null&&selectedRem<=0&&firstOpen!==null&&String(select.value)!==String(firstOpen))select.value=firstOpen;
     }
     var detailRows=document.querySelectorAll('#paymentDetailDialog .payment-detail-row');
     detailRows.forEach(function(row,index){
