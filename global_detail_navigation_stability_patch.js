@@ -4,7 +4,7 @@
   if (window.__sunblissGlobalDetailNavigationStabilityInstalled) return;
   window.__sunblissGlobalDetailNavigationStabilityInstalled = true;
 
-  var returnScroll = null;
+  var returnRoute = null;
   var repairing = false;
   var rendering = false;
   var verifyScheduled = false;
@@ -31,7 +31,17 @@
 
   function snapshotNavigation(){
     if (!window.state) return null;
-    return {view:state.view,selectedUnit:state.selectedUnit,detailFrom:state.detailFrom,search:state.search};
+    return {
+      view:state.view,
+      selectedUnit:state.selectedUnit,
+      detailFrom:state.detailFrom,
+      search:state.search,
+      sortBy:state.sortBy,
+      filtersExpanded:state.filtersExpanded,
+      filters:state.filters ? Object.assign({},state.filters) : state.filters,
+      selectedMonth:state.selectedMonth,
+      cfOpen:state.cfOpen
+    };
   }
   function restoreNavigation(snapshot){
     if (!snapshot || !window.state) return;
@@ -39,6 +49,33 @@
     state.selectedUnit=snapshot.selectedUnit;
     state.detailFrom=snapshot.detailFrom;
     state.search=snapshot.search;
+    if(Object.prototype.hasOwnProperty.call(snapshot,'sortBy'))state.sortBy=snapshot.sortBy;
+    if(Object.prototype.hasOwnProperty.call(snapshot,'filtersExpanded'))state.filtersExpanded=snapshot.filtersExpanded;
+    if(Object.prototype.hasOwnProperty.call(snapshot,'filters'))state.filters=snapshot.filters ? Object.assign({},snapshot.filters) : snapshot.filters;
+    if(Object.prototype.hasOwnProperty.call(snapshot,'selectedMonth'))state.selectedMonth=snapshot.selectedMonth;
+    if(Object.prototype.hasOwnProperty.call(snapshot,'cfOpen'))state.cfOpen=snapshot.cfOpen;
+  }
+  function snapshotCurrentPage(main){
+    if(!main)return null;
+    return {
+      navigation:snapshotNavigation(),
+      scrollY:window.scrollY||0,
+      nodes:Array.prototype.slice.call(main.childNodes)
+    };
+  }
+  function restorePreviousPage(route){
+    var main=currentMain()||repairShell();
+    if(!route||!main)return false;
+    closeSearch();
+    restoreNavigation(route.navigation);
+    main.replaceChildren.apply(main,route.nodes||[]);
+    window.mainEl=main;
+    if(typeof window.scrollTo==='function'){
+      try{window.scrollTo({top:Math.max(0,Number(route.scrollY)||0),behavior:'instant'});}
+      catch(_){window.scrollTo(0,Math.max(0,Number(route.scrollY)||0));}
+    }
+    try{document.dispatchEvent(new CustomEvent('sunbliss:navigation-restored',{detail:{view:state&&state.view}}));}catch(_){}
+    return true;
   }
 
   function repairShell(){
@@ -112,7 +149,7 @@
     closeSearch();
     var main=currentMain() || repairShell();
     if (!main) return false;
-    if(state.view!=='detail')returnScroll={view:state.view,y:window.scrollY||0};
+    if(state.view!=='detail')returnRoute=snapshotCurrentPage(main);
     state.selectedUnit=customerKey(customer);
     state.detailFrom=from || 'list';
     state.revealedFields={};
@@ -184,12 +221,11 @@
   document.addEventListener('click',function(event){
     if (event.defaultPrevented) return;
     var back=event.target&&event.target.closest&&event.target.closest('#btnBack');
-    if(back&&window.state&&state.view==='detail'&&returnScroll){
+    if(back&&window.state&&state.view==='detail'&&returnRoute){
       event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
-      state.view=state.detailFrom||returnScroll.view;state.selectedUnit=null;
-      window.renderMain();
-      window.scrollTo({top:state.view===returnScroll.view?returnScroll.y:0,behavior:'instant'});
-      return;
+      var route=returnRoute;
+      returnRoute=null;
+      if(restorePreviousPage(route))return;
     }
     var target=navigationTarget(event);
     if (!target) return;
