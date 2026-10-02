@@ -48,6 +48,14 @@
     if(button)return button;
     button=document.createElement('button');button.type='button';button.id='sunblissPersistentBack';button.textContent='Back';button.setAttribute('aria-label','Back to previous CRM screen');button.setAttribute('title','Back');
     button.addEventListener('click',function(){
+      if(window.state&&state.view==='detail'&&window.__sunblissKpiReturnContext&&window.__sunblissKpiReturnContext.kind&&typeof window.renderOverviewKpiDrilldown==='function'){
+        var kpiContext=window.__sunblissKpiReturnContext;
+        window.__sunblissKpiReturnContext=null;
+        state.selectedUnit=null;
+        state.view='overview';
+        window.renderOverviewKpiDrilldown(kpiContext.kind,{restoreScroll:kpiContext.scrollY});
+        return;
+      }
       var sources=collectInlineBacks(),existing=preferredBackSource(sources);
       if(existing&&existing.isConnected){existing.click();return;}
       if(!window.state)return;
