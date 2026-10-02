@@ -88,7 +88,31 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
 #recordPaymentReliablePanel .record-payment-empty{font:400 14px/1.5 Inter,system-ui,sans-serif;color:var(--muted)}
 .record-payment-refresh-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:11px 12px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font:500 12px/1.45 Inter,system-ui,sans-serif;color:var(--ink)}
 .record-payment-refresh-status button{flex:none;margin:0;min-height:36px;padding:7px 10px;border:1px solid var(--paper-line);border-radius:7px;background:var(--paper);color:var(--ink);font:600 12px Inter,sans-serif}
-@media(min-width:720px){#recordPaymentReliablePanel .record-payment-head{padding-left:max(24px,calc((100vw - 680px)/2));padding-right:max(24px,calc((100vw - 680px)/2))}}
+@media(min-width:720px) and (max-width:1023px){#recordPaymentReliablePanel .record-payment-head{padding-left:max(24px,calc((100vw - 680px)/2));padding-right:max(24px,calc((100vw - 680px)/2))}}
+@media(min-width:1024px){
+  #recordPaymentReliablePanel .record-payment-head{padding:28px max(36px,calc((100vw - 1120px)/2)) 20px}
+  #recordPaymentReliablePanel .record-payment-head h2{font-size:30px;line-height:1.15;margin-bottom:6px}
+  #recordPaymentReliablePanel .record-payment-summary{font-size:13px}
+  #recordPaymentReliablePanel .record-payment-body{padding:30px 36px 36px}
+  #recordPaymentReliablePanel .record-payment-content{max-width:1120px}
+  #recordPaymentReliablePanel #recordPaymentReliableForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;row-gap:18px;align-items:start}
+  #recordPaymentReliablePanel #recordPaymentReliableForm>.brand-field{margin:0}
+  #recordPaymentReliablePanel #recordPaymentReliableForm>.brand-field:first-child{grid-column:1/-1}
+  #recordPaymentReliablePanel .brand-field{font-size:12.5px}
+  #recordPaymentReliablePanel input,#recordPaymentReliablePanel select{min-height:48px;padding:12px 13px}
+  #recordPaymentReliablePanel .credit-note-toggle{grid-column:1/-1;justify-self:start;margin:0;padding:4px 0;min-height:30px}
+  #recordPaymentReliablePanel #pfCreditFields{grid-column:1/-1;margin:0;padding:20px}
+  #recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:16px}
+  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title,#recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{grid-column:1/-1}
+  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title{margin:0}
+  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{margin:-10px 0 0}
+  #recordPaymentReliablePanel #pfCreditFields>.brand-field{margin:0}
+  #recordPaymentReliablePanel .record-payment-footer{padding:16px max(36px,calc((100vw - 1120px)/2))}
+  #recordPaymentReliablePanel .record-payment-actions{display:flex;justify-content:flex-end;gap:12px;max-width:1120px}
+  #recordPaymentReliablePanel .record-payment-actions:has(>button:only-child){display:flex}
+  #recordPaymentReliablePanel .record-payment-actions button{width:auto!important;min-width:190px;min-height:46px;padding-left:24px;padding-right:24px}
+  #recordPaymentReliablePanel .record-payment-success{max-width:760px;margin:40px auto;padding:34px}
+}
 `;
   document.head.appendChild(style);
 }
