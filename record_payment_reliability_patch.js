@@ -112,11 +112,32 @@ function setBusy(busy){
 }
 function optionLabel(r){var rem=Math.max(0,remaining(r)),stage=text(r.stage_name).trim();if(isDld(r))stage='DLD + Admin Fees';return stage+' · '+(rem<=1?'Fully settled':money(rem))}
 
+function selectedScheduleRow(){
+  var panel=document.getElementById('recordPaymentReliablePanel'),select=panel&&panel.querySelector('#pfStage'),sid=Number(select&&select.value)||0;
+  return cache.rows.find(function(r){return Number(r.id)===sid})||null;
+}
+function closeCreditFields(){
+  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');
+  if(!toggle||!box)return;
+  box.setAttribute('hidden','');box.hidden=true;box.style.setProperty('display','none','important');
+  toggle.setAttribute('aria-expanded','false');toggle.textContent='+ Add credit note (optional)';
+}
+function syncCreditAvailability(){
+  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');
+  if(!toggle||!box)return;
+  var blocked=isDld(selectedScheduleRow());
+  toggle.hidden=blocked;
+  toggle.style.display=blocked?'none':'';
+  if(blocked){
+    closeCreditFields();
+    box.querySelectorAll('input').forEach(function(input){if(input.type!=='date')input.value='';});
+  }
+}
 function toggleCreditFields(){
-  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box)return;
+  var panel=document.getElementById('recordPaymentReliablePanel'),toggle=panel&&panel.querySelector('#pfCreditToggle'),box=panel&&panel.querySelector('#pfCreditFields');if(!toggle||!box||toggle.hidden)return;
   var opening=box.hasAttribute('hidden')||box.hidden||window.getComputedStyle(box).display==='none';
-  if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.setProperty('display','block','important');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note'}
-  else{box.setAttribute('hidden','');box.hidden=true;box.style.setProperty('display','none','important');toggle.setAttribute('aria-expanded','false');toggle.textContent='+ Add credit note (optional)'}
+  if(opening){box.removeAttribute('hidden');box.hidden=false;box.style.setProperty('display','block','important');toggle.setAttribute('aria-expanded','true');toggle.textContent='− Remove credit note';var amount=panel.querySelector('#pfCreditAmount');if(amount)window.setTimeout(function(){try{amount.focus()}catch(_e){}},0)}
+  else{closeCreditFields()}
 }
 
 function renderForm(){
@@ -147,6 +168,15 @@ function renderForm(){
   var save=p.querySelector('#pfSave');
   if(save)save.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();savePayment()},true);
 
+  // Bind the credit-note control directly to the rendered form.
+  // This avoids desktop capture-phase handlers swallowing the delegated click.
+  var creditToggle=p.querySelector('#pfCreditToggle');
+  if(creditToggle){
+    creditToggle.onclick=function(e){e.preventDefault();e.stopPropagation();toggleCreditFields();};
+  }
+  var stageSelect=p.querySelector('#pfStage');
+  if(stageSelect)stageSelect.addEventListener('change',syncCreditAvailability);
+  syncCreditAvailability();
 }
 
 async function loadRows(c,session){
@@ -287,7 +317,6 @@ async function savePayment(){
 
 function targetFromEvent(e){if(!e||!e.target||!e.target.closest)return null;return e.target.closest('#btnOpenPaymentForm,#actionRecordPayment')}
 document.addEventListener('click',function(e){var target=targetFromEvent(e);if(!target)return;if(!window.state||state.userRole!=='crm_officer')return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openPanel()},true);
-document.addEventListener('click',function(e){var toggle=e&&e.target&&e.target.closest?e.target.closest('#recordPaymentReliablePanel #pfCreditToggle'):null;if(!toggle)return;e.preventDefault();e.stopPropagation();toggleCreditFields()},true);
 window.addEventListener('popstate',closePanel);
 window.addEventListener('pageshow',function(event){if(event.persisted&&!cache.saving)closePanel();});
 var baseDetail=window.renderDetail;if(typeof baseDetail==='function')window.renderDetail=function(){var result=baseDetail.apply(this,arguments);mountRefreshStatus();return result;};
