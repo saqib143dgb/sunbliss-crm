@@ -83,6 +83,13 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 .doc{border-top:1px solid var(--paper-line)!important}
 .doc button{border:1px solid #cdbf9b!important;background:#fff!important;color:var(--ink)!important}
 .download-link{border-radius:6px!important}
+@media(min-width:901px){
+  html,body{height:100%!important;overflow:hidden!important}
+  main{height:100dvh!important;min-height:0!important;overflow:hidden!important;align-items:stretch!important}
+  main>aside{height:calc(100dvh - 48px)!important;min-height:0!important;overflow:hidden!important;align-self:start!important}
+  main>section{height:calc(100dvh - 48px)!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding-right:4px!important}
+  main>section>.previewbar{position:sticky!important;top:0!important;z-index:5!important;margin:0 0 12px!important;padding:0 0 12px!important;background:var(--paper)!important}
+}
 @media(max-width:900px){
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="file"]):not([type="hidden"]),select,textarea{font-size:16px!important}
   header{padding:20px 20px 24px!important}
