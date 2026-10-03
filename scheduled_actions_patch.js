@@ -93,7 +93,21 @@
     var core=window.PaymentExtensionsCore,cc=core&&core.cache;if(!c||!cc||!Array.isArray(cc.s))return[];
     var credit=typeof core.creditMap==='function'?core.creditMap():{},ext={};
     (cc.e||[]).forEach(function(e){if(e&&e.status==='active'&&e.payment_schedule_id!=null)ext[String(e.payment_schedule_id)]=text(e.extended_due_date).slice(0,10);});
-    var rows=cc.s.filter(function(r){if(Number(r&&r.unit_id)!==Number(c.sno)||!paymentStage(r))return false;var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0);return Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied)>1;}).map(function(r){var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0),due=ext[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining=Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied);return{row:r,due:due,remaining:remaining,kind:stageKind(r)};}).sort(function(a,b){return text(a.due).localeCompare(text(b.due))||Number(a.row.id)-Number(b.row.id);});
+    var rows=cc.s.filter(function(r){
+      if(Number(r&&r.unit_id)!==Number(c.sno)||!paymentStage(r))return false;
+      var status=text(r&&r.status).trim().toLowerCase();
+      if(status==='paid'||status==='completed'||status==='settled')return false;
+      var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0);
+      return Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied)>1;
+    }).map(function(r){
+      var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0),due=ext[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining=Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied);
+      return{row:r,due:due,remaining:remaining,kind:stageKind(r)};
+    }).sort(function(a,b){
+      var ad=text(a.due),bd=text(b.due);
+      if(!ad&&bd)return 1;
+      if(ad&&!bd)return-1;
+      return ad.localeCompare(bd)||Number(a.row.id)-Number(b.row.id);
+    });
     var dp=rows.filter(function(x){return x.kind==='dp';});if(dp.length)return dp;
     var pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld';});if(pre.length)return pre;
     return rows.filter(function(x){return x.kind==='later';});
