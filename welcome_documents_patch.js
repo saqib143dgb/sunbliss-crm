@@ -83,10 +83,12 @@ button{font-family:'Inter',system-ui,sans-serif!important}
 .doc{border-top:1px solid var(--paper-line)!important}
 .doc button{border:1px solid #cdbf9b!important;background:#fff!important;color:var(--ink)!important}
 .download-link{border-radius:6px!important}
+#details:has(#download:not([hidden])) #generate{display:none!important}
+#download:not([hidden]){display:flex!important;align-items:center!important;justify-content:center!important;min-height:46px!important}
 @media(min-width:901px){
   html,body{height:100%!important;overflow:hidden!important}
   main{height:100dvh!important;min-height:0!important;overflow:hidden!important;align-items:stretch!important}
-  main>aside{height:calc(100dvh - 48px)!important;min-height:0!important;overflow:hidden!important;align-self:start!important}
+  main>aside{height:calc(100dvh - 48px)!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding-right:4px!important;align-self:start!important}
   main>section{height:calc(100dvh - 48px)!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding-right:4px!important}
   main>section>.previewbar{position:sticky!important;top:0!important;z-index:5!important;margin:0 0 12px!important;padding:0 0 12px!important;background:var(--paper)!important}
 }
