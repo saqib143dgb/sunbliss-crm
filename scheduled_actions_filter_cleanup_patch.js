@@ -4,8 +4,8 @@
   if(window.__sunblissScheduledFilterCleanupInstalled)return;
   window.__sunblissScheduledFilterCleanupInstalled=true;
 
-  var ALLOWED={today:true,overdue:true,upcoming:true,extensions:true};
-  var LABELS={today:'Today',overdue:'Overdue',upcoming:'Upcoming',extensions:'Extensions'};
+  var ALLOWED={today:true,overdue:true,upcoming:true,modifications:true,extensions:true};
+  var LABELS={today:'Today',overdue:'Overdue',upcoming:'Upcoming',modifications:'Modification Request',extensions:'Extensions'};
   var observedList=null;
   var listObserver=null;
   var observedOverview=null;
@@ -18,6 +18,17 @@
     return rows.filter(function(t){
       return t&&t.status==='pending'&&t.auto_kind==='extension_active';
     }).length;
+  }
+
+  function ensureModificationOption(select){
+    var option=select.querySelector('option[value="modifications"]');
+    if(!option){
+      option=document.createElement('option');
+      option.value='modifications';
+      select.appendChild(option);
+    }
+    var counts=sourceCounts(),label='Modification Request · '+(counts?counts.modifications:0);
+    if(option.textContent!==label)option.textContent=label;
   }
 
   function ensureExtensionOption(select){
@@ -43,7 +54,7 @@
     var rows=window.__sunblissScheduledActionRows&&window.__sunblissScheduledActionRows()||C&&C.loaded&&C.t;
     if(!Array.isArray(rows))return null;
     var today=todayIso();
-    var counts={today:0,overdue:0,upcoming:0,extensions:0};
+    var counts={today:0,overdue:0,upcoming:0,modifications:0,extensions:0};
     rows.forEach(function(t){
       if(!t)return;
       if(t.auto_kind==='extension_active'){
@@ -51,6 +62,10 @@
         return;
       }
       if(t.status!=='pending')return;
+      if(t.workflow_kind==='modification_request'){
+        counts.modifications++;
+        return;
+      }
       var due=String(t.due_date||'').slice(0,10);
       if(!due)return;
       if(due<today)counts.overdue++;
@@ -121,12 +136,13 @@
     if(!select)return;
 
     ensureExtensionOption(select);
+    ensureModificationOption(select);
 
     Array.prototype.slice.call(select.options).forEach(function(option){
       if(!ALLOWED[option.value])option.remove();
     });
 
-    var order=['today','overdue','upcoming','extensions'];
+    var order=['today','overdue','upcoming','modifications','extensions'];
     var current=Array.prototype.map.call(select.options,function(o){return o.value;}).join('|');
     if(current!==order.filter(function(v){return !!select.querySelector('option[value="'+v+'"]');}).join('|')){
       order.forEach(function(value){
