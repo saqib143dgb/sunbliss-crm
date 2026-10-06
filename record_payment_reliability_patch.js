@@ -295,7 +295,7 @@ function showSuccess(result,row,cash,credit,key,from){
   if(credit>0)summary.push(money(credit)+' credit note');
   var refs=[];if(txId)refs.push('Transaction #'+txId);if(cnId)refs.push('Credit note #'+cnId);
   setBusy(false);
-  renderPanel('<div class="record-payment-success" role="status"><p class="record-payment-success-title">Payment recorded</p><p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?'<br>'+safe(summary.join(' + ')):'')+'</p>'+(refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>','<button class="btn btn-gold" type="button" id="pfReturn">Return to customer</button>');
+  renderPanel('<div class="record-payment-success" role="status"><p class="record-payment-success-title">Payment recorded</p><p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?'<br>'+safe(summary.join(' + ')):'')+'</p>'+(txId?'<p class="record-payment-success-copy" style="margin-top:10px"><strong>Pending Accounts Confirmation.</strong><br>A confirmation task has been created automatically. Once Accounts confirms the payment, the task will change to <strong>Send Payment Receipt</strong>.</p>':'')+(refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>','<button class="btn btn-gold" type="button" id="pfReturn">Return to customer</button>');
   startCustomerRefresh(key);
   var back=p.querySelector('#pfReturn');if(back)back.onclick=function(){returnToCustomer(key,from)};
 }
