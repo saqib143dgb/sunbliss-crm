@@ -84,7 +84,7 @@
     Object.keys(ALLOWED).forEach(function(value){
       var option=select.querySelector('option[value="'+value+'"]');
       if(!option)return;
-      var label=LABELS[value]+' · '+counts[value];
+      var label=LABELS[value]+'\u00A0·\u00A0'+counts[value];
       if(option.textContent!==label)option.textContent=label;
     });
   }
