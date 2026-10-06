@@ -4,7 +4,7 @@ if(window.__sunblissRecordPaymentReliabilityInstalled)return;
 window.__sunblissRecordPaymentReliabilityInstalled=true;
 window.__sunblissRecordPaymentFixV4=true;
 
-var cache={customer:null,rows:[],credits:{},loading:false,saving:false,lastResult:null};
+var cache={customer:null,rows:[],credits:{},loading:false,saving:false,lastResult:null,context:null,commitmentPart:null};
 var refreshJob=null,refreshVersion=0,refreshRecords={};
 var panelSession=0;
 var viewportCleanup=null;
@@ -25,7 +25,7 @@ function isDld(row){return /\bdld\b|admin\s*fees?/i.test(text(row&&row.stage_nam
 function remaining(row){var due=Number(row&&row.due_amount)||0,cash=Number(row&&row.paid_amount)||0,credit=Number(cache.credits[String(row&&row.id)])||0;return Math.round((due-cash-credit)*100)/100}
 
 function resetState(){
-  cache.customer=null;cache.rows=[];cache.credits={};cache.loading=false;cache.saving=false;cache.lastResult=null;
+  cache.customer=null;cache.rows=[];cache.credits={};cache.loading=false;cache.saving=false;cache.lastResult=null;cache.context=null;cache.commitmentPart=null;
   if(window.state){state.paymentFormOpen=false;state.paymentFormSaving=false;state.paymentFormError=null}
 }
 function closePanel(){
@@ -180,13 +180,14 @@ function toggleCreditFields(){
 
 function renderForm(){
   var p=document.getElementById('recordPaymentReliablePanel');if(!p)return;
-  var c=cache.customer,rows=cache.rows,openRows=rows.filter(function(r){return remaining(r)>1}),selected=(openRows[0]||rows[0]||{}).id||'';
+  var c=cache.customer,rows=cache.rows,openRows=rows.filter(function(r){return remaining(r)>1}),contextSchedule=cache.context&&Number(cache.context.scheduleId)||0,selected=contextSchedule&&rows.some(function(r){return Number(r.id)===contextSchedule})?contextSchedule:(openRows[0]||rows[0]||{}).id||'',commitment=cache.commitmentPart||null,commitmentAmount=commitment?Math.max(0,Number(commitment.remaining_amount)||0):0;
   var options=rows.map(function(r){return'<option value="'+safe(r.id)+'"'+(Number(r.id)===Number(selected)?' selected':'')+'>'+safe(optionLabel(r))+'</option>'}).join('');
   var body;
   if(rows.length){
     body='<form id="recordPaymentReliableForm" novalidate>'+ 
+      (commitment?'<div style="grid-column:1/-1;margin:0 0 2px;padding:11px 12px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font:500 11.5px/1.5 Inter,sans-serif;color:var(--ink)"><strong>Partial Payment Commitment</strong> · Part '+safe(commitment.sequence_no)+' of '+safe(commitment.part_count)+' · '+safe(money(commitmentAmount))+' due '+safe(commitment.commitment_date)+'</div>':'')+
       '<label class="brand-field">Installment<select id="pfStage">'+options+'</select></label>'+ 
-      '<label class="brand-field">Amount paid (AED)<input type="number" id="pfAmount" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 50000" /></label>'+ 
+      '<label class="brand-field">Amount paid (AED)<input type="number" id="pfAmount" min="0" step="0.01" inputmode="decimal"'+(commitmentAmount>0?' value="'+safe(commitmentAmount)+'"':'')+' placeholder="e.g. 50000" /></label>'+ 
       '<label class="brand-field">Payment date<input type="date" id="pfDate" value="'+today()+'" /></label>'+ 
       '<label class="brand-field">Reference (optional)<input type="text" id="pfRef" placeholder="e.g. cheque or transfer no." /></label>'+ 
       '<label class="brand-field">Remarks (optional)<input type="text" id="pfRemarks" placeholder="e.g. paid via bank transfer" /></label>'+ 
@@ -235,14 +236,22 @@ async function loadRows(c,session){
   cache.rows=(q[0].data||[]).filter(function(r){return Number(r.due_amount)>0&&!/\bbooking\b/i.test(text(r.stage_name))});
   cache.credits={};
   (q[1].data||[]).forEach(function(n){if(n.payment_schedule_id!=null){var k=String(n.payment_schedule_id);cache.credits[k]=Math.round(((cache.credits[k]||0)+(Number(n.amount)||0))*100)/100}});
+  cache.commitmentPart=null;
+  if(cache.context&&Number(cache.context.commitmentPartId)){
+    var cp=await sb.rpc('crm_get_partial_payment_commitment_part',{p_part_id:Number(cache.context.commitmentPartId)});
+    if(cp.error)throw cp.error;
+    if(session!==panelSession)return;
+    cache.commitmentPart=cp.data||null;
+  }
 }
 
-async function openPanel(){
+async function openPanel(context){
   if(!window.state||state.userRole!=='crm_officer'||!window.sb||cache.saving)return;
+  var requestedContext=context&&typeof context==='object'?context:null;
   closePanel();ensureStyles();
   var c=currentCustomer();if(!c){window.alert('Could not identify the selected customer. Refresh the CRM and try again.');return;}
   var session=panelSession;
-  cache.customer=c;cache.loading=true;state.paymentFormOpen=false;
+  cache.customer=c;cache.context=requestedContext;cache.loading=true;state.paymentFormOpen=false;
   var panel=document.createElement('div');panel.id='recordPaymentReliablePanel';panel.className='brand-editor record-payment-panel';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','recordPaymentTitle');
   document.body.appendChild(panel);document.body.classList.add('record-payment-open');syncViewport(panel);
   renderPanel('<p class="record-payment-empty" role="status">Loading installments…</p>','<button class="btn-paper" type="button" id="pfCancel">Cancel</button>');
@@ -365,8 +374,12 @@ async function savePayment(){
     var result=r.data||{},workflowWarning='';
     cache.lastResult=result;
     if(cash>0&&result.transaction_id){
+      if(cache.context&&Number(cache.context.commitmentPartId)){
+        var link=await sb.rpc('crm_link_payment_commitment_part',{p_transaction_id:result.transaction_id,p_commitment_part_id:Number(cache.context.commitmentPartId)});
+        if(link.error)workflowWarning='Partial payment commitment link: '+errorText(link.error);
+      }
       var wf=await sb.rpc('crm_set_payment_confirmation_mode',{p_transaction_id:result.transaction_id,p_mode:confirmation,p_note:remarks||null});
-      if(wf.error)workflowWarning=errorText(wf.error);
+      if(wf.error)workflowWarning+=(workflowWarning?' · ':'')+errorText(wf.error);
     }
     showSuccess(result,row,cash,credit,key,from,confirmation,workflowWarning);
   }catch(e){
