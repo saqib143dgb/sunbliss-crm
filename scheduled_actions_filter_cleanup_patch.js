@@ -5,7 +5,7 @@
   window.__sunblissScheduledFilterCleanupInstalled=true;
 
   var ALLOWED={today:true,overdue:true,upcoming:true,modifications:true,extensions:true};
-  var LABELS={today:'Today',overdue:'Overdue',upcoming:'Upcoming',modifications:'Modification Request',extensions:'Extensions'};
+  var LABELS={today:'Today',overdue:'Overdue',upcoming:'Upcoming',modifications:'Modification\u00A0Request',extensions:'Extensions'};
   var observedList=null;
   var listObserver=null;
   var observedOverview=null;
@@ -27,7 +27,7 @@
       option.value='modifications';
       select.appendChild(option);
     }
-    var counts=sourceCounts(),label='Modification Request · '+(counts?counts.modifications:0);
+    var counts=sourceCounts(),label='Modification\u00A0Request\u00A0·\u00A0'+(counts?counts.modifications:0);
     if(option.textContent!==label)option.textContent=label;
   }
 
