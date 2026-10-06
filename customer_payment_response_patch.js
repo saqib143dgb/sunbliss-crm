@@ -61,8 +61,8 @@ function parts(){
 function bindRemove(root){(root||document).querySelectorAll('.cprRemove').forEach(function(b){b.onclick=function(){var r=b.closest('.cpr-part');if(r)r.remove()}})}
 function syncOutcome(){
  var out=document.getElementById('cprOutcome'),date=document.getElementById('cprNextDateWrap'),partial=document.getElementById('cprPartialWrap');
- if(!out)return;var v=out.value;
- if(date){date.style.display=(v==='will_pay_later'||v==='no_response')?'block':'none';var l=date.querySelector('.cpr-date-label');if(l)l.textContent=v==='will_pay_later'?'Promised payment date':'Next follow-up date'}
+ if(!out)return;var v=out.value,needsDate=v==='will_pay_later'||v==='no_response'||v==='extension_request';
+ if(date){date.style.display=needsDate?'block':'none';var l=date.querySelector('.cpr-date-label');if(l)l.textContent=v==='will_pay_later'?'Promised payment date':v==='extension_request'?'Requested extension until':'Next follow-up date'}
  if(partial)partial.style.display=v==='partial_payment_commitment'?'block':'none';
 }
 
@@ -81,11 +81,11 @@ async function openPanel(){
    '<p class="cpr-help">Use this when the customer has not paid yet but gives a response after a Demand Letter, reminder, call or email. If the customer says payment has already been made, use Record payment instead. Select the exact installment the response relates to. The contractual installment and due date are not changed.</p>'+
    '<p class="brand-error" id="cprError" style="display:none"></p>'+
    '<label class="brand-field">Related installment<select id="cprSchedule">'+choices+'</select></label>'+
-   '<label class="brand-field">Customer response<select id="cprOutcome"><option value="">Select response</option><option value="will_pay_later">Will Pay Later</option><option value="partial_payment_commitment">Partial Payment Commitment</option><option value="payment_issue">Payment Issue / Dispute</option><option value="no_response">No Response</option></select></label>'+
+   '<label class="brand-field">Customer response<select id="cprOutcome"><option value="">Select response</option><option value="will_pay_later">Will Pay Later</option><option value="partial_payment_commitment">Partial Payment Commitment</option><option value="extension_request">Extension Request</option><option value="payment_issue">Payment Issue / Dispute</option><option value="no_response">No Response</option></select></label>'+
    '<label class="brand-field" id="cprNextDateWrap" style="display:none"><span class="cpr-date-label">Next date</span><input type="date" id="cprNextDate" value="'+safe(addDays(3))+'"></label>'+
    '<div id="cprPartialWrap" class="cpr-box" style="display:none"><p style="margin:0 0 4px;font:650 12px Inter,sans-serif">Partial Payment Commitment</p><p class="cpr-help">Add two or more amounts and the special dates the customer committed to pay. The original installment stays unchanged.</p><div id="cprParts">'+partRow(1)+partRow(2)+'</div><button type="button" class="btn-paper" id="cprAddPart" style="width:100%;justify-content:center;margin-top:10px">+ Add another part</button></div>'+
    '<label class="brand-field">Note (optional)<textarea id="cprNote" rows="3" placeholder="Short customer commitment or response"></textarea></label>'+
-   '<p class="cpr-help"><strong>Official due-date change:</strong> use Payment Extension instead of Will Pay Later.</p>',
+   '<p class="cpr-help"><strong>Extension Request:</strong> this creates a Management Approval task first. The due date changes only after the request is approved.</p>',
    '<button class="btn btn-gold" type="button" id="cprSave">Save Response</button><button class="btn-paper" type="button" id="cprClose">Cancel</button>'
   );
   document.getElementById('cprOutcome').onchange=syncOutcome;syncOutcome();
@@ -100,20 +100,23 @@ async function saveResponse(c){
  function fail(m){if(err){err.textContent=m;err.style.display='block'}if(save){save.disabled=false;save.textContent='Save Response'}}
  if(!scheduleId)return fail('Select the related installment.');
  if(!outcome)return fail('Select the customer response.');
- if((outcome==='will_pay_later'||outcome==='no_response')&&!nextDate)return fail('Select the next date.');
+ if((outcome==='will_pay_later'||outcome==='no_response'||outcome==='extension_request')&&!nextDate)return fail(outcome==='extension_request'?'Select the requested extension date.':'Select the next date.');
  if(outcome==='partial_payment_commitment'){
   payloadParts=parts();if(payloadParts.length<2)return fail('Add at least two payment parts.');
   for(var i=0;i<payloadParts.length;i++){if(!isFinite(payloadParts[i].amount)||payloadParts[i].amount<=0)return fail('Enter the amount for Part '+(i+1)+'.');if(!payloadParts[i].date)return fail('Select the commitment date for Part '+(i+1)+'.')}
  }
  if(err)err.style.display='none';save.disabled=true;save.textContent='Saving…';
  try{
-  var r=await sb.rpc('crm_record_customer_payment_response',{p_unit_id:Number(c.sno),p_schedule_id:scheduleId,p_outcome:outcome,p_note:note||null,p_next_date:(outcome==='will_pay_later'||outcome==='no_response')?nextDate:null,p_parts:payloadParts});
-  if(r.error)throw r.error;var data=r.data||{},taskId=Number(data.task_id)||null;
+  var r;
+  if(outcome==='extension_request'){
+   r=await sb.rpc('crm_create_payment_extension_request',{p_unit_id:Number(c.sno),p_schedule_id:scheduleId,p_requested_until:nextDate,p_reason:note||null});
+  }else{
+   r=await sb.rpc('crm_record_customer_payment_response',{p_unit_id:Number(c.sno),p_schedule_id:scheduleId,p_outcome:outcome,p_note:note||null,p_next_date:(outcome==='will_pay_later'||outcome==='no_response')?nextDate:null,p_parts:payloadParts});
+  }
+  if(r.error)throw r.error;
   removePanel();
   if(typeof window.__sunblissRefreshScheduledActions==='function')await window.__sunblissRefreshScheduledActions();
-  if(outcome==='payment_reported'&&typeof window.__sunblissOpenRecordPayment==='function'){
-   window.__sunblissOpenRecordPayment({scheduleId:scheduleId,sourceTaskId:taskId});
-  }else if(typeof window.renderMain==='function')window.renderMain();
+  if(typeof window.renderMain==='function')window.renderMain();
  }catch(e){fail(e&&e.message?e.message:'Could not save the customer response.')}
 }
 
