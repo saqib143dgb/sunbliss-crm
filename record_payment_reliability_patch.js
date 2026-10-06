@@ -380,6 +380,10 @@ async function savePayment(){
       }
       var wf=await sb.rpc('crm_set_payment_confirmation_mode',{p_transaction_id:result.transaction_id,p_mode:confirmation,p_note:remarks||null});
       if(wf.error)workflowWarning+=(workflowWarning?' · ':'')+errorText(wf.error);
+      if(cache.context&&Number(cache.context.sourceTaskId)){
+        var sourceDone=await sb.from('scheduled_actions').update({status:'completed',completed_at:new Date().toISOString(),completion_note:'Customer reported payment and payment was recorded.',updated_at:new Date().toISOString()}).eq('id',Number(cache.context.sourceTaskId)).eq('status','pending');
+        if(sourceDone.error)workflowWarning+=(workflowWarning?' · ':'')+'Commitment follow-up: '+errorText(sourceDone.error);
+      }
     }
     showSuccess(result,row,cash,credit,key,from,confirmation,workflowWarning);
   }catch(e){
