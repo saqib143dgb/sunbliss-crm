@@ -87,6 +87,16 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
 #recordPaymentReliablePanel .record-payment-success-title{margin:0 0 8px;font:650 21px/1.3 Fraunces,Georgia,serif}
 #recordPaymentReliablePanel .record-payment-success-copy{margin:0;font:500 13px/1.6 Inter,system-ui,sans-serif;color:var(--muted)}
 #recordPaymentReliablePanel .record-payment-success-ref{margin:12px 0 0;font:500 12px/1.4 IBM Plex Mono,monospace}
+#recordPaymentReliablePanel .payment-confirmation{grid-column:1/-1;margin:0;padding:0;border:0;min-width:0}
+#recordPaymentReliablePanel .payment-confirmation legend{margin:0 0 6px;padding:0;font:650 12.5px/1.4 Inter,system-ui,sans-serif;color:var(--muted)}
+#recordPaymentReliablePanel .payment-confirmation-help{margin:0 0 10px;font:500 11px/1.45 Inter,system-ui,sans-serif;color:var(--muted)}
+#recordPaymentReliablePanel .payment-confirmation-options{display:grid;grid-template-columns:1fr;gap:8px}
+#recordPaymentReliablePanel .payment-confirmation-card{position:relative;display:block;margin:0;padding:12px 13px;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper-dim);cursor:pointer}
+#recordPaymentReliablePanel .payment-confirmation-card input{position:absolute!important;opacity:0!important;pointer-events:none!important;width:1px!important;height:1px!important;min-height:0!important;margin:0!important}
+#recordPaymentReliablePanel .payment-confirmation-card:has(input:checked){border-color:var(--gold-deep);box-shadow:0 0 0 1px var(--gold-deep);background:rgba(162,124,53,.06)}
+#recordPaymentReliablePanel .payment-confirmation-title{display:block;font:650 13px/1.35 Inter,system-ui,sans-serif;color:var(--ink)}
+#recordPaymentReliablePanel .payment-confirmation-copy{display:block;margin-top:3px;font:500 10.8px/1.4 Inter,system-ui,sans-serif;color:var(--muted)}
+#recordPaymentReliablePanel .payment-next-action{margin:10px 0 0;padding:9px 10px;border-radius:8px;background:var(--paper);font:600 11.5px/1.4 Inter,system-ui,sans-serif;color:var(--ink)}
 #recordPaymentReliablePanel .record-payment-empty{font:400 14px/1.5 Inter,system-ui,sans-serif;color:var(--muted)}
 .record-payment-refresh-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;padding:11px 12px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font:500 12px/1.45 Inter,system-ui,sans-serif;color:var(--ink)}
 .record-payment-refresh-status button{flex:none;margin:0;min-height:36px;padding:7px 10px;border:1px solid var(--paper-line);border-radius:7px;background:var(--paper);color:var(--ink);font:600 12px Inter,sans-serif}
@@ -100,6 +110,7 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
   #recordPaymentReliablePanel #recordPaymentReliableForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;row-gap:18px;align-items:start}
   #recordPaymentReliablePanel #recordPaymentReliableForm>.brand-field{margin:0}
   #recordPaymentReliablePanel #recordPaymentReliableForm>.brand-field:first-child{grid-column:1/-1}
+  #recordPaymentReliablePanel .payment-confirmation-options{grid-template-columns:repeat(3,minmax(0,1fr))}
   #recordPaymentReliablePanel .brand-field{font-size:12.5px}
   #recordPaymentReliablePanel input,#recordPaymentReliablePanel select{min-height:48px;padding:12px 13px}
   #recordPaymentReliablePanel .credit-note-toggle{grid-column:1/-1;justify-self:start;margin:0;padding:4px 0;min-height:30px}
@@ -179,6 +190,11 @@ function renderForm(){
       '<label class="brand-field">Payment date<input type="date" id="pfDate" value="'+today()+'" /></label>'+ 
       '<label class="brand-field">Reference (optional)<input type="text" id="pfRef" placeholder="e.g. cheque or transfer no." /></label>'+ 
       '<label class="brand-field">Remarks (optional)<input type="text" id="pfRemarks" placeholder="e.g. paid via bank transfer" /></label>'+ 
+      '<fieldset class="payment-confirmation"><legend>Payment Confirmation</legend><p class="payment-confirmation-help">Choose who has confirmed the payment. The CRM will create only the correct next action.</p><div class="payment-confirmation-options">'+
+      '<label class="payment-confirmation-card"><input type="radio" name="pfConfirmation" value="confirmed_by_accounts"><span class="payment-confirmation-title">Confirmed by Accounts</span><span class="payment-confirmation-copy">Receipt can be issued.</span></label>'+
+      '<label class="payment-confirmation-card"><input type="radio" name="pfConfirmation" value="confirmed_by_customer"><span class="payment-confirmation-title">Confirmed by Customer</span><span class="payment-confirmation-copy">Accounts verification is still required.</span></label>'+
+      '<label class="payment-confirmation-card"><input type="radio" name="pfConfirmation" value="cheque_pending_clearance"><span class="payment-confirmation-title">Cheque Pending Clearance</span><span class="payment-confirmation-copy">Receipt stays locked until clearance.</span></label>'+
+      '</div><div class="payment-next-action" id="pfNextAction">Next action: Select a confirmation status</div></fieldset>'+
       '<button class="credit-note-toggle" type="button" id="pfCreditToggle" aria-expanded="false">+ Add credit note (optional)</button>'+ 
       '<div id="pfCreditFields" hidden style="display:none"><p class="credit-note-fields-title">Credit note</p><p class="credit-note-fields-help">Paperwork adjustment only. It settles this installment without being counted as cash received.</p>'+ 
       '<label class="brand-field">Credit note amount (AED)<input type="number" id="pfCreditAmount" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 25000" /></label>'+ 
@@ -203,6 +219,8 @@ function renderForm(){
   }
   var stageSelect=p.querySelector('#pfStage');
   if(stageSelect)stageSelect.addEventListener('change',syncCreditAvailability);
+  p.querySelectorAll('input[name="pfConfirmation"]').forEach(function(input){input.addEventListener('change',syncConfirmationPreview);});
+  syncConfirmationPreview();
   syncCreditAvailability();
 }
 
@@ -232,6 +250,8 @@ async function openPanel(){
   catch(e){if(session!==panelSession||!panel.isConnected)return;cache.loading=false;renderPanel('<p class="brand-error" role="alert">'+safe(errorText(e))+'</p>','<button class="btn-paper" type="button" id="pfCancel">Close</button>');}
 }
 function val(id){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('[id="'+id+'"]');return e?text(e.value).trim():''}
+function selectedConfirmation(){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('input[name="pfConfirmation"]:checked');return e?text(e.value).trim():''}
+function syncConfirmationPreview(){var panel=document.getElementById('recordPaymentReliablePanel'),host=panel&&panel.querySelector('#pfNextAction');if(!host)return;var mode=selectedConfirmation(),label=mode==='confirmed_by_accounts'?'Send Payment Receipt':mode==='confirmed_by_customer'?'Confirm Payment with Accounts':mode==='cheque_pending_clearance'?'Confirm Cheque Clearance':'Select a confirmation status';host.textContent='Next action: '+label}
 
 function renderCurrentDetail(key,from){
   if(!window.state)return;
@@ -285,7 +305,7 @@ function returnToCustomer(key,from){
   }
   mountRefreshStatus();
 }
-function showSuccess(result,row,cash,credit,key,from){
+function showSuccess(result,row,cash,credit,key,from,confirmation,workflowWarning){
   cache.saving=false;cache.lastResult=result||{};
   if(window.state){state.paymentFormSaving=false;state.paymentFormError=null}
   var p=document.getElementById('recordPaymentReliablePanel');if(!p)return;
@@ -294,8 +314,15 @@ function showSuccess(result,row,cash,credit,key,from){
   if(cash>0)summary.push(money(cash)+' cash');
   if(credit>0)summary.push(money(credit)+' credit note');
   var refs=[];if(txId)refs.push('Transaction #'+txId);if(cnId)refs.push('Credit note #'+cnId);
+  var workflowCopy='';
+  if(txId){
+    if(confirmation==='confirmed_by_accounts')workflowCopy='<strong>Accounts Confirmed.</strong><br><strong>Send Payment Receipt</strong> has been created as the next action.';
+    else if(confirmation==='cheque_pending_clearance')workflowCopy='<strong>Cheque Pending Clearance.</strong><br><strong>Confirm Cheque Clearance</strong> has been created as the next action.';
+    else workflowCopy='<strong>Customer Confirmed · Accounts Pending.</strong><br><strong>Confirm Payment with Accounts</strong> has been created as the next action.';
+  }
+  if(workflowWarning)workflowCopy+='<br><span style="color:var(--rust)">Workflow setup needs attention: '+safe(workflowWarning)+'</span>';
   setBusy(false);
-  renderPanel('<div class="record-payment-success" role="status"><p class="record-payment-success-title">Payment recorded</p><p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?'<br>'+safe(summary.join(' + ')):'')+'</p>'+(txId?'<p class="record-payment-success-copy" style="margin-top:10px"><strong>Pending Accounts Confirmation.</strong><br>A confirmation task has been created automatically. Once Accounts confirms the payment, the task will change to <strong>Send Payment Receipt</strong>.</p>':'')+(refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>','<button class="btn btn-gold" type="button" id="pfReturn">Return to customer</button>');
+  renderPanel('<div class="record-payment-success" role="status"><p class="record-payment-success-title">Payment recorded</p><p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?'<br>'+safe(summary.join(' + ')):'')+'</p>'+(workflowCopy?'<p class="record-payment-success-copy" style="margin-top:10px">'+workflowCopy+'</p>':'')+(refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>','<button class="btn btn-gold" type="button" id="pfReturn">Return to customer</button>');
   startCustomerRefresh(key);
   var back=p.querySelector('#pfReturn');if(back)back.onclick=function(){returnToCustomer(key,from)};
 }
@@ -304,7 +331,7 @@ async function savePayment(){
   if(cache.saving||cache.lastResult)return;
   clearError();
   var sid=Number(val('pfStage'))||0,row=cache.rows.find(function(r){return Number(r.id)===sid})||null,
-      cash=val('pfAmount')===''?0:Number(val('pfAmount')),date=val('pfDate'),ref=val('pfRef'),remarks=val('pfRemarks'),
+      cash=val('pfAmount')===''?0:Number(val('pfAmount')),date=val('pfDate'),ref=val('pfRef'),remarks=val('pfRemarks'),confirmation=selectedConfirmation(),
       panel=document.getElementById('recordPaymentReliablePanel'),box=panel&&panel.querySelector('#pfCreditFields'),creditOpen=!!(box&&!box.hidden&&window.getComputedStyle(box).display!=='none'),
       credit=creditOpen&&val('pfCreditAmount')!==''?Number(val('pfCreditAmount')):0,creditDate=creditOpen?val('pfCreditDate'):'',
       creditReason=creditOpen?val('pfCreditReason'):'',creditRef=creditOpen?val('pfCreditRef'):'';
@@ -313,6 +340,7 @@ async function savePayment(){
   if(!isFinite(credit)||credit<0){setError('Enter a valid credit note amount.');return}
   if(cash<=0&&credit<=0){setError('Enter a cash payment, a credit note, or both.');return}
   if(cash>0&&!date){setError('Select a payment date.');return}
+  if(cash>0&&!confirmation){setError('Select how the payment was confirmed.');return}
   if(credit>0&&!creditDate){setError('Select the credit note issue date.');return}
   if(credit>0&&!creditReason){setError('Enter the credit note reason.');return}
 
@@ -334,7 +362,13 @@ async function savePayment(){
       p_credit_reference:credit>0?(creditRef||null):null
     });
     if(r.error)throw r.error;
-    showSuccess(r.data||{},row,cash,credit,key,from);
+    var result=r.data||{},workflowWarning='';
+    cache.lastResult=result;
+    if(cash>0&&result.transaction_id){
+      var wf=await sb.rpc('crm_set_payment_confirmation_mode',{p_transaction_id:result.transaction_id,p_mode:confirmation,p_note:remarks||null});
+      if(wf.error)workflowWarning=errorText(wf.error);
+    }
+    showSuccess(result,row,cash,credit,key,from,confirmation,workflowWarning);
   }catch(e){
     window.__sunblissLastPaymentError={message:e&&e.message||'',details:e&&e.details||'',hint:e&&e.hint||'',code:e&&e.code||'',scheduleId:row&&row.id||null,unitId:unitId(cache.customer)};
     setError(errorText(e));
