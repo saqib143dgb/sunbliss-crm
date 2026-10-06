@@ -146,7 +146,7 @@
     var overview=document.querySelector('.overview');if(!overview)return;
     var old=document.getElementById('scheduledActionsOverview');if(old)old.remove();
     var section=document.createElement('section');section.id='scheduledActionsOverview';
-    section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('modifications','Modification\u00A0Request')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
+    section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('modifications',(window.matchMedia&&window.matchMedia('(max-width:520px)').matches)?'Modification Req.':'Modification\u00A0Request')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
     var foot=overview.querySelector(':scope > .footnote');if(foot)overview.insertBefore(section,foot);else overview.appendChild(section);
     document.getElementById('scheduledOverviewFilter').onchange=function(){cache.overviewFilter=this.value;renderOverviewList();};
     renderOverviewList();
