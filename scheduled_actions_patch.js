@@ -251,7 +251,7 @@
     var c=customerForUnit(task.unit_id);if(!c||typeof window.__sunblissOpenRecordPayment!=='function')return;
     state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';
     if(typeof window.renderMain==='function')window.renderMain();
-    window.setTimeout(function(){try{window.__sunblissOpenRecordPayment({scheduleId:task.schedule_id||null,commitmentPartId:task.commitment_part_id||null});}catch(_e){}},60);
+    window.setTimeout(function(){try{window.__sunblissOpenRecordPayment({scheduleId:task.schedule_id||null,commitmentPartId:task.commitment_part_id||null,sourceTaskId:task.workflow_kind==='partial_payment_commitment'?task.id:null});}catch(_e){}},60);
   }
 
   async function resolveCollectionOutcome(task,outcome,note,nextDate){
@@ -275,6 +275,7 @@
       if(r.error)throw r.error;return 'refresh';
     }
     if(outcome==='payment_reported'){
+      if(task.workflow_kind==='partial_payment_commitment')return 'payment';
       r=await sb.from('scheduled_actions').update({status:'completed',completed_at:now,completion_note:note||'Customer reported payment.',updated_at:now}).eq('id',task.id).select().single();
       if(r.error)throw r.error;return 'payment';
     }
