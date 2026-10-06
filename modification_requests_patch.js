@@ -15,7 +15,7 @@ function formatDate(v){if(!v)return'';var d=new Date(text(v).slice(0,10)+'T00:00
 function formatTime(v){if(!v)return'';var d=new Date(v);return isNaN(d)?text(v):d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
 function closeMenu(){var m=document.getElementById('customerActionMenu'),b=document.getElementById('customerActionMenuButton');if(m)m.style.display='none';if(b)b.setAttribute('aria-expanded','false')}
 function close(){var p=document.getElementById(panelId);if(p)p.remove();document.body.classList.remove('modification-panel-open')}
-function statusLabel(v){return({under_review:'Under Review',clarification_required:'Clarification Required',approval_pending:'Approval Pending',awaiting_customer_confirmation:'Awaiting Customer Confirmation',execution:'Execution',completed:'Completed',not_feasible:'Not Feasible',rejected:'Rejected',withdrawn:'Withdrawn'})[v]||text(v).replace(/_/g,' ')}
+function statusLabel(v){return({under_review:'Under Review',clarification_required:'Clarification Required',approval_pending:'Approval Pending',awaiting_customer_confirmation:'Awaiting Customer Confirmation',in_progress:'In Progress',execution:'In Progress',completed:'Completed',not_feasible:'Not Feasible',rejected:'Rejected',withdrawn:'Withdrawn'})[v]||text(v).replace(/_/g,' ')}
 function eventLabel(v){return({request_received:'Request Received',feasible:'Feasible',clarification_required:'Clarification Required',clarification_received:'Clarification Received',management_approval_required:'Management Approval Required',management_approved:'Management Approved',management_rejected:'Management Rejected',not_feasible:'Not Feasible',final_confirmation_sent:'Final Confirmation Sent',customer_confirmed:'Customer Confirmed',revision_requested:'Revision Requested',no_response:'No Response',withdrawn:'Withdrawn',customer_informed:'Customer Informed',completed:'Completed'})[v]||text(v).replace(/_/g,' ')}
 function isClosed(r){return r&&r.step==='closed'}
 
@@ -157,8 +157,8 @@ function stepForm(r){
   options:'<option value="informed">Customer Informed</option>',
   note:'Communication note (optional)',button:'Mark Customer Informed',fixed:true
  };
- if(step==='execution')return{
-  help:'Mark the request completed only after the modification work has been completed.',
+ if(step==='in_progress'||step==='execution')return{
+  help:'Keep this request In Progress until the modification work is fully completed. Mark it completed only when the work is finished.',
   options:'<option value="completed">Modification Completed</option>',
   note:'Completion note (optional)',button:'Mark Completed',fixed:true
  };
