@@ -49,6 +49,7 @@
       '.scheduled-task-state.overdue{background:rgba(174,59,43,.08);color:var(--rust)}',
       '.scheduled-task-state.today{background:rgba(156,90,18,.08);color:var(--amber)}',
       '.scheduled-task-state.tomorrow{background:rgba(69,86,107,.08);color:var(--slate)}',
+      '.scheduled-task-state.inprogress{background:rgba(162,124,53,.10);color:var(--gold-deep,#A27C35)}',
       '#scheduledActionsOverview{margin-top:22px;padding-top:2px}',
       '.scheduled-overview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}',
       '.scheduled-overview-head .section-label{margin:0}',
@@ -118,7 +119,7 @@
     var rows=relatedPaymentRows(c);if(!rows.length)return'';var chosen=selected==='auto'?Number(rows[0].row.id):Number(selected)||0;
     return '<label class="brand-field">Related payment<select id="saRelatedSchedule"><option value="">General customer follow-up</option>'+rows.map(function(x){var r=x.row;return'<option value="'+r.id+'"'+(Number(r.id)===chosen?' selected':'')+'>'+safe(r.stage_name)+' · '+safe(formatDate(x.due))+' · '+safe(typeof window.fmtAED==='function'?window.fmtAED(x.remaining):x.remaining)+'</option>';}).join('')+'</select></label>';
   }
-  function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
+  function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(t.workflow_kind==='modification_request'&&/in progress/i.test(text(t.action_label)))return{key:'inprogress',label:'In Progress'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
   function addDaysIso(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(Number(n)||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
   function taskButtonLabel(t){if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder'))return'Mark Sent';return'Mark Done';}
   function collectionOutcomeTask(t){return !!(t&&(t.auto_kind==='overdue_follow_up'||['promise_follow_up','payment_query','payment_follow_up','payment_review','partial_payment_commitment'].indexOf(text(t.workflow_kind))>=0));}
@@ -129,6 +130,8 @@
     var today=todayIso(0),tomorrow=todayIso(1),rows=cache.rows.slice();
     if(kind==='completed')return rows.filter(function(t){return t.status==='completed';}).sort(function(a,b){return text(b.completed_at||b.updated_at).localeCompare(text(a.completed_at||a.updated_at));});
     rows=rows.filter(function(t){return t.status==='pending'&&t.auto_kind!=='extension_active';});
+    if(kind==='modifications')return rows.filter(function(t){return t.workflow_kind==='modification_request';}).sort(function(a,b){return text(b.updated_at||b.created_at).localeCompare(text(a.updated_at||a.created_at))||Number(b.id)-Number(a.id);});
+    rows=rows.filter(function(t){return t.workflow_kind!=='modification_request';});
     if(kind==='overdue')rows=rows.filter(function(t){return text(t.due_date)<today;});
     else if(kind==='today')rows=rows.filter(function(t){return text(t.due_date)===today;});
     else if(kind==='tomorrow')rows=rows.filter(function(t){return text(t.due_date)===tomorrow;});
@@ -143,7 +146,7 @@
     var overview=document.querySelector('.overview');if(!overview)return;
     var old=document.getElementById('scheduledActionsOverview');if(old)old.remove();
     var section=document.createElement('section');section.id='scheduledActionsOverview';
-    section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
+    section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('modifications','Modification Request')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
     var foot=overview.querySelector(':scope > .footnote');if(foot)overview.insertBefore(section,foot);else overview.appendChild(section);
     document.getElementById('scheduledOverviewFilter').onchange=function(){cache.overviewFilter=this.value;renderOverviewList();};
     renderOverviewList();
