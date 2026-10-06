@@ -6,6 +6,7 @@
 
   var ALLOWED={today:true,overdue:true,upcoming:true,modifications:true,extensions:true};
   var LABELS={today:'Today',overdue:'Overdue',upcoming:'Upcoming',modifications:'Modification\u00A0Request',extensions:'Extensions'};
+  function modificationLabel(){return (window.matchMedia&&window.matchMedia('(max-width:520px)').matches)?'Modification Req.':'Modification\u00A0Request';}
   var observedList=null;
   var listObserver=null;
   var observedOverview=null;
@@ -27,7 +28,7 @@
       option.value='modifications';
       select.appendChild(option);
     }
-    var counts=sourceCounts(),label='Modification\u00A0Request\u00A0·\u00A0'+(counts?counts.modifications:0);
+    var counts=sourceCounts(),label=modificationLabel()+'\u00A0·\u00A0'+(counts?counts.modifications:0);
     if(option.textContent!==label)option.textContent=label;
   }
 
@@ -84,7 +85,8 @@
     Object.keys(ALLOWED).forEach(function(value){
       var option=select.querySelector('option[value="'+value+'"]');
       if(!option)return;
-      var label=LABELS[value]+'\u00A0·\u00A0'+counts[value];
+      var base=value==='modifications'?modificationLabel():LABELS[value];
+      var label=base+'\u00A0·\u00A0'+counts[value];
       if(option.textContent!==label)option.textContent=label;
     });
   }
