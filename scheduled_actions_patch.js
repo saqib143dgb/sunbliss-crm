@@ -210,6 +210,9 @@
     }else if(task.workflow_kind==='payment_receipt'){
       body='<p class="scheduled-outcome-current">Accounts confirmation is complete. Mark this task done after the payment receipt has been sent to the customer.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label><input type="hidden" id="saOutcome" value="sent">';
       button='Mark Done';
+    }else if(task.workflow_kind==='payment_reported'){
+      body='<p class="scheduled-outcome-current">The customer reported that payment has been made. Record the actual payment before closing this action.</p><input type="hidden" id="saOutcome" value="record_payment">';
+      button='Record Payment';
     }else if(collectionOutcomeTask(task)){
       var txReview=!!task.transaction_id&&(task.workflow_kind==='payment_review'||task.workflow_kind==='payment_follow_up');
       var partialOption=!txReview&&task.workflow_kind!=='partial_payment_commitment'?'<option value="partial_payment_commitment">Partial Payment Commitment</option>':'';
@@ -251,7 +254,7 @@
     var c=customerForUnit(task.unit_id);if(!c||typeof window.__sunblissOpenRecordPayment!=='function')return;
     state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';
     if(typeof window.renderMain==='function')window.renderMain();
-    window.setTimeout(function(){try{window.__sunblissOpenRecordPayment({scheduleId:task.schedule_id||null,commitmentPartId:task.commitment_part_id||null,sourceTaskId:task.workflow_kind==='partial_payment_commitment'?task.id:null});}catch(_e){}},60);
+    window.setTimeout(function(){try{window.__sunblissOpenRecordPayment({scheduleId:task.schedule_id||null,commitmentPartId:task.commitment_part_id||null,sourceTaskId:(task.workflow_kind==='partial_payment_commitment'||task.workflow_kind==='payment_reported')?task.id:null});}catch(_e){}},60);
   }
 
   async function resolveCollectionOutcome(task,outcome,note,nextDate){
@@ -290,6 +293,9 @@
     var save=document.getElementById('saComplete'),err=document.getElementById('saError'),next=document.getElementById('saScheduleNext')&&document.getElementById('saScheduleNext').checked,note=val('saCompletionNote')||null,outcome=val('saOutcome'),nextDate=val('saNextDate');
     if(save){save.disabled=true;save.textContent='Saving…';}
     try{
+      if(task.workflow_kind==='payment_reported'){
+        removePanel();await openPaymentFromTask(task);return;
+      }
       if(task.workflow_kind==='accounts_confirmation'||task.workflow_kind==='cheque_clearance'||task.workflow_kind==='payment_receipt'){
         if(!outcome)throw new Error('Select an outcome.');
         if(task.workflow_kind==='cheque_clearance'&&outcome==='still_pending'&&!nextDate)throw new Error('Select the next clearance check date.');
