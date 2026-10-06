@@ -78,7 +78,7 @@
     if(cache.loaded&&!force)return cache.rows;
     if(cache.loading&&!force)return cache.loading;
     cache.loading=(async function(){
-      var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,commitment_part_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
+      var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,commitment_part_id,extension_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
       if(r.error)throw r.error;
       cache.rows=r.data||[];cache.loaded=true;cache.loading=null;return cache.rows;
     })().catch(function(e){cache.loading=null;throw e;});
@@ -213,6 +213,9 @@
     }else if(task.workflow_kind==='payment_reported'){
       body='<p class="scheduled-outcome-current">The customer reported that payment has been made. Record the actual payment before closing this action.</p><input type="hidden" id="saOutcome" value="record_payment">';
       button='Record Payment';
+    }else if(task.workflow_kind==='extension_approval'){
+      body='<p class="scheduled-outcome-help">Review the customer\'s payment extension request and record Management\'s decision. The contractual due date changes only if the request is approved.</p><div class="scheduled-outcome-current" id="saExtensionRequestSummary">Loading extension request…</div><label class="brand-field">Management decision<select id="saOutcome"><option value="">Select decision</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label><div id="saExtensionApprovalFields" style="display:none"><label class="brand-field">Approved until<input type="date" id="saApprovedUntil" /></label><label class="brand-field">Approved by<input type="text" id="saApprovedBy" maxlength="120" value="Management" /></label><label class="brand-field">Approval reference (optional)<input type="text" id="saApprovalRef" maxlength="250" placeholder="e.g. email / management confirmation" /></label><label class="brand-field">Late-charge treatment<select id="saPenalty"><option value="not_specified">Not specified in approval</option><option value="original_due_date">Charges continue from original due date</option><option value="extended_due_date">Charges start after extended deadline</option><option value="waived_until_extension">Waived if paid by extended deadline</option><option value="no_late_charges">No late charges under approval</option></select></label></div><label class="brand-field">Decision note (optional)<textarea id="saCompletionNote" placeholder="Management decision, conditions or rejection reason"></textarea></label>';
+      button='Save Decision';
     }else if(collectionOutcomeTask(task)){
       var txReview=!!task.transaction_id&&(task.workflow_kind==='payment_review'||task.workflow_kind==='payment_follow_up');
       var partialOption=!txReview&&task.workflow_kind!=='partial_payment_commitment'?'<option value="partial_payment_commitment">Partial Payment Commitment</option>':'';
@@ -227,8 +230,37 @@
     document.getElementById('saClose').onclick=removePanel;
     var outcome=document.getElementById('saOutcome');
     if(outcome&&document.getElementById('saNextDateWrap'))outcome.onchange=function(){var needs=this.value==='still_pending'||this.value==='will_pay_later'||this.value==='no_response',partial=this.value==='partial_payment_commitment',nextWrap=document.getElementById('saNextDateWrap'),partialWrap=document.getElementById('saPartialCommitmentWrap');nextWrap.style.display=needs?'block':'none';if(partialWrap)partialWrap.style.display=partial?'block':'none';};
+    if(task.workflow_kind==='extension_approval'&&outcome){outcome.onchange=function(){var box=document.getElementById('saExtensionApprovalFields');if(box)box.style.display=this.value==='approved'?'block':'none';};loadExtensionApproval(task);}
     var addPart=document.getElementById('saAddCommitmentPart');if(addPart)addPart.onclick=function(){var host=document.getElementById('saCommitmentParts'),n=host?host.querySelectorAll('.sa-commitment-part').length+1:0;if(!host||!n)return;var row=document.createElement('div');row.className='sa-commitment-part';row.setAttribute('data-part',n);row.innerHTML='<label class="brand-field">Part '+n+' amount (AED)<input type="number" min="0.01" step="0.01" inputmode="decimal" class="saCommitmentAmount" /></label><label class="brand-field">Commitment date<input type="date" class="saCommitmentDate" /></label><button type="button" class="btn-paper saRemoveCommitmentPart" style="width:100%;justify-content:center;margin:0 0 10px">Remove part</button>';host.appendChild(row);var remove=row.querySelector('.saRemoveCommitmentPart');if(remove)remove.onclick=function(){row.remove();};};
     document.getElementById('saComplete').onclick=function(){completeTask(task);};
+  }
+
+  async function loadExtensionApproval(task){
+    var host=document.getElementById('saExtensionRequestSummary');if(!host||!task.extension_request_id)return;
+    try{
+      var r=await sb.from('payment_extension_requests').select('id,original_due_date,requested_until,reason,status').eq('id',Number(task.extension_request_id)).single();
+      if(r.error)throw r.error;var x=r.data||{};
+      host.innerHTML='<strong>Requested until:</strong> '+safe(formatDate(x.requested_until))+'<br><strong>Original due:</strong> '+safe(formatDate(x.original_due_date))+(x.reason?'<br><strong>Customer reason:</strong> '+safe(x.reason):'');
+      var d=document.getElementById('saApprovedUntil');if(d&&!d.value)d.value=text(x.requested_until).slice(0,10);
+    }catch(e){host.textContent='Could not load the extension request details.';}
+  }
+
+  async function resolveExtensionApproval(task,decision,note){
+    var approvedUntil=val('saApprovedUntil'),approvedBy=val('saApprovedBy'),approvalRef=val('saApprovalRef'),penalty=val('saPenalty')||'not_specified';
+    if(!decision)throw new Error('Select Approved or Rejected.');
+    if(decision==='approved'&&!approvedUntil)throw new Error('Select the approved extension date.');
+    if(decision==='approved'&&approvedBy.length<2)throw new Error('Enter who approved the extension.');
+    var r=await sb.rpc('crm_resolve_payment_extension_request',{
+      p_task_id:Number(task.id),
+      p_decision:decision,
+      p_approved_until:decision==='approved'?approvedUntil:null,
+      p_approved_by:decision==='approved'?approvedBy:null,
+      p_approval_reference:decision==='approved'?(approvalRef||null):null,
+      p_penalty_basis:decision==='approved'?penalty:'not_specified',
+      p_note:note||null
+    });
+    if(r.error)throw r.error;
+    return r.data||{};
   }
 
   function partialCommitmentParts(){
@@ -295,6 +327,15 @@
     try{
       if(task.workflow_kind==='payment_reported'){
         removePanel();await openPaymentFromTask(task);return;
+      }
+      if(task.workflow_kind==='extension_approval'){
+        if(!outcome)throw new Error('Select Approved or Rejected.');
+        var extensionResult=await resolveExtensionApproval(task,outcome,note);
+        removePanel();
+        if(extensionResult&&extensionResult.decision==='approved'&&window.PaymentExtensionsCore&&typeof window.PaymentExtensionsCore.sync==='function')await window.PaymentExtensionsCore.sync();
+        await refreshAfterChange();
+        if(typeof window.renderMain==='function')window.renderMain();
+        return;
       }
       if(task.workflow_kind==='accounts_confirmation'||task.workflow_kind==='cheque_clearance'||task.workflow_kind==='payment_receipt'){
         if(!outcome)throw new Error('Select an outcome.');
