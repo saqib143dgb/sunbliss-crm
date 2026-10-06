@@ -10,20 +10,33 @@ function currentCustomer(){if(!window.state||state.view!=='detail'||!state.selec
 function closeMenu(){var m=document.getElementById('customerActionMenu'),b=document.getElementById('customerActionMenuButton');if(m)m.style.display='none';if(b)b.setAttribute('aria-expanded','false')}
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function addDays(n){var d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function removePanel(){var p=document.getElementById('customerPaymentResponsePanel');if(p)p.remove()}
+function removePanel(){var p=document.getElementById('customerPaymentResponsePanel');if(p)p.remove();document.body.classList.remove('customer-response-open')}
 
 function ensureStyle(){
  if(document.getElementById('customerPaymentResponseStyles'))return;
  var s=document.createElement('style');s.id='customerPaymentResponseStyles';s.textContent=[
- '#customerPaymentResponsePanel{z-index:12620;max-width:720px;width:min(720px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto}',
- '#customerPaymentResponsePanel .cpr-help{margin:-4px 0 12px;font:500 11.5px/1.5 Inter,sans-serif;color:var(--muted)}',
+ 'body.customer-response-open{overflow:hidden!important;overscroll-behavior:none}',
+ 'body.customer-response-open>.tabs,body.customer-response-open>#sunblissPersistentBack,body.customer-response-open>#sunblissDockSearchPanel{display:none!important}',
+ '#customerPaymentResponsePanel{position:fixed;inset:0;z-index:12620;display:grid;grid-template-rows:auto minmax(0,1fr) auto;width:100%;height:100dvh;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:var(--paper,#F6F1E4);box-shadow:none!important;overflow:hidden!important;color:var(--ink)}',
+ '#customerPaymentResponsePanel *{box-sizing:border-box}',
+ '#customerPaymentResponsePanel .cpr-head{padding:calc(18px + env(safe-area-inset-top)) 18px 14px;border-bottom:1px solid var(--paper-line);background:var(--paper)}',
+ '#customerPaymentResponsePanel .cpr-head h2{margin:0 0 5px;font:650 23px/1.2 Fraunces,Georgia,serif;color:var(--ink)}',
+ '#customerPaymentResponsePanel .cpr-summary{margin:0;color:var(--muted);font:500 12px/1.45 Inter,sans-serif}',
+ '#customerPaymentResponsePanel .cpr-body{min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px;scroll-padding:18px}',
+ '#customerPaymentResponsePanel .cpr-content{max-width:720px;margin:0 auto}',
+ '#customerPaymentResponsePanel .cpr-help{margin:0 0 14px;font:500 11.5px/1.5 Inter,sans-serif;color:var(--muted)}',
  '#customerPaymentResponsePanel .cpr-box{margin:10px 0 14px;padding:12px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim)}',
  '#customerPaymentResponsePanel .cpr-part{padding:10px 0 0;border-top:1px solid var(--paper-line)}',
  '#customerPaymentResponsePanel .cpr-part:first-child{padding-top:0;border-top:0}',
  '#customerPaymentResponsePanel .cpr-part-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
- '#customerPaymentResponsePanel input,#customerPaymentResponsePanel select,#customerPaymentResponsePanel textarea{width:100%;box-sizing:border-box}',
- '#customerPaymentResponsePanel .brand-editor-actions{position:sticky;bottom:0;background:var(--paper);padding-top:10px}',
- '@media(max-width:560px){#customerPaymentResponsePanel{width:100vw;max-width:none;max-height:100dvh;border-radius:0}#customerPaymentResponsePanel .cpr-part-grid{grid-template-columns:1fr}}'
+ '#customerPaymentResponsePanel .brand-field{display:block;margin:0 0 15px;font:600 12px/1.4 Inter,sans-serif;color:var(--muted)}',
+ '#customerPaymentResponsePanel input,#customerPaymentResponsePanel select,#customerPaymentResponsePanel textarea{display:block;width:100%!important;min-width:0!important;max-width:100%!important;margin-top:6px;padding:11px 12px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);color:var(--ink);font:500 16px/1.3 Inter,sans-serif}',
+ '#customerPaymentResponsePanel textarea{min-height:92px;resize:vertical}',
+ '#customerPaymentResponsePanel .cpr-foot{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--paper-line);background:var(--paper)}',
+ '#customerPaymentResponsePanel .cpr-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:720px;margin:0 auto}',
+ '#customerPaymentResponsePanel .cpr-actions button{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin:0!important;border-radius:10px}',
+ '@media(max-width:560px){#customerPaymentResponsePanel .cpr-part-grid{grid-template-columns:1fr}}',
+ '@media(min-width:1024px){#customerPaymentResponsePanel .cpr-head{padding:28px max(36px,calc((100vw - 920px)/2)) 20px}#customerPaymentResponsePanel .cpr-head h2{font-size:30px}#customerPaymentResponsePanel .cpr-body{padding:28px 36px 36px}#customerPaymentResponsePanel .cpr-content{max-width:920px}#customerPaymentResponsePanel .cpr-foot{padding:16px max(36px,calc((100vw - 920px)/2))}#customerPaymentResponsePanel .cpr-actions{display:flex;justify-content:flex-end;max-width:920px}#customerPaymentResponsePanel .cpr-actions button{width:auto!important;min-width:190px}}'
  ].join('');
  document.head.appendChild(s);
 }
@@ -56,25 +69,30 @@ function syncOutcome(){
 async function openPanel(){
  closeMenu();removePanel();ensureStyle();
  var c=currentCustomer();if(!c)return;
- var p=document.createElement('div');p.id='customerPaymentResponsePanel';p.className='brand-editor';
- p.innerHTML='<p class="section-label" style="margin-top:0">Record Customer Response</p><p class="cpr-help">Use this whenever the customer responds after a Demand Letter, reminder, call or email. The contractual installment and due date are not changed.</p><p class="brand-error" id="cprError" style="display:none"></p><p class="stat-sub">Loading outstanding installments…</p><div class="brand-editor-actions"><button class="btn-paper" type="button" id="cprClose">Cancel</button></div>';
- document.body.appendChild(p);document.getElementById('cprClose').onclick=removePanel;
+ var p=document.createElement('div');p.id='customerPaymentResponsePanel';p.className='customer-response-panel';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');p.setAttribute('aria-labelledby','cprTitle');
+ document.body.appendChild(p);document.body.classList.add('customer-response-open');
+ function shell(body,actions){p.innerHTML='<header class="cpr-head"><h2 id="cprTitle">Record Customer Response</h2><p class="cpr-summary">'+safe(c.unit)+' · '+safe(c.name)+'</p></header><div class="cpr-body"><div class="cpr-content">'+body+'</div></div><footer class="cpr-foot"><div class="cpr-actions">'+actions+'</div></footer>';var close=p.querySelector('#cprClose');if(close)close.onclick=removePanel}
+ shell('<p class="cpr-help">Loading outstanding installments…</p>','<button class="btn-paper" type="button" id="cprClose">Cancel</button>');
  try{
   var rows=await loadOutstanding(Number(c.sno));
-  if(!rows.length){p.innerHTML='<p class="section-label" style="margin-top:0">Record Customer Response</p><p class="cpr-help">There is no outstanding installment for this customer.</p><div class="brand-editor-actions"><button class="btn-paper" type="button" id="cprClose">Close</button></div>';document.getElementById('cprClose').onclick=removePanel;return}
-  p.innerHTML='<p class="section-label" style="margin-top:0">Record Customer Response</p><p class="cpr-help">Use this whenever the customer responds after a Demand Letter, reminder, call or email. The contractual installment and due date are not changed.</p><p class="brand-error" id="cprError" style="display:none"></p>'+
-   '<label class="brand-field">Related installment<select id="cprSchedule">'+rows.map(function(x){return'<option value="'+x.row.id+'">'+safe(x.row.stage_name)+' · '+safe(money(x.remaining))+' outstanding</option>'}).join('')+'</select></label>'+
+  if(!rows.length){shell('<p class="cpr-help">There is no outstanding installment for this customer.</p>','<button class="btn-paper" type="button" id="cprClose">Close</button>');return}
+  var choices='<option value="">Select installment</option>'+rows.map(function(x){var due=text(x.row.revised_due_date||x.row.due_date);return'<option value="'+x.row.id+'">'+safe(x.row.stage_name)+' · '+safe(money(x.remaining))+' outstanding'+(due?' · due '+safe(due):'')+'</option>'}).join('');
+  shell(
+   '<p class="cpr-help">Use this whenever the customer responds after a Demand Letter, reminder, call or email. Select the exact installment the response relates to. The contractual installment and due date are not changed.</p>'+
+   '<p class="brand-error" id="cprError" style="display:none"></p>'+
+   '<label class="brand-field">Related installment<select id="cprSchedule">'+choices+'</select></label>'+
    '<label class="brand-field">Customer response<select id="cprOutcome"><option value="">Select response</option><option value="payment_reported">Payment Reported</option><option value="will_pay_later">Will Pay Later</option><option value="partial_payment_commitment">Partial Payment Commitment</option><option value="payment_issue">Payment Issue / Dispute</option><option value="no_response">No Response</option></select></label>'+
    '<label class="brand-field" id="cprNextDateWrap" style="display:none"><span class="cpr-date-label">Next date</span><input type="date" id="cprNextDate" value="'+safe(addDays(3))+'"></label>'+
    '<div id="cprPartialWrap" class="cpr-box" style="display:none"><p style="margin:0 0 4px;font:650 12px Inter,sans-serif">Partial Payment Commitment</p><p class="cpr-help">Add two or more amounts and the special dates the customer committed to pay. The original installment stays unchanged.</p><div id="cprParts">'+partRow(1)+partRow(2)+'</div><button type="button" class="btn-paper" id="cprAddPart" style="width:100%;justify-content:center;margin-top:10px">+ Add another part</button></div>'+
    '<label class="brand-field">Note (optional)<textarea id="cprNote" rows="3" placeholder="Short customer commitment or response"></textarea></label>'+
-   '<p class="cpr-help"><strong>Note:</strong> If management officially approves a new due date, use the separate Payment Extension workflow instead of Will Pay Later.</p>'+
-   '<div class="brand-editor-actions"><button class="btn btn-gold" type="button" id="cprSave">Save Response</button><button class="btn-paper" type="button" id="cprClose">Cancel</button></div>';
-  document.getElementById('cprClose').onclick=removePanel;document.getElementById('cprOutcome').onchange=syncOutcome;syncOutcome();
+   '<p class="cpr-help"><strong>Official due-date change:</strong> use Payment Extension instead of Will Pay Later.</p>',
+   '<button class="btn btn-gold" type="button" id="cprSave">Save Response</button><button class="btn-paper" type="button" id="cprClose">Cancel</button>'
+  );
+  document.getElementById('cprOutcome').onchange=syncOutcome;syncOutcome();
   document.getElementById('cprAddPart').onclick=function(){var h=document.getElementById('cprParts'),n=h.querySelectorAll('.cpr-part').length+1;h.insertAdjacentHTML('beforeend',partRow(n));bindRemove(h)};
   bindRemove(p);
   document.getElementById('cprSave').onclick=function(){saveResponse(c)};
- }catch(e){var er=document.getElementById('cprError');if(er){er.textContent=e&&e.message?e.message:'Could not load payment details.';er.style.display='block'}}
+ }catch(e){shell('<p class="brand-error" style="display:block">'+safe(e&&e.message?e.message:'Could not load payment details.')+'</p>','<button class="btn-paper" type="button" id="cprClose">Close</button>')}
 }
 
 async function saveResponse(c){
