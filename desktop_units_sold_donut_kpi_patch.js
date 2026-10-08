@@ -32,7 +32,9 @@
           units:num(p.units),
           totalSales:num(p.totalSales),
           totalReceived:num(p.totalReceived),
-          totalOutstanding:num(p.totalOutstanding)
+          totalOutstanding:Math.abs(num(p.totalOutstanding)),
+          collectedPct:num(p.collectedPct),
+          outstandingPct:num(p.outstandingPct)
         };
       }
     }catch(_e){}
@@ -41,11 +43,14 @@
       sales+=num(row&&row.total);
       received+=num(row&&row.received);
     });
+    var outstanding=Math.max(0,sales-received);
     return{
       units:dues.length,
       totalSales:sales,
       totalReceived:received,
-      totalOutstanding:sales-received
+      totalOutstanding:outstanding,
+      collectedPct:sales>0?received/sales*100:0,
+      outstandingPct:sales>0?outstanding/sales*100:0
     };
   }
   function loadInventoryTotal(){
@@ -70,8 +75,8 @@
   function ringValue(key,stats,totalInventory){
     if(key==='units')return totalInventory>0?clamp(stats.units/totalInventory*100,0,100):0;
     if(key==='sales')return stats.totalSales>0?100:0;
-    if(key==='collected')return stats.totalSales>0?clamp(stats.totalReceived/stats.totalSales*100,0,100):0;
-    if(key==='outstanding')return stats.totalSales>0?clamp(stats.totalOutstanding/stats.totalSales*100,0,100):0;
+    if(key==='collected')return clamp(stats.collectedPct,0,100);
+    if(key==='outstanding')return clamp(stats.outstandingPct,0,100);
     return 0;
   }
   function applyRings(){
@@ -83,7 +88,10 @@
       if(!card)return;
       var progress=ringValue(meta.key,stats,inventoryTotal);
       var circle=card.querySelector('.sb-kpi-donut-progress');
-      if(circle)circle.setAttribute('stroke-dasharray',progress.toFixed(2)+' 100');
+      if(circle){
+        circle.setAttribute('stroke-dasharray',progress.toFixed(2)+' 100');
+        circle.style.strokeOpacity=progress>0.01?'1':'0';
+      }
       var donut=card.querySelector('.sb-kpi-donut');
       var value=card.querySelector('.sb-kpi-donut-value');
       if(donut){
