@@ -59,11 +59,32 @@ function parts(){
  return Array.from(host.querySelectorAll('.cpr-part')).map(function(row){return{amount:Number(row.querySelector('.cprAmount').value||0),date:text(row.querySelector('.cprDate').value).trim()}});
 }
 function bindRemove(root){(root||document).querySelectorAll('.cprRemove').forEach(function(b){b.onclick=function(){var r=b.closest('.cpr-part');if(r)r.remove()}})}
+async function loadExtensionHistory(){
+ var out=document.getElementById('cprOutcome'),sel=document.getElementById('cprSchedule'),box=document.getElementById('cprExtensionHistory');
+ if(!box)return;
+ if(!out||out.value!=='extension_request'||!sel||!Number(sel.value)){box.style.display='none';return}
+ var sid=Number(sel.value);box.style.display='block';box.textContent='Checking previous extension requests…';
+ try{
+  var q=await Promise.all([
+    sb.from('payment_extension_requests').select('id,revision_no,status,requested_until,approved_until').eq('payment_schedule_id',sid).order('id',{ascending:false}).limit(8),
+    sb.from('payment_extensions').select('extended_due_date,status').eq('payment_schedule_id',sid).eq('status','active').limit(1)
+  ]);
+  q.forEach(function(r){if(r.error)throw r.error});
+  if(!sel||Number(sel.value)!==sid||out.value!=='extension_request')return;
+  var requests=q[0].data||[],active=q[1].data&&q[1].data[0]||null;
+  var open=requests.find(function(r){return ['pending','offered','clarification'].indexOf(r.status)>=0});
+  box.innerHTML='<strong>Extension history</strong>'+
+   (active?'<div>Current approved deadline: '+safe(active.extended_due_date)+'</div>':'<div>No currently active extension.</div>')+
+   (requests.length?requests.map(function(r){return '<div>#'+safe(r.revision_no||1)+' · requested '+safe(r.requested_until)+' · '+safe(r.status)+(r.approved_until?' · Management offered '+safe(r.approved_until):'')+'</div>'}).join(''):'<div>No previous extension requests.</div>')+
+   (open?'<div style="margin-top:7px;font-weight:650">An extension task is already in progress. Open that task in Scheduled Actions to continue or re-request; do not create another request.</div>':'');
+ }catch(e){box.textContent='Existing extension history could not be loaded.';}
+}
 function syncOutcome(){
  var out=document.getElementById('cprOutcome'),date=document.getElementById('cprNextDateWrap'),partial=document.getElementById('cprPartialWrap');
  if(!out)return;var v=out.value,needsDate=v==='will_pay_later'||v==='no_response'||v==='extension_request';
  if(date){date.style.display=needsDate?'block':'none';var l=date.querySelector('.cpr-date-label');if(l)l.textContent=v==='will_pay_later'?'Promised payment date':v==='extension_request'?'Requested extension until':'Next follow-up date'}
  if(partial)partial.style.display=v==='partial_payment_commitment'?'block':'none';
+ loadExtensionHistory();
 }
 
 async function openPanel(){
@@ -82,13 +103,14 @@ async function openPanel(){
    '<p class="brand-error" id="cprError" style="display:none"></p>'+
    '<label class="brand-field">Related installment<select id="cprSchedule">'+choices+'</select></label>'+
    '<label class="brand-field">Customer response<select id="cprOutcome"><option value="">Select response</option><option value="partial_payment_commitment">Partial Payment Commitment</option><option value="extension_request">Extension Request</option><option value="payment_issue">Payment Issue / Dispute</option><option value="no_response">No Response</option></select></label>'+
+   '<div id="cprExtensionHistory" class="cpr-box" style="display:none;font-size:11.5px;line-height:1.65"></div>'+
    '<label class="brand-field" id="cprNextDateWrap" style="display:none"><span class="cpr-date-label">Next date</span><input type="date" id="cprNextDate" value="'+safe(addDays(3))+'"></label>'+
    '<div id="cprPartialWrap" class="cpr-box" style="display:none"><p style="margin:0 0 4px;font:650 12px Inter,sans-serif">Partial Payment Commitment</p><p class="cpr-help">Add two or more amounts and the special dates the customer committed to pay. The original installment stays unchanged.</p><div id="cprParts">'+partRow(1)+partRow(2)+'</div><button type="button" class="btn-paper" id="cprAddPart" style="width:100%;justify-content:center;margin-top:10px">+ Add another part</button></div>'+
    '<label class="brand-field">Note (optional)<textarea id="cprNote" rows="3" placeholder="Short customer commitment or response"></textarea></label>'+
-   '<p class="cpr-help"><strong>Extension Request:</strong> this creates a Management Approval task first. The due date changes only after the request is approved.</p>',
+   '<p class="cpr-help"><strong>Extension Request:</strong> this creates a Management Approval task first. Management approval creates a Confirm with Customer task; the new deadline becomes effective after customer acceptance. Re-requests are recorded inside that task.</p>',
    '<button class="btn btn-gold" type="button" id="cprSave">Save Response</button><button class="btn-paper" type="button" id="cprClose">Cancel</button>'
   );
-  document.getElementById('cprOutcome').onchange=syncOutcome;syncOutcome();
+  document.getElementById('cprOutcome').onchange=syncOutcome;document.getElementById('cprSchedule').onchange=loadExtensionHistory;syncOutcome();
   document.getElementById('cprAddPart').onclick=function(){var h=document.getElementById('cprParts'),n=h.querySelectorAll('.cpr-part').length+1;h.insertAdjacentHTML('beforeend',partRow(n));bindRemove(h)};
   bindRemove(p);
   document.getElementById('cprSave').onclick=function(){saveResponse(c)};
