@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const tick=()=>new Promise(r=>setTimeout(r,80));
+const tick=()=>new Promise(r=>setTimeout(r,220));
 function fixture(){
  let started=0,finished=0,prepared=0,release;
  const waiting=new Promise(r=>release=r),events={};

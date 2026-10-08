@@ -75,9 +75,10 @@
   }
 
   async function loadTasks(force){
-    if(!window.sb)return[];
+    // Do not cache the anonymous startup response as an authenticated empty list.
+    if(!window.sb||!canUse())return[];
     if(cache.loaded&&!force)return cache.rows;
-    if(cache.loading&&!force)return cache.loading;
+    if(cache.loading)return cache.loading;
     cache.loading=(async function(){
       var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,commitment_part_id,extension_request_id,modification_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
       if(r.error)throw r.error;

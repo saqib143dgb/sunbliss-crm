@@ -94,7 +94,7 @@
       if(!dashboard)return null;
       return{
         cells:dashboard.querySelectorAll('.sb-v2-kpi'),
-        label:'.sb-v2-kpi-label',value:'.sb-v2-kpi-value',
+        label:'.sb-v2-kpi-label',value:'.sb-kpi-amount, .sb-kpi-donut-value, .sb-v2-kpi-value',
         progress:dashboard.querySelector('.sb-v2-collection'),
         fillSelector:'.sb-v2-bar i',percentSelector:'.sb-v2-bar-cap b'
       };
@@ -122,7 +122,7 @@
     if(!nodes||!stateReady())return null;
     var result={values:{},progress:null};
     for(var i=0;i<nodes.cells.length;i++){
-      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
+      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector('.sb-kpi-amount')||nodes.cells[i].querySelector(nodes.value);
       if(!label||!value)continue;
       var key=normalise(label.textContent);
       if(key!=='units sold'&&key!=='sales value'&&key!=='collected'&&key!=='outstanding')continue;
@@ -146,7 +146,7 @@
     decorateKpis(nodes);
     var raw=Math.max(0,Math.min(1,progress)),eased=ease(raw);
     for(var i=0;i<nodes.cells.length;i++){
-      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector(nodes.value);
+      var label=nodes.cells[i].querySelector(nodes.label),value=nodes.cells[i].querySelector('.sb-kpi-amount')||nodes.cells[i].querySelector(nodes.value);
       if(!label||!value)continue;
       var target=targets.values[normalise(label.textContent)];
       if(!target)continue;
@@ -204,6 +204,10 @@
        desktop main-thread feedback loop. */
     if(started&&targets){applyProgress(currentProgress);return true;}
 
+    // Hidden startup renders can contain provisional totals. Capture only after
+    // auth, financial reconciliation and the final card layout have settled.
+    if(!loaderReleased())return false;
+
     var next=captureTargets(nodes);
     if(!next)return false;
     targets=next;
@@ -260,7 +264,7 @@
   style.id='sunblissOverviewKpiCountUpStyle';
   style.textContent=[
     '[data-sbx-kpi-counting]{font-variant-numeric:tabular-nums;}',
-    'html.sbx-kpi-pending .overview>.stat-hero .stat-value,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-kpi-value{visibility:hidden!important;}',
+    'html.sbx-kpi-pending .overview>.stat-hero .stat-value,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-kpi-value,html.sbx-kpi-pending #sbRefOverviewV2 .sb-kpi-donut-value{visibility:hidden!important;}',
     'html.sbx-kpi-pending .overview>.stat-hero .bar-fill,html.sbx-kpi-pending .overview>.stat-hero .bar-caption,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar,html.sbx-kpi-pending #sbRefOverviewV2 .sb-v2-bar-cap{visibility:hidden!important;}',
     '@media(max-width:1023px){',
       '.overview>.stat-hero .stat-cell.sbx-kpi-card{padding:12px 12px 15px!important;}',

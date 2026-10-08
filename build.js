@@ -82,7 +82,7 @@ function removeLegacyDetailNote(source){
 }
 function transformCore(source,file){if(file==='chunk_10.js')source=removeLegacyDetailNote(source);source=applyDldPaidTolerance(source,file);if(file==='chunk_08.js')source=removeInsightsOverdueAging(simplifyDldTracker(source));if(file==='chunk_03.js')source=supportBackgroundRefresh(makeCustomerPortfolioSourceTruth(source));if(file==='chunk_07.js')source=addOverviewKpiRenderHook(source);if(file==='chunk_10.js')source=fixReviewedDetailPresentation(fixInstallmentLedgerRender(source));if(file==='chunk_11.js')source=makeAuthBootImmediate(source);return source;}
 function writeBundle(fileName,files,transform){const parts=files.map(function(file){const full=path.join(OUT,file);requireFile(full,`Bundle source ${file}`);let source=fs.readFileSync(full,'utf8');if(transform)source=transform(source,file);return `/* ${file} */\n${source}`;});fs.writeFileSync(path.join(OUT,fileName),parts.join('\n;\n'));}
-function buildBundles(){const coreFiles=TEXT_FILES.slice(1);writeBundle(CORE_BUNDLE_FILE,coreFiles,transformCore);writeBundle(UI_BUNDLE_FILE,RUNTIME_PATCH_FILES);return {coreFiles,uiFiles:RUNTIME_PATCH_FILES};}
+function buildBundles(){const coreFiles=TEXT_FILES.slice(1);writeBundle(CORE_BUNDLE_FILE,coreFiles,transformCore);writeBundle(UI_BUNDLE_FILE,RUNTIME_PATCH_FILES);fs.appendFileSync(path.join(OUT,UI_BUNDLE_FILE),"\nwindow.__sunblissUiReady=true;\n");return {coreFiles,uiFiles:RUNTIME_PATCH_FILES};}
 function refineSoaDocumentVisuals(source){
   const sectionBefore="function section(title,x,y,width=185){text(title,x,y,25,'bold',C.navy);line(x,y+15,x+width,y+15,C.gold,3)}";
   const sectionAfter="function section(title,x,y,width=185){text(title,x,y+8,25,'bold',C.navy)}";

@@ -11,7 +11,7 @@ function fixture(reduced=false){
  return{ctx,values,final,release:()=>classes.delete('sbx-loading'),frame:ts=>{const fn=frames.shift();assert(fn);fn(ts)}};
 }
 test('loading completion preserves count-up and redraws retain current frame without flashing final values',()=>{
- const f=fixture();f.ctx.__sunblissOverviewKpiRendered();assert.equal(f.values[1].textContent,'AED 0');f.ctx.__sunblissCompleteOverviewKpis();assert.equal(f.values[1].textContent,'AED 0');
+ const f=fixture();f.ctx.__sunblissOverviewKpiRendered();assert.equal(f.values[1].textContent,f.final[1]);f.ctx.__sunblissCompleteOverviewKpis();assert.equal(f.values[1].textContent,f.final[1]);
  f.release();f.ctx.__sunblissCompleteOverviewKpis();f.frame(0);f.frame(946);const halfway=f.values[1].textContent;assert.notEqual(halfway,'AED 0');assert.notEqual(halfway,f.final[1]);
  f.values.forEach((v,i)=>v.textContent=f.final[i]);f.ctx.__sunblissOverviewKpiRendered();assert.equal(f.values[1].textContent,halfway);
  f.ctx.__sunblissCompleteOverviewKpis();assert.equal(f.values[1].textContent,halfway);f.frame(1892);assert.deepEqual(f.values.map(v=>v.textContent),f.final);
@@ -21,4 +21,11 @@ test('three-dot menu alone skips click loading while menu actions retain feedbac
  const s=fs.readFileSync('smooth_navigation_preview_patch.js','utf8'),line=s.split('\n').find(x=>x.startsWith("document.addEventListener('click'"));assert(line);let click,started=0;const ctx={document:{addEventListener:(_,f)=>click=f},window:{__sunblissBeginRenderInteraction:()=>started++}};vm.createContext(ctx);vm.runInContext(line,ctx);
  function press(id){click({target:{closest:()=>({closest:()=>null,matches:selector=>id==='customerActionMenuButton'&&selector.includes('#customerActionMenuButton')})}})}
  press('customerActionMenuButton');assert.equal(started,0);press('actionRecordPayment');assert.equal(started,1);press('overview');assert.equal(started,2);
+});
+
+test('provisional totals stay hidden and are never captured as the final animation target',()=>{
+ const f=fixture();f.values[1].textContent='AED 900,000';f.ctx.__sunblissOverviewKpiRendered();
+ f.values[1].textContent='AED 100,000';f.release();f.ctx.__sunblissCompleteOverviewKpis();
+ f.frame(0);f.frame(946);assert(Number(f.values[1].textContent.replace(/[^0-9]/g,''))<=100000);
+ f.frame(1892);assert.equal(f.values[1].textContent,'AED 100,000');
 });

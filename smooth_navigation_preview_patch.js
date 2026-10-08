@@ -172,11 +172,11 @@ function settle(token,minimum,isBoot){
 }
 
 function bootReady(){
-  if(window.__sunblissViewPreparing)return false;
+  if(!window.__sunblissUiReady||window.__sunblissAuthLoading||window.__sunblissViewPreparing)return false;
   var app=document.getElementById('app');
   if(!app||!app.children.length)return false;
   if(window.state&&window.state.userRole&&document.getElementById('main'))return true;
-  return !!app.querySelector('form,input,button');
+  return !!app.querySelector('.auth-wrap');
 }
 
 function completeBoot(token){
@@ -186,21 +186,14 @@ function completeBoot(token){
     decoded.then(function(){settle(token,620,true)});
     return;
   }
-  if(Date.now()-bootStarted>3800&&!window.__sunblissViewPreparing){finish(token,0,true);return}
   window.setTimeout(function(){completeBoot(token)},70);
 }
 
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button,a,summary,.tx-row');if(!b||b.closest('#sbxLoader,.crm-readiness-error')||b.matches('a[target="_blank"],#customerActionMenuButton'))return;if(window.__sunblissBeginRenderInteraction)window.__sunblissBeginRenderInteraction();},true);
-window.__sunblissMotion={begin:function(label){return begin(label,false)},finish:function(token){finish(token,1,false)}};
+window.__sunblissMotion={begin:function(label){return begin(label,false)},finish:function(token){finish(token,180,false)}};
 installPreload();
 installStyles();
 mount();
 var bootToken=begin('Securing workspace',true);
 completeBoot(bootToken);
-window.setTimeout(function(){
-  if(root.classList.contains('sbx-booting')&&!window.__sunblissViewPreparing){
-    root.classList.remove('sbx-loading','sbx-booting','sbx-motion');
-    setProgress(.04,true);
-  }
-},4500);
 })();

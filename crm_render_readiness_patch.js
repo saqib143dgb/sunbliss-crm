@@ -4,9 +4,10 @@ if(window.__sunblissRenderReadiness)return;window.__sunblissRenderReadiness=true
 var generation=0,depth=0,token=0,pending=0,changedAt=0,timer=null,started=0,route='',error=null,preparedGeneration=0;
 var root=document.documentElement;
 var style=document.createElement('style');style.textContent=`
-html.sbx-loading:not(.sbx-booting) #sbxLoader{background:rgba(246,241,228,.96)}
+html.sbx-loading:not(.sbx-booting) #sbxLoader{background:var(--paper,#f6f1e4)}
 html.sbx-loading:not(.sbx-booting) #app #main{opacity:0!important;transform:none!important;filter:none!important;transition:none!important}
-html.sbx-motion #app #main{transform:none!important;filter:none!important;transition:opacity .12s ease!important;will-change:auto!important}
+html #app #main{transform:none!important;filter:none!important;transition:opacity .22s ease!important;will-change:auto!important}
+@media(prefers-reduced-motion:reduce){html #app #main{transition:none!important}}
 .crm-readiness-error{padding:14px;margin:12px 0;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper);font:500 13px/1.5 Inter,sans-serif}.crm-readiness-error button{margin-left:10px}
 `;document.head.appendChild(style);
 function signature(){return window.state?[state.view,state.selectedUnit,state.insightsMode,state.listMode].join('|'):''}
@@ -20,8 +21,8 @@ function check(){
  if(!started)return;
  if(signature()!==route){prepare(begin());return;}
  if(Date.now()-started>25000){error=error||Error('This view is taking longer than expected. Please retry.');pending=0;finish();return;}
- if(pending||loadingEditor()){schedule();return;}
- var gen=generation;requestAnimationFrame(function(){requestAnimationFrame(function(){if(gen!==generation)return;if(!pending)finish();else schedule()})});
+ if(pending||loadingEditor()||window.__sunblissAuthLoading||Date.now()-changedAt<140){schedule();return;}
+ var gen=generation;requestAnimationFrame(function(){requestAnimationFrame(function(){if(gen!==generation)return;if(!pending&&Date.now()-changedAt>=140&&!loadingEditor())finish();else schedule()})});
 }
 function finish(){
  if(!started)return;var err=error;started=0;window.__sunblissViewPreparing=false;clearTimeout(timer);
@@ -35,7 +36,7 @@ function prepare(gen){
   if(window.__sunblissCustomerWorkspace)watch(window.__sunblissCustomerWorkspace.prepare(false),gen);
   if(window.__sunblissEnsureEffectiveAction)watch(window.__sunblissEnsureEffectiveAction(),gen);
  }
- if(state.view==='overview'&&window.__sunblissEnsureFinancialReady)watch(window.__sunblissEnsureFinancialReady(),gen);
+ if(state.view==='overview'&&window.__sunblissEnsureFinancialReady)watch(window.__sunblissEnsureFinancialReady().then(function(){if(gen===generation&&typeof window.renderOverview==='function')window.renderOverview()}),gen);
  if(state.view==='overview'&&window.__sunblissEnsureScheduledActions)watch(window.__sunblissEnsureScheduledActions(),gen);
 }
 function wrap(name){var base=window[name];if(typeof base!=='function'||base.__crmReadiness)return;var wrapped=function(){var outer=depth===0,gen;if(outer)gen=begin();depth++;try{return base.apply(this,arguments)}finally{depth--;if(outer){if(signature()!==route)gen=begin();if(gen){prepare(gen);changedAt=Date.now();schedule()}else if(state.view==='detail'&&window.__sunblissCustomerWorkspace){window.__sunblissCustomerWorkspace.prepare(false).catch(function(e){console.warn('Customer details refresh failed',e)})}}}};wrapped.__crmReadiness=true;window[name]=wrapped}

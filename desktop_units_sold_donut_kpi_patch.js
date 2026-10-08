@@ -197,8 +197,8 @@
     if(previous&&previous.__sunblissAllKpiDonutsWrapped)return;
     var wrapped=function(){
       var result;
+      decorate();
       if(typeof previous==='function')result=previous.apply(this,arguments);
-      schedule(0);
       return result;
     };
     wrapped.__sunblissAllKpiDonutsWrapped=true;

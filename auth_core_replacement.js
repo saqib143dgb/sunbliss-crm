@@ -182,6 +182,7 @@ function renderLoadRecovery(message){
 
 async function boot(preloadedSession){
   if(authBootPromise)return authBootPromise;
+  window.__sunblissAuthLoading=true;
   authBootPromise=(async function(){
     try{
       var session=preloadedSession||null;
@@ -265,7 +266,7 @@ async function boot(preloadedSession){
       else if(authIsNetworkError(err))renderLoadRecovery('Internet connection was interrupted. Please retry.');
       else renderLoadRecovery(authMessage(err)||'Could not load the CRM. Please retry.');
     }
-  })().finally(function(){authBootPromise=null;});
+  })().finally(function(){authBootPromise=null;window.__sunblissAuthLoading=false;});
   return authBootPromise;
 }
 
