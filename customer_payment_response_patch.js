@@ -76,7 +76,7 @@ async function loadExtensionHistory(){
   box.innerHTML='<strong>Extension history</strong>'+
    (active?'<div>Current approved deadline: '+safe(active.extended_due_date)+'</div>':'<div>No currently active extension.</div>')+
    (requests.length?requests.map(function(r){return '<div>#'+safe(r.revision_no||1)+' · requested '+safe(r.requested_until)+' · '+safe(r.status)+(r.approved_until?' · Management offered '+safe(r.approved_until):'')+'</div>'}).join(''):'<div>No previous extension requests.</div>')+
-   (open?'<div style="margin-top:7px;font-weight:650">An extension task is already in progress. Open that task in Scheduled Actions to continue or re-request; do not create another request.</div>':'');
+   (open?'<div style="margin-top:7px;font-weight:650">This installment has an active extension task. Continue it in Scheduled Actions, or record a newly requested date here; the existing task will be reused with full history.</div>':'');
  }catch(e){box.textContent='Existing extension history could not be loaded.';}
 }
 function syncOutcome(){
