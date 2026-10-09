@@ -9,6 +9,7 @@ style.textContent=`
  :root{--paper:#faf7ef!important;--paper-dim:#efe9d9!important;--paper-line:#ded7c8!important;--muted:#66635c!important;--ink:#102333!important;--gold-deep:#8d5c18!important;--rust:#b62f2c!important}
  #main :is(.sb-v2-card,.stat-cell,.sbx-section-frame,#customerFinancialSummary){box-shadow:none!important}
 
+ body,body :is(h1,h2,h3,h4,p,div,span,label,button,input,select,textarea,a,summary,strong,b,small,th,td,dt,dd){font-family:CRMInter,Inter,Arial,sans-serif!important}
  *,*::before,*::after{box-sizing:border-box}
  #app,#main,.detail,.overview,.units,.insights{min-width:0!important}
  .detail,.overview,.units,.insights{max-width:100%!important}
@@ -23,10 +24,10 @@ style.textContent=`
  .inline-compliance-chip-status{font-weight:650!important}
  .inline-compliance-chip-arrow{font-size:24px!important;margin-left:3px!important;color:var(--gold-deep)!important;opacity:.5!important}
  .crm-identity-outline{position:absolute;left:var(--identity-left);top:var(--identity-top);width:var(--identity-width);height:var(--identity-height);border:1px solid var(--paper-line);border-radius:9px;pointer-events:none;z-index:-1}
- .detail .d-name{margin:0!important;padding:20px 18px 0!important;font-size:clamp(22px,2.5vw,30px)!important;font-weight:700!important;line-height:1.25!important;letter-spacing:-.02em!important;color:var(--ink)!important;gap:14px!important}
+ .detail .d-name{margin:0!important;padding:20px 18px 0!important;font-size:24px!important;font-weight:700!important;line-height:1.25!important;letter-spacing:-.02em!important;color:var(--ink)!important;gap:14px!important}
  #customerActionMenuButton{width:44px!important;height:44px!important;flex:none!important;border:1px solid var(--paper-line)!important;border-radius:9px!important;font-size:25px!important;background:transparent!important;box-shadow:none!important}
  #customerActionMenu{max-width:calc(100vw - 48px)!important;max-height:calc(var(--crm-vh,100dvh) - 100px)!important;overflow:auto!important}
- #unitMetaInline{gap:0!important;flex-wrap:wrap!important;margin:14px 18px 20px!important;font-size:16px!important;line-height:1.45!important}
+ #unitMetaInline{gap:0!important;flex-wrap:wrap!important;margin:14px 18px 20px!important;font-size:14px!important;line-height:1.45!important}
  #unitMetaInline>span:not(.unit-meta-sep){min-width:0;overflow-wrap:anywhere}
  #unitMetaInline .unit-meta-number{font-weight:700!important}
  #unitMetaInline .unit-meta-sep{display:block!important;width:1px!important;height:22px!important;background:var(--paper-line)!important;color:transparent!important;font-size:0!important;margin:0 18px!important;opacity:1!important}
@@ -36,11 +37,11 @@ style.textContent=`
  #actionRequiredCard[data-tone=danger] .action-required-title{color:var(--rust)!important}
  #actionRequiredCard .action-required-status-wrap{min-height:38px!important;padding:7px 12px!important;border-radius:7px!important;border:1px solid color-mix(in srgb,currentColor 20%,transparent)!important;background:color-mix(in srgb,currentColor 5%,transparent)!important;gap:9px!important}
  #actionRequiredCard .action-required-status{font-size:14px!important;font-weight:650!important}
- #actionRequiredCard .action-required-message{padding:18px 20px 24px!important;font-size:clamp(16px,1.8vw,21px)!important;line-height:1.45!important;font-weight:650!important;letter-spacing:-.015em!important;overflow-wrap:anywhere!important}
+ #actionRequiredCard .action-required-message{padding:18px 20px 24px!important;font-size:15px!important;line-height:1.45!important;font-weight:650!important;letter-spacing:-.015em!important;overflow-wrap:anywhere!important}
  #actionRequiredCard .action-required-meta{padding:0 20px 20px!important;gap:10px!important}
  #actionRequiredCard .action-required-meta-block{gap:12px!important;padding:10px 12px!important;min-height:52px!important;border-radius:9px!important}
  #actionRequiredCard .action-required-meta-label{font-size:14px!important;white-space:normal!important}
- #actionRequiredCard .action-required-meta-value{font-size:16px!important;font-weight:650!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+ #actionRequiredCard .action-required-meta-value{font-size:14px!important;font-weight:650!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
  #actionRequiredCard .action-required-meta-block:before{height:26px!important}
  #actionRequiredCard[data-tone=good]{background:color-mix(in srgb,var(--paper) 95%,var(--sage) 5%)!important}
  /* Fixed layers use the visual viewport, including the on-screen keyboard. */
@@ -78,7 +79,7 @@ style.textContent=`
   #btnGenerateDocument svg{width:20px;height:24px}
   .inline-compliance-chip{min-height:48px!important;font-size:12px!important;gap:8px!important}
   .inline-compliance-chip-label{font-size:11px!important}
-  .detail .d-name{padding:16px 12px 0!important;font-size:22px!important}
+  .detail .d-name{padding:16px 12px 0!important;font-size:18px!important}
   #unitMetaInline{margin:12px 12px 20px!important;font-size:12px!important;row-gap:8px!important}
   #unitMetaInline .unit-meta-sep{margin:0 10px!important;height:18px!important}
   #actionRequiredCard{margin-left:9px!important;margin-right:9px!important;width:calc(100% - 18px)!important;border-left-width:5px!important}
@@ -87,7 +88,7 @@ style.textContent=`
   #actionRequiredCard .action-required-status-wrap{padding:6px 9px!important;min-height:32px!important;gap:6px!important}
   #actionRequiredCard .action-required-status{font-size:12px!important}
   #actionRequiredCard .action-required-status-icon svg{width:17px!important;height:17px!important}
-  #actionRequiredCard .action-required-message{padding:16px 12px 22px!important;font-size:16px!important}
+  #actionRequiredCard .action-required-message{padding:16px 12px 22px!important;font-size:13px!important}
   #actionRequiredCard .action-required-meta{padding:0 12px 16px!important;gap:7px!important}
   #actionRequiredCard .action-required-meta-block{gap:7px!important;padding:8px!important;min-height:44px!important}
   #actionRequiredCard .action-required-meta-label{font-size:11px!important}
