@@ -9,7 +9,6 @@ style.textContent=`
  :root{--paper:#faf7ef!important;--paper-dim:#efe9d9!important;--paper-line:#ded7c8!important;--muted:#66635c!important;--ink:#102333!important;--gold-deep:#8d5c18!important;--rust:#b62f2c!important}
  #main :is(.sb-v2-card,.stat-cell,.sbx-section-frame,#customerFinancialSummary){box-shadow:none!important}
 
- body,body :is(h1,h2,h3,h4,p,div,span,label,button,input,select,textarea,a,summary,strong,b,small,th,td,dt,dd){font-family:CRMInter,Inter,Arial,sans-serif!important}
  *,*::before,*::after{box-sizing:border-box}
  #app,#main,.detail,.overview,.units,.insights{min-width:0!important}
  .detail,.overview,.units,.insights{max-width:100%!important}

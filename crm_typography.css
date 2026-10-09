@@ -1,0 +1,31 @@
+/* One typography source for the CRM shell, dialogs and generator controls. */
+@font-face {
+  font-family: CRMInter;
+  src: url('assets/inter-latin-variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@layer crmTypography {
+  :root { --crm-font: CRMInter, Inter, Arial, sans-serif; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body, body *:not(.paper-wrap, .paper-wrap *) {
+    font-family: var(--crm-font) !important;
+    font-synthesis: none !important;
+  }
+  button::before, button::after, summary::before, summary::after, input::placeholder, textarea::placeholder {
+    font-family: var(--crm-font) !important;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700 !important;
+    letter-spacing: -.015em !important;
+  }
+  :is(.section-label,.stat-label,.field-label,.sb-v2-kpi-label,.scheduled-overview-unit,.action-required-title,.eyebrow) {
+    font-weight: 600 !important;
+    letter-spacing: .045em !important;
+  }
+  :is(.stat-value,.sb-v2-kpi-value,.sb-kpi-donut-value,.sb-kpi-amount,.action-required-meta-value) {
+    font-weight: 650 !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+}

@@ -22,6 +22,10 @@ async function fixture(browser,width=390){
  await page.waitForTimeout(200);
  return {page,errors};
 }
+async function auditFonts(surface){
+ const mismatches=await surface.evaluate(()=>Array.from(document.querySelectorAll('body *')).filter(el=>!el.closest('.paper-wrap,script,style,noscript')&&el.getClientRects().length&&Array.from(el.childNodes).some(n=>n.nodeType===3&&n.textContent.trim())).filter(el=>!getComputedStyle(el).fontFamily.startsWith('CRMInter')).map(el=>({tag:el.tagName,id:el.id,font:getComputedStyle(el).fontFamily})).slice(0,15));
+ assert.deepEqual(mismatches,[],'Every visible UI text element must use the shared font');
+}
 (async()=>{
  const server=http.createServer((req,res)=>{const name=req.url.split('?')[0];const file=path.join(root,name==='/'?'index.html':name);try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.html')?'text/html':'application/octet-stream');res.end(fs.readFileSync(file));}catch{res.statusCode=404;res.end();}});
  await new Promise(r=>server.listen(8124,'127.0.0.1',r));
@@ -37,6 +41,7 @@ async function fixture(browser,width=390){
  const b=await page.locator(selector).boundingBox();assert(b.x>=0&&b.x+b.width<=width+1,selector+' outside '+width);
  assert.match(await page.locator(selector).evaluate(el=>getComputedStyle(el).fontFamily),/Inter/);
  }
+ await auditFonts(page);
  await page.locator('.detail').screenshot({path:path.join(require('node:os').tmpdir(),'crm-reference-'+width+'.png')});
  await page.evaluate(()=>document.querySelector('.sb-manager-visit-trigger').click());
  await page.locator('#managerVisitDialog').waitFor();
@@ -48,6 +53,7 @@ async function fixture(browser,width=390){
  await page.locator('#managerVisitBody').evaluate(x=>x.scrollTop=x.scrollHeight);
  assert(await page.locator('#managerVisitClose').isVisible());
  }
+ await auditFonts(page);
  await page.screenshot({path:path.join(require('node:os').tmpdir(),'crm-visit-'+width+'.png')});
  await page.locator('#managerVisitClose').click();await page.setViewportSize({width,height:844});
  await page.evaluate(()=>document.getElementById('actionScheduleAction').click());await page.locator('#scheduledActionPanel').waitFor();
@@ -57,11 +63,22 @@ async function fixture(browser,width=390){
  await page.evaluate(()=>document.getElementById('btnGenerateDocument').click());
  await page.locator('#crmDocumentDialog').waitFor();
  const doc=await page.locator('#crmDocumentDialog').boundingBox();assert(doc.x>=0&&doc.x+doc.width<=width+1&&doc.y>=0&&doc.y+doc.height<=845,'Document dialog clipped');
- await page.locator('.document-close').click();
+ await auditFonts(page);
+ for(const index of [0,1,2,3]){
+  await page.locator('.document-options-grid>button').nth(index).click();
+  const frame=await (await page.locator('#crmDocumentDialog iframe').elementHandle()).contentFrame();
+  await frame.waitForURL(/(?:welcome-letter|spa-generator)\.html/);
+  await frame.waitForLoadState('domcontentloaded');
+  await frame.waitForFunction(()=>Array.from(document.fonts).some(f=>f.family==='CRMInter'&&f.status==='loaded'));
+  await auditFonts(frame);
+  await page.locator('.document-close').click();
+  if(index<3){await page.evaluate(()=>document.getElementById('btnGenerateDocument').click());await page.locator('#crmDocumentDialog').waitFor();}
+ }
  // Main routes must wrap within the viewport, with the same bundled font.
  for(const view of ['overview','list','insights']){
   await page.evaluate(view=>{state.view=view;renderMain()},view);
   await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'));
+  await auditFonts(page);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Route overflow '+view+' '+width);
  }
  assert(await page.evaluate(()=>document.fonts.check('600 16px CRMInter')),'Bundled font did not load');
