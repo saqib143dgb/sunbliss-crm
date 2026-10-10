@@ -8,8 +8,9 @@ function value(id){var el=document.getElementById(id);return el?text(el.value).t
 function isPaymentRelated(){
   var action=value('saAction');
   if(action==='Other')action=value('saCustom');
-  var note=value('saNote');
-  return /(payment|installment|dld|admin fee|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/i.test(action+' '+note);
+  // Notes may quote payment clauses while the action is about an SPA or document.
+  // Classify the requested action, not incidental wording in its notes.
+  return /(payment|installment|dld|admin fee|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/i.test(action);
 }
 
 // A payment-related manual action must point to a concrete payment obligation.

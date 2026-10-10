@@ -92,7 +92,7 @@
   function stageKind(r){var n=text(r&&r.stage_name).toLowerCase().replace(/instalment/g,'installment');if(!n||n.indexOf('booking')>=0)return'';if(n.indexOf('dld')>=0||n.indexOf('admin fee')>=0)return'dld';if(n.indexOf('down payment')>=0)return'dp';if(/\b(1st|first)\b/.test(n)&&n.indexOf('installment')>=0)return'first';if(n.indexOf('installment')>=0||n.indexOf('final')>=0)return'later';return'';}
   function paymentStage(r){return!!stageKind(r);}
   function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[1].split(',').map(Number):[];}
-  function isPaymentAction(action,note){return /(payment|installment|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/.test((text(action)+' '+text(note)).toLowerCase());}
+  function isPaymentAction(action){return /(payment|installment|dld|admin fee|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/i.test(text(action));}
   function relatedPaymentRows(c){
     var core=window.PaymentExtensionsCore,cc=core&&core.cache;if(!c||!cc||!Array.isArray(cc.s))return[];
     var credit=typeof core.creditMap==='function'?core.creditMap():{},ext={};
@@ -193,7 +193,7 @@
       var payload={action_label:action,due_date:due,priority:priority,note:note,source:'manual',auto_kind:null,schedule_id:related,auto_key:related&&payment?'manual_payment|unit:'+Number(c.sno)+'|schedule:'+related:null,updated_at:new Date().toISOString()};var r;
       if(task)r=await sb.from('scheduled_actions').update(payload).eq('id',task.id).select().single();
       else{
-        var existing=related?cache.rows.find(function(t){if(Number(t.unit_id)!==Number(c.sno)||t.status!=='pending'||t.auto_kind==='extension_active')return false;if(Number(t.schedule_id)===related)return true;return idsFromKey(t.auto_key).indexOf(related)>=0;}):null;
+        var existing=related?cache.rows.find(function(t){if(Number(t.unit_id)!==Number(c.sno)||t.status!=='pending'||t.auto_kind==='extension_active'||t.workflow_kind||t.transaction_id||t.extension_request_id||t.modification_request_id)return false;if(Number(t.schedule_id)===related)return true;return idsFromKey(t.auto_key).indexOf(related)>=0;}):null;
         if(existing)r=await sb.from('scheduled_actions').update(payload).eq('id',existing.id).select().single();
         else{payload.unit_id=Number(c.sno);r=await sb.from('scheduled_actions').insert(payload).select().single();}
       }
