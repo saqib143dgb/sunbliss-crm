@@ -58,22 +58,27 @@
     return draft;
   }
 
-  function preserveAndShowError(message,fieldId){
-    if(window.state){
-      state.newCustomerFormValues=captureDraft();
-      state.newCustomerFormSaving=false;
-      state.newCustomerFormError=message;
-    }
-    if(typeof window.renderNewCustomer==='function') window.renderNewCustomer();
-    setTimeout(function(){
-      var target=(fieldId&&document.getElementById(fieldId))||document.querySelector('.brand-error')||document.getElementById('ncSave');
-      if(target&&target.scrollIntoView) target.scrollIntoView({behavior:'smooth',block:'center'});
-      if(fieldId){
-        var field=document.getElementById(fieldId);
-        if(field&&typeof field.focus==='function') setTimeout(function(){ try{field.focus({preventScroll:true});}catch(_e){field.focus();} },250);
-      }
-    },40);
+  function clearErrors(){
+    document.querySelectorAll('.nc-field-error').forEach(function(el){el.remove();});
+    document.querySelectorAll('[data-nc-invalid]').forEach(function(el){el.removeAttribute('aria-invalid');el.removeAttribute('data-nc-invalid');el.style.outline='';});
+    var summary=document.getElementById('ncSaveFeedback');if(summary)summary.remove();
   }
+  function preserveAndShowError(message,fieldId){
+    if(window.state){state.newCustomerFormValues=captureDraft();state.newCustomerFormSaving=false;state.newCustomerFormError=message;}
+    var save=document.getElementById('ncSave');
+    if(save){save.disabled=false;save.textContent='Create customer';}
+    var summary=document.getElementById('ncSaveFeedback');
+    if(!summary&&save){summary=document.createElement('p');summary.id='ncSaveFeedback';summary.className='brand-error';summary.setAttribute('role','alert');save.parentNode.insertAdjacentElement('beforebegin',summary);}
+    if(summary)summary.textContent=message;
+    var field=fieldId&&document.getElementById(fieldId);
+    if(field){
+      field.setAttribute('aria-invalid','true');field.setAttribute('data-nc-invalid','1');field.style.outline='2px solid var(--rust,#ae3b2b)';
+      var inline=document.createElement('span');inline.className='nc-field-error';inline.style.cssText='display:block;color:var(--rust,#ae3b2b);font-size:12px;margin-top:5px';inline.textContent=message;field.insertAdjacentElement('afterend',inline);
+      field.scrollIntoView({behavior:'smooth',block:'center'});
+      try{field.focus({preventScroll:true});}catch(_){field.focus();}
+    }else if(summary)summary.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  window.__sunblissValidateNewCustomer=true;
 
   function selectedAvailableUnit(unitNo){
     var list=window.state&&Array.isArray(state.__newCustomerAvailableUnits)?state.__newCustomerAvailableUnits:[];
@@ -82,6 +87,8 @@
 
   async function atomicSave(){
     if(!window.state||!window.sb) return;
+    if(state.newCustomerFormSaving)return;
+    clearErrors();
     var draft=captureDraft();
     state.newCustomerFormValues=draft;
 
@@ -95,6 +102,10 @@
     var individualSource=val('ncIndividualSourceName')||text(state.__smartNcIndividualName).trim();
 
     if(!draft.name) return preserveAndShowError('Enter the customer’s name.','ncName');
+    var requiredText=[['ncPhone','Phone'],['ncEmail','Email'],['ncNationality','Nationality'],['ncDesignation','Occupation'],['ncDob','Date of birth'],['ncPassport','Passport no.'],['ncEid','Emirates ID'],['ncAddress','Address'],['ncPermanentAddress','Permanent address'],['ncCoApplicant','Co-applicant']];
+    for(var f=0;f<requiredText.length;f++){
+      if(!val(requiredText[f][0]))return preserveAndShowError(requiredText[f][1]+" is missing. Enter a value or '-' if unavailable.",requiredText[f][0]);
+    }
     if(!draft.unitNo) return preserveAndShowError('Select an available unit.','ncUnitNo');
     if(!unit) return preserveAndShowError('Select an available unit from the list.','ncUnitNo');
     if(total===null||total<=0) return preserveAndShowError('Enter a valid total price.','ncTotalPrice');
@@ -104,9 +115,10 @@
     if(!draft.email && draft.nationality && draft.nationality.indexOf('@')!==-1){
       return preserveAndShowError('The email address appears to be entered in Nationality. Move it to the Email field.','ncNationality');
     }
-    if(draft.email && (draft.email.indexOf('@')<=0 || draft.email.lastIndexOf('.')<draft.email.indexOf('@')+2)){
+    if(draft.email && draft.email!=='-' && (draft.email.indexOf('@')<=0 || draft.email.lastIndexOf('.')<draft.email.indexOf('@')+2)){
       return preserveAndShowError('Enter a valid email address.','ncEmail');
     }
+    if(draft.dob!=='-'&&(!/^\d{4}-\d{2}-\d{2}$/.test(draft.dob)||isNaN(Date.parse(draft.dob))||new Date(draft.dob).toISOString().slice(0,10)!==draft.dob))return preserveAndShowError("Enter date of birth as YYYY-MM-DD or '-'.",'ncDob');
     if(bookingAmount!==null&&bookingAmount>0&&!draft.bookingPaymentDate){
       return preserveAndShowError('Choose the booking payment date.','ncBookingPaymentDate');
     }
@@ -128,7 +140,17 @@
       }
     }
 
+    if(!draft.bookingDate)return preserveAndShowError('Booking date is missing.','ncBookingDate');
+    if(!draft.soldBy)return preserveAndShowError('Sold by is missing. Select the RM.','ncSoldBy');
+    if(source==='Broker'&&!draft.brokerCompany)return preserveAndShowError("Broker company is missing. Enter a value or '-'.",'ncBrokerCompany');
+    if(source==='Individual Buyer'&&!individualSource)return preserveAndShowError("Individual source name is missing. Enter a value or '-'.",'ncIndividualSourceName');
+    if(bookingAmount!==null&&bookingAmount<0)return preserveAndShowError('Booking amount cannot be negative.','ncBookingAmount');
+    if(bookingAmount>0&&!(num(val('ncAmt_DP'))>0))return preserveAndShowError('Down Payment amount is missing. It is required to allocate the booking payment.','ncAmt_DP');
+    if(bookingAmount>0&&bookingAmount<num(val('ncAmt_DP'))-0.01&&!val('ncPartialBookingNote'))return preserveAndShowError("Partial Booking Note is missing. Enter a note or '-'.",'ncPartialBookingNote');
     var schedule=stageRows();
+    for(var i=0;i<schedule.length;i++){
+      if(!schedule[i].due_date)return preserveAndShowError(schedule[i].stage_name+' date is missing.','ncDate_'+schedule[i].code);
+    }
     var propertyInstallments=0;
     schedule.forEach(function(row){
       if(row.code==='DLD'||row.final) return;
@@ -145,7 +167,7 @@
       email:draft.email||null,
       nationality:draft.nationality||null,
       designation:draft.designation||null,
-      date_of_birth:draft.dob||null,
+      date_of_birth:draft.dob==='-'?null:(draft.dob||null),
       passport_no:draft.passport||null,
       eid_no:draft.eid||null,
       address:draft.address||null,
@@ -175,7 +197,7 @@
 
     state.newCustomerFormSaving=true;
     state.newCustomerFormError=null;
-    if(typeof window.renderNewCustomer==='function') window.renderNewCustomer();
+    var saveButton=document.getElementById('ncSave');if(saveButton){saveButton.disabled=true;saveButton.textContent='Saving…';}
 
     try{
       var result=await sb.rpc('create_customer_sale_atomic',{payload:payload});
@@ -194,7 +216,11 @@
       state.__smartNcVisible=[];
       state.__smartNcIndividualName='';
 
-      if(typeof window.loadFromSupabase==='function') await window.loadFromSupabase();
+      state.__ncDldDateManual=false;
+      try{if(typeof window.loadFromSupabase==='function') await window.loadFromSupabase();}catch(refreshError){
+        var saved=document.getElementById('ncSave');if(saved){saved.disabled=true;saved.textContent='Customer created';}
+        var notice=document.createElement('p');notice.setAttribute('role','status');notice.textContent='Customer created successfully. Refresh the CRM to load the new record. Do not create it again.';if(saved)saved.parentNode.insertAdjacentElement('beforebegin',notice);return;
+      }
       if(typeof window.goToDetail==='function'){
         window.goToDetail(draft.unitNo,unitId,'list');
       }else{
@@ -215,6 +241,13 @@
       return;
     }
     window.saveNewCustomer=atomicSave;
+    document.addEventListener('click',function(event){
+      var button=event.target&&event.target.closest&&event.target.closest('#ncSave');
+      if(!button)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      if(button.disabled||state.newCustomerFormSaving)return;
+      Promise.resolve().then(atomicSave).catch(function(error){preserveAndShowError(error&&error.message||'Could not save the customer. Please try again.');});
+    },true);
   }
 
   install();

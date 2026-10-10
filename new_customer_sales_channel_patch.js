@@ -184,7 +184,7 @@
     var t = '<div class="detail">';
     t += '<button class="back" id="btnNcBack" style="margin-bottom:10px;">&larr; Back to units</button>';
     t += '<h2 class="d-name" style="margin-bottom:2px;">New customer</h2>';
-    t += '<p class="d-type" style="margin-bottom:18px;">Creates the customer, unit and sale record. Add a payment schedule below if you know the installment amounts — you can leave any stage blank.</p>';
+    t += '<p class="d-type" style="margin-bottom:18px;">Enter customer and sale details. Use - for unavailable personal details. Amounts and payment dates must be valid; unused payment stages can stay blank.</p>';
     if (state.newCustomerFormError) t += '<p class="brand-error">' + safe(state.newCustomerFormError) + '</p>';
     t += '<div class="brand-editor">';
     t += '<p class="section-label" style="margin-top:0;">Customer</p>';
@@ -193,7 +193,7 @@
     t += input('ncEmail','Email',e('email'),'email','','e.g. name@example.com');
     t += input('ncNationality','Nationality',e('nationality'),'text');
     t += input('ncDesignation','Occupation',e('designation'),'text');
-    t += input('ncDob','Date of birth',e('dob'),'date');
+    t += input('ncDob','Date of birth',e('dob'),'text','','YYYY-MM-DD or -');
     t += input('ncPassport','Passport no.',e('passport'),'text');
     t += input('ncEid','Emirates ID',e('eid'),'text');
     t += input('ncAddress','Address',e('address'),'text');
@@ -260,7 +260,7 @@
 
     mainEl.innerHTML = t;
     document.getElementById('btnNcBack').addEventListener('click',function(){ state.view='list'; renderMain(); window.scrollTo(0,0); });
-    document.getElementById('ncCancel').addEventListener('click',function(){ state.newCustomerFormValues=null; state.newCustomerFormError=null; state.view='list'; renderMain(); window.scrollTo(0,0); });
+    document.getElementById('ncCancel').addEventListener('click',function(){ state.newCustomerFormValues=null; state.newCustomerFormError=null; state.__ncDldDateManual=false;state.__smartNcPct={}; state.view='list'; renderMain(); window.scrollTo(0,0); });
     document.getElementById('ncSave').addEventListener('click',function(event){ if(event) event.preventDefault(); if(typeof window.saveNewCustomer==='function') return window.saveNewCustomer(); return saveNewCustomer(); });
     var unitSelect = document.getElementById('ncUnitNo');
     if (unitSelect){

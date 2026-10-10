@@ -292,14 +292,14 @@
     if (!first || !dld) return;
     if (first.getAttribute('data-dld-sync')==='1') return;
     first.setAttribute('data-dld-sync','1'); dld.setAttribute('data-dld-sync','1');
-    function fromFirst(){ if (dld.value!==first.value) dld.value=first.value; }
-    function fromDld(){ if (first.value!==dld.value) first.value=dld.value; }
+    function fromFirst(){ if (!state.__ncDldDateManual) dld.value=first.value; }
+    function fromDld(){ state.__ncDldDateManual=true; }
     first.addEventListener('change',fromFirst); first.addEventListener('input',fromFirst);
     dld.addEventListener('change',fromDld); dld.addEventListener('input',fromDld);
-    if (first.value) dld.value=first.value; else if (dld.value) first.value=dld.value;
+    if (!dld.value && first.value && !state.__ncDldDateManual) dld.value=first.value;
     var holder=dld.closest?dld.closest('label.brand-field'):null;
     if (holder && !holder.querySelector('.dld-sync-note')){
-      var note=document.createElement('span'); note.className='dld-sync-note'; note.style.cssText='display:block;margin-top:4px;font-size:10.5px;color:var(--muted)'; note.textContent='Same date as 1st Installment'; holder.appendChild(note);
+      var note=document.createElement('span'); note.className='dld-sync-note'; note.style.cssText='display:block;margin-top:4px;font-size:10.5px;color:var(--muted)'; note.textContent='Defaults to 1st Installment; you can change DLD independently'; holder.appendChild(note);
     }
   }
 
