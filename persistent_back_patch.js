@@ -115,7 +115,17 @@
     var actionOpen=fullPageActionOpen();
     var shouldShow=!menuOpen&&!actionOpen&&(detailVisible||sources.length>0);
     button.classList.toggle('is-visible',shouldShow);button.setAttribute('aria-hidden',shouldShow?'false':'true');button.tabIndex=shouldShow?0:-1;
-    var dock=document.getElementById('sunblissPersistentBackDock');if(dock)dock.setAttribute('aria-hidden',shouldShow?'false':'true');
+    var dock=document.getElementById('sunblissPersistentBackDock');
+    if(dock){
+      dock.setAttribute('aria-hidden',shouldShow?'false':'true');
+      // Follow the active dialog's stacking layer instead of sitting behind it.
+      var layer=10050,source=preferredBackSource(sources);
+      for(var node=source&&source.parentElement;node;node=node.parentElement){
+        var z=parseInt(window.getComputedStyle(node).zIndex,10);
+        if(Number.isFinite(z))layer=Math.max(layer,z+1);
+      }
+      dock.style.zIndex=String(layer);
+    }
     if(document.body){
       document.body.classList.toggle('sunbliss-back-dock-mode',detailVisible||sources.length>0||actionOpen);
       document.body.classList.toggle('sunbliss-action-menu-open',menuOpen);

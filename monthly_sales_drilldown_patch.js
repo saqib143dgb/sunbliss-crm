@@ -54,7 +54,8 @@
     var style=document.createElement('style');
     style.id='sunblissMonthlySalesStyles';
     style.textContent=[
-      '.monthly-sales-panel{margin:0 0 20px}',
+      '.monthly-sales-panel{margin:0 0 20px;min-width:0;max-width:100%}',
+      '.monthly-sales-panel>.section-label{white-space:normal!important;height:auto!important;line-height:1.4!important}.monthly-sales-help{padding:10px 2px 0}.monthly-sales-chart-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 0}.monthly-sales-chart-scroll svg{display:block;max-width:none!important;height:210px!important}.monthly-sales-chart-scroll [role=button]{cursor:pointer}.monthly-sales-chart-scroll [role=button]:focus rect{stroke:var(--gold-deep);stroke-width:2}',
       '.monthly-sales-help{font-size:11px;color:var(--muted);margin:-5px 2px 10px;line-height:1.45}',
       '.monthly-sales-months{border-top:1px solid var(--paper-line)}',
       '.monthly-sales-month-btn{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--paper-line);padding:12px 2px;color:var(--ink)}',
@@ -73,7 +74,7 @@
       '.monthly-sale-summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}.monthly-sale-unit{font:700 10.5px/1.2 IBM Plex Mono,monospace;color:var(--gold-deep);background:rgba(198,151,46,.12);padding:5px 7px;border-radius:7px}.monthly-sale-main{min-width:0}.monthly-sale-customer{display:block;font-family:Fraunces,serif;font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.monthly-sale-meta{display:block;margin-top:3px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.monthly-sale-price{text-align:right;font:700 11.5px/1.25 IBM Plex Mono,monospace;white-space:nowrap}.monthly-sale-people{margin-top:7px;font-size:10px;color:var(--muted);line-height:1.45}.monthly-sale-people b{color:var(--ink);font-weight:650}',
       '.monthly-sale-details{border-top:1px solid var(--paper-line);padding:10px 12px 12px;background:rgba(235,227,206,.36)}.monthly-sale-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.monthly-sale-field{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(220,210,182,.75);font-size:10.5px}.monthly-sale-field span{color:var(--muted)}.monthly-sale-field strong{text-align:right;color:var(--ink);font:650 10.5px/1.35 IBM Plex Mono,monospace;word-break:break-word}.monthly-sales-empty{padding:24px 4px;text-align:center;color:var(--muted);font-size:12px}',
       'body.monthly-sales-open{overflow:hidden}',
-      '@media(max-width:520px){#monthlySalesOverlay{padding:0;background:var(--paper)}#monthlySalesDialog{border:0;border-radius:0;min-height:100%;box-shadow:none}.monthly-sales-summary{grid-template-columns:1fr 1fr}.monthly-sale-fields{grid-template-columns:1fr}.monthly-sale-summary{grid-template-columns:auto minmax(0,1fr)}.monthly-sale-price{grid-column:2;text-align:left;margin-top:-4px}.monthly-sales-dialog-head{padding-top:calc(12px + env(safe-area-inset-top))}}'
+      '@media(max-width:520px){body #monthlySalesOverlay{padding:0!important;align-items:flex-start!important}body #monthlySalesOverlay #monthlySalesDialog{height:100%!important;margin:0!important}#monthlySalesOverlay{padding:0;background:var(--paper)}#monthlySalesDialog{border:0;border-radius:0;min-height:100%;box-shadow:none}.monthly-sales-summary{grid-template-columns:1fr 1fr}.monthly-sale-fields{grid-template-columns:1fr}.monthly-sale-summary{grid-template-columns:auto minmax(0,1fr)}.monthly-sale-price{grid-column:2;text-align:left;margin-top:-4px}.monthly-sales-dialog-head{padding-top:calc(12px + env(safe-area-inset-top))}}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -127,16 +128,24 @@
   }
 
   function renderMonthPanel(rows){
-    var groups=groupMonths(rows),wrap=document.createElement('div');
+    var groups=groupMonths(rows).reverse(),wrap=document.createElement('div');
     wrap.id='sunblissMonthlySalesDrilldown';wrap.className='monthly-sales-panel';
-    var html='<p class="section-label">Monthly sales · tap a month for full details</p><p class="monthly-sales-help">Choose any month to see only the sales booked in that month, including customer, RM, broker, unit, price, type and sale details.</p><div class="monthly-sales-months">';
-    groups.forEach(function(g){
-      var value=g.knownValueCount?('AED '+compact(g.value)):'Not recorded';
-      html+='<button type="button" class="monthly-sales-month-btn" data-month="'+safe(g.key)+'"><span class="monthly-sales-month-main"><span class="monthly-sales-month-name">'+safe(monthLabel(g.key))+'</span><span class="monthly-sales-month-meta">'+g.count+' sale'+(g.count===1?'':'s')+' · '+g.direct+' direct · '+g.brokered+' broker</span></span><span class="monthly-sales-month-value"><strong>'+safe(value)+'</strong><span>View details ›</span></span></button>';
+    var width=Math.max(520,groups.length*64),height=210;
+    wrap.innerHTML='<p class="section-label">Monthly sales</p><p class="monthly-sales-help">Tap a bar for full sales details. Swipe to view all months.</p><div class="monthly-sales-chart-scroll">'+window.svgValueTrendChart(groups,{width:width,height:height})+'</div>';
+    var svg=wrap.querySelector('svg'),ns='http://www.w3.org/2000/svg';
+    svg.setAttribute('aria-label','Monthly sales value by booking date');
+    groups.forEach(function(g,i){
+      var hit=document.createElementNS(ns,'g'),rect=document.createElementNS(ns,'rect'),title=document.createElementNS(ns,'title');
+      hit.setAttribute('role','button');hit.setAttribute('tabindex','0');hit.setAttribute('data-month',g.key);
+      var label=monthLabel(g.key)+': '+g.count+' sales, '+(g.knownValueCount?money(g.value):'value not recorded');
+      hit.setAttribute('aria-label',label);title.textContent=label;hit.appendChild(title);
+      rect.setAttribute('x',4+i*(width-8)/groups.length);rect.setAttribute('y',0);rect.setAttribute('width',(width-8)/groups.length);rect.setAttribute('height',height);rect.setAttribute('fill','transparent');hit.appendChild(rect);svg.appendChild(hit);
+      hit.addEventListener('click',function(){openMonth(g.key,rows);});
+      hit.addEventListener('keydown',function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();openMonth(g.key,rows);}});
     });
-    html+='</div>';
-    wrap.innerHTML=html;
-    wrap.addEventListener('click',function(ev){var btn=ev.target.closest('.monthly-sales-month-btn');if(btn)openMonth(btn.getAttribute('data-month'),rows);});
+    // Keep years visible when the chart spans more than one year.
+    var labels=svg.querySelectorAll('text');
+    var index=0;labels.forEach(function(label){if(Number(label.getAttribute('y'))===height-15){label.textContent=new Date(groups[index].key+'-01T12:00:00').toLocaleDateString('en-GB',{month:'short',year:'2-digit'});index++;}});
     return wrap;
   }
 
@@ -149,6 +158,9 @@
     panel.id='sunblissMonthlySalesDrilldown';panel.className='monthly-sales-panel';
     panel.innerHTML='<p class="section-label">Monthly sales</p><p role="status">Loading monthly sales…</p>';
     if(old){
+      var chart=old.nextElementSibling;
+      var legacyList=chart&&chart.nextElementSibling;
+      if(legacyList&&legacyList.querySelector('.mix-row'))legacyList.remove();
       var frame=old.closest('.sbx-section-frame');
       if(frame)frame.replaceWith(panel);
       else{var next=old.nextElementSibling;old.replaceWith(panel);if(next&&(next.matches('svg,.chart,.chart-wrap,.chart-container')||next.querySelector('svg')))next.remove();}
@@ -221,7 +233,8 @@
       overlay.querySelectorAll('.monthly-sale-card').forEach(function(card){var ok=!q||text(card.getAttribute('data-search')).indexOf(q)!==-1;card.style.display=ok?'':'none';if(ok)shown++;});
       document.getElementById('monthlySalesNoResults').style.display=shown?'none':'block';
     });
-    window.setTimeout(function(){var s=document.getElementById('monthlySalesSearch');if(s)s.focus();},80);
+    // Do not open the phone keyboard just to view a month's sales.
+    window.setTimeout(function(){var back=document.getElementById('sunblissPersistentBack');if(back)back.focus({preventScroll:true});},80);
   }
 
   function closeMonth(){
