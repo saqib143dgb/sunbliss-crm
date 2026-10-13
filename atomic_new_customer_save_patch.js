@@ -146,7 +146,9 @@
     if(source==='Individual Buyer'&&!individualSource)return preserveAndShowError("Individual source name is missing. Enter a value or '-'.",'ncIndividualSourceName');
     if(bookingAmount!==null&&bookingAmount<0)return preserveAndShowError('Booking amount cannot be negative.','ncBookingAmount');
     if(bookingAmount>0&&!(num(val('ncAmt_DP'))>0))return preserveAndShowError('Down Payment amount is missing. It is required to allocate the booking payment.','ncAmt_DP');
-    if(bookingAmount>0&&bookingAmount<num(val('ncAmt_DP'))-0.01&&!val('ncPartialBookingNote'))return preserveAndShowError("Partial Booking Note is missing. Enter a note or '-'.",'ncPartialBookingNote');
+    if(val('ncBookingPaymentStatus')==='partial'&&!val('ncPartialBookingNote'))return preserveAndShowError("Partial Booking Note is missing. Enter a note or '-'.",'ncPartialBookingNote');
+    if(bookingAmount>0&&!val('ncBookingPaymentStatus'))return preserveAndShowError('Booking payment status is missing. Select Full or Partial.','ncBookingPaymentStatus');
+    if(val('ncBookingPaymentStatus')==='full'&&bookingAmount>0&&bookingAmount<num(val('ncAmt_DP'))-0.01)return preserveAndShowError('Booking amount is less than the Down Payment. Select Partial.','ncBookingPaymentStatus');
     var schedule=stageRows();
     for(var i=0;i<schedule.length;i++){
       if(!schedule[i].due_date)return preserveAndShowError(schedule[i].stage_name+' date is missing.','ncDate_'+schedule[i].code);
@@ -203,6 +205,7 @@
       var result=await sb.rpc('create_customer_sale_atomic',{payload:payload});
       if(result.error) throw result.error;
       var created=result.data||{};
+      if(state.__pendingCustomerNotes)state.__pendingCustomerNotes.customerId=created.customer_id;
       var unitId=Number(created.unit_id||unit.id);
 
       state.newCustomerFormValues=null;
