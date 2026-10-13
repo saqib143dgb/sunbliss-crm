@@ -16,3 +16,11 @@ test('transaction reconciliation does not count the former buyer cash',()=>{
  const context={window:null,state:{dues:[c],cancelled:[],actualPaymentTransactions:[{id:1,unitId:483,customerId:63,amount:50000,paymentType:'Booking Amount'},{id:2,unitId:483,customerId:85,amount:15000,paymentType:'Booking Amount'}]}};context.window=context;
  vm.runInNewContext(exposed,context);context.testReconcile();assert.equal(c.grossCashReceived,15000);
 });
+
+test('Units list orders newest booking first with stable ties and missing dates last',()=>{
+ const src=ctx.currentBookingReads(fs.readFileSync('vendor/base/chunk_09.js','utf8'),'chunk_09.js');
+ const sort=src.slice(src.indexOf('p.sort(function(t,e){var a=Date.parse'),src.indexOf(';var L='));
+ const p=[{c:{customerId:1,info:{bookingDate:'2026-01-01'}}},{c:{customerId:4,info:{bookingDate:'2026-10-13'}}},{c:{customerId:3,info:{bookingDate:'2026-10-13'}}},{c:{customerId:9,info:{}}}];
+ vm.runInNewContext(sort,{state:{sortBy:'outstanding'},p});
+ assert.deepEqual(p.map(x=>x.c.customerId),[4,3,1,9]);
+});

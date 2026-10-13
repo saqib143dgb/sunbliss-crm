@@ -149,6 +149,10 @@
     if(val('ncBookingPaymentStatus')==='partial'&&!val('ncPartialBookingNote'))return preserveAndShowError("Partial Booking Note is missing. Enter a note or '-'.",'ncPartialBookingNote');
     if(bookingAmount>0&&!val('ncBookingPaymentStatus'))return preserveAndShowError('Booking payment status is missing. Select Full or Partial.','ncBookingPaymentStatus');
     if(val('ncBookingPaymentStatus')==='full'&&bookingAmount>0&&bookingAmount<num(val('ncAmt_DP'))-0.01)return preserveAndShowError('Booking amount is less than the Down Payment. Select Partial.','ncBookingPaymentStatus');
+    if(val('ncBookingPaymentStatus')==='partial'){
+      if(!(bookingAmount>0&&bookingAmount<num(val('ncAmt_DP'))))return preserveAndShowError('Partial booking amount must be greater than zero and less than the Down Payment.','ncBookingAmount');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(val('ncBalanceFollowupDate')))return preserveAndShowError('Balance follow-up date is missing.','ncBalanceFollowupDate');
+    }
     var schedule=stageRows();
     for(var i=0;i<schedule.length;i++){
       if(!schedule[i].due_date)return preserveAndShowError(schedule[i].stage_name+' date is missing.','ncDate_'+schedule[i].code);
@@ -164,6 +168,9 @@
 
     var brokerageAmount=(brokeragePct!==null&&brokeragePct>0)?money(total*brokeragePct/100):null;
     var payload={
+      booking_payment_status:val('ncBookingPaymentStatus')||null,
+      balance_followup_date:val('ncBookingPaymentStatus')==='partial'?val('ncBalanceFollowupDate'):null,
+      partial_booking_note:val('ncBookingPaymentStatus')==='partial'?val('ncPartialBookingNote'):null,
       customer_name:draft.name,
       phone:draft.phone||null,
       email:draft.email||null,

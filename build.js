@@ -26,6 +26,11 @@ function requireFile(filePath,label){if(!fs.existsSync(filePath))throw new Error
 // Current booking reads are isolated from historical buyers. Archive readers
 // intentionally use the base tables; writes always retain the original targets.
 function currentBookingReads(source,file){
+  if(file==='chunk_09.js'){
+    var oldSort='state.sortBy==="received"?p.sort(function(t,e){return(e.c.received||0)-(t.c.received||0)}):p.sort(function(t,e){var o=t.c.outstanding===null?0:t.c.outstanding,d=e.c.outstanding===null?0:e.c.outstanding;return o-d})';
+    if(source.indexOf(oldSort)<0)throw new Error('Units list sort anchor changed');
+    source=source.replace(oldSort,'p.sort(function(t,e){var a=Date.parse(t.c.info&&t.c.info.bookingDate)||0,b=Date.parse(e.c.info&&e.c.info.bookingDate)||0;return b-a||(Number(e.c.customerId)||0)-(Number(t.c.customerId)||0)||(Number(e.c.sno)||0)-(Number(t.c.sno)||0)})');
+  }
   if(/^cancelled_|^cancel_unit_/.test(file))return source;
   return source.replace(/\.from\((['"])(payment_schedule|sales)\1\)(\s*\.select\()/g,function(_,quote,table,select){return '.from('+quote+'current_'+table+quote+')'+select;});
 }
