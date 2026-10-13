@@ -7,6 +7,7 @@
     btnUnitsSold:'units',
     btnSalesValue:'sales',
     btnCollected:'collected',
+    btnCreditNotes:'credits',
     btnOutstanding:'outstanding'
   };
 
@@ -33,6 +34,7 @@
   function money(value){
     return 'AED '+Math.round(Math.abs(n(value))).toLocaleString('en-US');
   }
+  function creditMoney(value){return 'AED '+n(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function compact(value){
     var v=Math.abs(n(value));
     if(v>=1e9)return 'AED '+(v/1e9).toFixed(v>=1e10?1:2).replace(/\.0+$/,'')+'B';
@@ -68,6 +70,13 @@
     return raw<0?Math.abs(raw):0;
   }
   function metricMeta(kind,stats,rows){
+    if(kind==='credits')return{
+      title:'Credit Notes Applied',eyebrow:'Sales Portfolio',summary:creditMoney(stats.totalCreditNotes),
+      summaryLabel:'Property credit notes applied · DLD and admin fees excluded',listTitle:'Units with credit notes',
+      rowAmount:function(c){return creditMoney(window.__sunblissSalesReconciliation.creditFor(c));},rowLabel:'credit notes',
+      include:function(c){return window.__sunblissSalesReconciliation.creditFor(c)>0;},
+      sort:function(a,b){return window.__sunblissSalesReconciliation.creditFor(b)-window.__sunblissSalesReconciliation.creditFor(a)||naturalUnit(a,b);}
+    };
     if(kind==='units')return{
       title:'Units Sold',
       eyebrow:'Sales Portfolio',
@@ -220,7 +229,7 @@
   function metricTarget(target){
     if(!target||!target.closest)return null;
     var node=target.closest(
-      '#btnUnitsSold,#btnSalesValue,#btnCollected,#btnOutstanding,'+
+      '#btnCreditNotes,[data-proxy="btnCreditNotes"],#btnUnitsSold,#btnSalesValue,#btnCollected,#btnOutstanding,'+
       '[data-proxy="btnUnitsSold"],[data-proxy="btnSalesValue"],[data-proxy="btnCollected"],[data-proxy="btnOutstanding"]'
     );
     if(!node)return null;
