@@ -122,7 +122,8 @@
   }
   function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(t.workflow_kind==='modification_request'&&/in progress/i.test(text(t.action_label)))return{key:'inprogress',label:'In Progress'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
   function addDaysIso(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(Number(n)||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
-  function taskButtonLabel(t){if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder'))return'Mark Sent';return'Mark Done';}
+  function isBookingWelcome(t){return text(t&&t.auto_key).indexOf('booking_welcome|')===0;}
+  function taskButtonLabel(t){if(isBookingWelcome(t))return'Mark Sent';if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder'))return'Mark Sent';return'Mark Done';}
   function collectionOutcomeTask(t){return !!(t&&(t.auto_kind==='overdue_follow_up'||['promise_follow_up','payment_query','payment_follow_up','payment_review','partial_payment_commitment'].indexOf(text(t.workflow_kind))>=0));}
 
   function renderDetailTasks(){var old=document.getElementById('scheduledActionsDetail');if(old)old.remove();}
@@ -206,14 +207,17 @@
     removePanel();var c=customerForUnit(task.unit_id),p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode','complete');
     var summary=safe(task.action_label)+' · '+safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+' · due '+safe(formatDate(task.due_date));
     var body='',button='Mark Done';
-    if(task.workflow_kind==='accounts_confirmation'){
+    if(isBookingWelcome(task)){
+      body='<p class="scheduled-outcome-current">Send the Welcome Letter before the payment receipt, then mark this task as sent.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label>';
+      button='Mark Sent';
+    }else if(task.workflow_kind==='accounts_confirmation'){
       body='<p class="scheduled-outcome-help">Record the result from Accounts. A receipt task is created only after Accounts confirms the payment.</p><label class="brand-field">Accounts verification<select id="saOutcome"><option value="">Select outcome</option><option value="confirmed">Confirmed</option><option value="not_received">Not Received</option><option value="amount_mismatch">Amount Mismatch</option></select></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Reference, confirmation detail or issue"></textarea></label>';
       button='Save Outcome';
     }else if(task.workflow_kind==='cheque_clearance'){
       body='<p class="scheduled-outcome-help">Record the cheque clearance result. Receipt generation stays locked until the cheque is cleared.</p><label class="brand-field">Cheque status<select id="saOutcome"><option value="">Select outcome</option><option value="cleared">Cleared</option><option value="still_pending">Still Pending</option><option value="returned">Returned</option></select></label><label class="brand-field" id="saNextDateWrap" style="display:none">Next clearance check<input type="date" id="saNextDate" value="'+safe(addDaysIso(1))+'" /></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Clearance reference or issue"></textarea></label>';
       button='Save Outcome';
     }else if(task.workflow_kind==='payment_receipt'){
-      body='<p class="scheduled-outcome-current">Accounts confirmation is complete. Mark this task done after the payment receipt has been sent to the customer.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label><input type="hidden" id="saOutcome" value="sent">';
+      body='<p class="scheduled-outcome-current">Accounts confirmation is complete. Send and complete the Welcome Letter task first, then send the payment receipt and mark this task done.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label><input type="hidden" id="saOutcome" value="sent">';
       button='Mark Done';
     }else if(task.workflow_kind==='payment_reported'){
       body='<p class="scheduled-outcome-current">The customer reported that payment has been made. Record the actual payment before closing this action.</p><input type="hidden" id="saOutcome" value="record_payment">';
