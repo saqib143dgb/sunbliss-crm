@@ -23,7 +23,13 @@ const RUNTIME_PATCH_FILES = LOCAL_PATCH_FILES.filter(file => !PRELOAD_PATCH_FILE
 const CORE_BUNDLE_FILE = 'core.bundle.js';
 const UI_BUNDLE_FILE = 'ui.bundle.js';
 function requireFile(filePath,label){if(!fs.existsSync(filePath))throw new Error(`${label} is missing: ${path.relative(ROOT,filePath)}. Run "npm run vendor:base" only when intentionally refreshing the frozen base snapshot.`);}
-function copyRequired(source,target,label){requireFile(source,label);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(source,target);}
+// Current booking reads are isolated from historical buyers. Archive readers
+// intentionally use the base tables; writes always retain the original targets.
+function currentBookingReads(source,file){
+  if(/^cancelled_|^cancel_unit_/.test(file))return source;
+  return source.replace(/\.from\((['"])(payment_schedule|sales)\1\)(\s*\.select\()/g,function(_,quote,table,select){return '.from('+quote+'current_'+table+quote+')'+select;});
+}
+function copyRequired(source,target,label){requireFile(source,label);fs.mkdirSync(path.dirname(target),{recursive:true});if(source.endsWith('.js'))fs.writeFileSync(target,currentBookingReads(fs.readFileSync(source,'utf8'),path.basename(source)));else fs.copyFileSync(source,target);}
 function deploymentVersion(){return String(process.env.VERCEL_GIT_COMMIT_SHA||process.env.GITHUB_SHA||Date.now()).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,16);}
 function versionLocalScripts(html,version){return html.replace(/<script([^>]*?)src=["']([^"']+\.js(?:\?[^"']*)?)["']([^>]*)>/gi,function(match,before,src,after){if(/^(?:https?:)?\/\//i.test(src))return match;var separator=src.indexOf('?')>=0?'&':'?';return '<script'+before+'src="'+src+separator+'v='+version+'"'+after+'>';});}
 function escapeRegExp(value){return value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}

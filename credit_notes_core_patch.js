@@ -100,7 +100,7 @@
       list.forEach(function(c){
         var dbUnit=unitByNo[unitKey(c.unit)]||null,actualUnitId=dbUnit?dbUnit.id:c.unitId,actualCustomerId=dbUnit?dbUnit.customer_id:c.customerId;
         c.unitId=actualUnitId||null;c.customerId=actualCustomerId||null;
-        var unitRows=scheduleByUnit[text(actualUnitId)]||[],unitNotes=byUnit[text(actualUnitId)]||[];
+        var unitRows=scheduleByUnit[text(actualUnitId)]||[],unitNotes=(byUnit[text(actualUnitId)]||[]).filter(function(row){return !row.customerId||!actualCustomerId||Number(row.customerId)===Number(actualCustomerId);});
         var dldNotes=unitNotes.filter(function(n){return isDldStage(scheduleById[text(n.scheduleId)])});
         c.cashReceived=Number(c.received)||0;c.creditNotes=unitNotes;c.creditNoteTotal=unitNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);c.dldAdminCreditNoteTotal=dldNotes.reduce(function(s,n){return s+(Number(n.amount)||0);},0);c.allCreditNoteTotal=c.creditNoteTotal;c.settledReceived=c.cashReceived+c.creditNoteTotal;
         (c.stages||[]).forEach(function(st){

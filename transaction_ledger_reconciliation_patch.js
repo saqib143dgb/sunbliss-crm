@@ -29,6 +29,7 @@
       return {
         id:txValue(t,'id','id'),
         unitId:Number(txValue(t,'unitId','unit_id'))||null,
+        customerId:Number(txValue(t,'customerId','customer_id'))||null,
         scheduleId:Number(txValue(t,'scheduleId','payment_schedule_id'))||null,
         paymentDate:text(txValue(t,'paymentDate','payment_date')),
         amount:round2(txValue(t,'amount','amount')),
@@ -42,7 +43,7 @@
     if(fetchPromise)return fetchPromise;
     if(!window.sb)return Promise.resolve([]);
     fetchPromise=sb.from('payment_transactions')
-      .select('id,unit_id,payment_schedule_id,payment_date,amount,payment_type')
+      .select('id,customer_id,unit_id,payment_schedule_id,payment_date,amount,payment_type')
       .order('payment_date',{ascending:true}).order('id',{ascending:true})
       .then(function(r){
         fetchPromise=null;
@@ -212,6 +213,7 @@
     var changed=false;
     allCustomers().forEach(function(c){
       var uid=unitId(c),rows=uid?(byUnit[text(uid)]||[]):[];
+      rows=rows.filter(function(t){return !t.customerId||!c.customerId||Number(t.customerId)===Number(c.customerId);});
       if(rows.length&&reconcileCustomer(c,rows))changed=true;
     });
     return changed;

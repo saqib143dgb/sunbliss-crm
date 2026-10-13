@@ -150,8 +150,8 @@
     allCustomers().forEach(function(c){
       var uid=unitId(c);
       if (!uid) return;
-      var unitEvents=byUnitEvents[text(uid)]||[];
-      var unitTx=byUnitTx[text(uid)]||[];
+      var unitEvents=(byUnitEvents[text(uid)]||[]).filter(function(row){return !row.customerId||!c.customerId||Number(row.customerId)===Number(c.customerId);});
+      var unitTx=(byUnitTx[text(uid)]||[]).filter(function(row){return !row.customerId||!c.customerId||Number(row.customerId)===Number(c.customerId);});
       var actualCash=round2(unitTx.reduce(function(sum,t){ return sum+(Number(t.amount)||0); },0));
       var creditTotal=round2(Number(c.creditNoteTotal)||0);
       var carry=round2(unitEvents.reduce(function(sum,e){ return sum+(Number(e.amount)||0); },0));
