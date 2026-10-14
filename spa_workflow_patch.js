@@ -45,4 +45,29 @@
    }catch(e){fail(e.message||'Could not save. Please try again.','spaOutcome');button.disabled=false;button.textContent='Try Again';}
   };
  };
+ // Restore SPA task routing while retaining the stable scheduled actions implementation.
+ document.addEventListener('click', function(event){
+   var button=event.target&&event.target.closest&&event.target.closest('.scheduled-mark-done[data-task-id]');
+   if(!button||!window.__sunblissScheduledActionRows)return;
+   var id=Number(button.getAttribute('data-task-id'));
+   var rows=window.__sunblissScheduledActionRows();
+   var task=Array.isArray(rows)&&rows.find(function(row){return Number(row.id)===id;});
+   if(!task||task.workflow_kind!=='spa')return;
+   event.preventDefault();
+   event.stopPropagation();
+   event.stopImmediatePropagation();
+   var originalText=button.textContent;
+   button.disabled=true;
+   button.textContent='Opening SPA task…';
+   Promise.resolve(sb.from('scheduled_actions').select('id,unit_id,action_label,note,status,spa_sale_id,spa_step,spa_data').eq('id',id).single()).then(function(result){
+     if(result.error)throw result.error;
+     if(!result.data||result.data.workflow_kind&&result.data.workflow_kind!=='spa')throw Error('SPA task is unavailable.');
+     window.__sunblissOpenSpaTask(Object.assign({},task,result.data));
+   }).catch(function(error){
+     window.alert(error&&error.message?error.message:'Could not open the SPA task. Please retry.');
+   }).finally(function(){
+     if(button.isConnected){button.disabled=false;button.textContent=originalText;}
+   });
+ },true);
+
 })();

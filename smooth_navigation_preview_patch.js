@@ -186,6 +186,18 @@ function completeBoot(token){
     decoded.then(function(){settle(token,620,true)});
     return;
   }
+  if(Date.now()-bootStarted>45000){
+    var loader=document.getElementById('sbxLoader');
+    if(loader&&!document.getElementById('sbxBootRecovery')){
+      var recovery=document.createElement('div');
+      recovery.id='sbxBootRecovery';
+      recovery.style.cssText='grid-area:1/1;z-index:4;position:relative;margin-top:250px;max-width:340px;text-align:center;padding:14px;color:#fffaf0;font:500 14px/1.5 Inter,system-ui,sans-serif';
+      recovery.innerHTML='The CRM could not complete loading. <button type="button" id="sbxRetryBoot" style="display:block;margin:15px auto 0;padding:10px 18px;border:1px solid #e2ad4d;border-radius:24px;background:#e2ad4d;color:#03101a;font:600 13px Inter,system-ui,sans-serif">Retry Loading</button>';
+      loader.appendChild(recovery);
+      document.getElementById('sbxRetryBoot').onclick=function(){window.location.reload();};
+    }
+    return;
+  }
   window.setTimeout(function(){completeBoot(token)},70);
 }
 
