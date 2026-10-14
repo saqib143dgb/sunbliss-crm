@@ -53,30 +53,9 @@
   }
 
   async function assertSpaReady(c){
-    var results=await Promise.all([
-      sb.from('payment_schedule').select('id,stage_name,due_amount,paid_amount,status').eq('unit_id',c.sno),
-      sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',c.sno)
-    ]);
-    results.forEach(function(r){if(r.error)throw r.error;});
-    var credit={};
-    (results[1].data||[]).forEach(function(row){
-      if(row.payment_schedule_id==null)return;
-      credit[String(row.payment_schedule_id)]=(credit[String(row.payment_schedule_id)]||0)+(Number(row.amount)||0);
-    });
-    var totals={dp:{found:false,remaining:0},first:{found:false,remaining:0},dld:{found:false,remaining:0}};
-    (results[0].data||[]).forEach(function(row){
-      var kind=complianceStageKind(row.stage_name);if(!kind)return;
-      totals[kind].found=true;
-      var applied=kind==='dld'?0:(credit[String(row.id)]||0);
-      totals[kind].remaining+=normalize(row.status)==='paid'?0:Math.max(0,(Number(row.due_amount)||0)-(Number(row.paid_amount)||0)-applied);
-    });
-    var labels={dp:'Down Payment',first:'1st Installment',dld:'DLD + Admin Fees'},blocked=[];
-    ['dp','first','dld'].forEach(function(kind){
-      var item=totals[kind];
-      if(!item.found)blocked.push(labels[kind]+' schedule is missing');
-      else if(item.remaining>1)blocked.push(labels[kind]+' '+aed(item.remaining)+' outstanding');
-    });
-    if(blocked.length)throw new Error('SPA cannot be marked Signed. Settle the full 24% package first: '+blocked.join('; ')+'.');
+    var result=await sb.rpc('crm_spa_payment_ready',{p_unit_id:Number(c.sno)});
+    if(result.error)throw result.error;
+    if(!result.data)throw new Error('Settle 20% or the down payment and first installment, plus DLD and admin fees, before marking the SPA signed.');
   }
 
   function numberOrNull(id,label,maximum){
