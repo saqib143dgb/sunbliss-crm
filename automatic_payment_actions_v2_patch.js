@@ -57,7 +57,7 @@ async function run(){
  await refreshMeta();if(changed&&typeof window.__sunblissRefreshScheduledActions==='function')await window.__sunblissRefreshScheduledActions();return changed
 }
 function sync(force){if(syncing)return syncing;if(!force&&Date.now()-lastSyncAt<5000){decorate();return Promise.resolve(false)}syncing=run().catch(function(e){console.warn('Automatic payment actions v2 could not sync',e);return false}).then(function(v){lastSyncAt=Date.now();syncing=null;return v});return syncing}
-window.__sunblissEnsureAutomaticActions=function(){return sync(false)};
+window.__sunblissEnsureAutomaticActions=function(force){return sync(force===true)};
 function schedule(ms){clearTimeout(syncTimer);syncTimer=setTimeout(function(){sync(false)},ms==null?250:ms)}
 function install(){if(!window.state||!window.sb||typeof window.renderOverview!=='function'||typeof window.renderDetail!=='function'||typeof window.loadFromSupabase!=='function'){setTimeout(install,60);return}ensureStyles();var ro=window.renderOverview;window.renderOverview=function(){var x=ro.apply(this,arguments);schedule(80);decorate();return x};var rd=window.renderDetail;window.renderDetail=function(){var x=rd.apply(this,arguments);schedule(80);decorate();return x};var ld=window.loadFromSupabase;window.loadFromSupabase=async function(){var x=await ld.apply(this,arguments);await sync(true);return x};window.addEventListener('pageshow',function(){decorate();schedule(120)});sync(true)}
 install();
