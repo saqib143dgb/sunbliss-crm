@@ -26,6 +26,15 @@
   function currentCustomer(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit);})||null;}
   function customerForUnit(unitId){if(!window.state||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return Number(c&&c.sno)===Number(unitId);})||null;}
   function canUse(){return !!(window.state&&(state.userRole==='crm_officer'||state.userRole==='manager'));}
+  function managerOnly(){return window.state&&state.userRole==='manager';}
+  function managementApproval(t){
+    if(!t||t.status!=='pending')return false;
+    if(t.workflow_kind==='extension_approval')return true;
+    if(t.workflow_kind==='spa')return t.spa_step==='approval';
+    if(t.workflow_kind==='modification_request')return /^Management (?:Re[- ]?)?Approval(?:\s|$)/i.test(text(t.action_label));
+    return !t.workflow_kind&&/^Management (?:Re[- ]?)?Approval(?:\s|$)/i.test(text(t.action_label));
+  }
+  function visibleTask(t){return !managerOnly()||managementApproval(t);}
   function closeActionMenu(){var menu=document.getElementById('customerActionMenu'),button=document.getElementById('customerActionMenuButton');if(menu)menu.style.display='none';if(button)button.setAttribute('aria-expanded','false');}
 
   function ensureStyles(){
@@ -80,14 +89,14 @@
     if(cache.loaded&&!force)return cache.rows;
     if(cache.loading)return cache.loading;
     cache.loading=(async function(){
-      var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,commitment_part_id,extension_request_id,modification_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
+      var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,spa_step,commitment_part_id,extension_request_id,modification_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
       if(r.error)throw r.error;
       cache.rows=r.data||[];cache.loaded=true;cache.loading=null;return cache.rows;
     })().catch(function(e){cache.loading=null;throw e;});
     return cache.loading;
   }
 
-  function pendingForUnit(unitId){return cache.rows.filter(function(t){return Number(t.unit_id)===Number(unitId)&&t.status==='pending';}).sort(taskSort);}
+  function pendingForUnit(unitId){return cache.rows.filter(function(t){return Number(t.unit_id)===Number(unitId)&&t.status==='pending'&&visibleTask(t);}).sort(taskSort);}
   function taskSort(a,b){var d=text(a.due_date).localeCompare(text(b.due_date));if(d)return d;var p={High:0,Medium:1,Low:2};return (p[a.priority]||1)-(p[b.priority]||1)||Number(a.id)-Number(b.id);}
   function stageKind(r){var n=text(r&&r.stage_name).toLowerCase().replace(/instalment/g,'installment');if(!n||n.indexOf('booking')>=0)return'';if(n.indexOf('dld')>=0||n.indexOf('admin fee')>=0)return'dld';if(n.indexOf('down payment')>=0)return'dp';if(/\b(1st|first)\b/.test(n)&&n.indexOf('installment')>=0)return'first';if(n.indexOf('installment')>=0||n.indexOf('final')>=0)return'later';return'';}
   function paymentStage(r){return!!stageKind(r);}
@@ -129,7 +138,8 @@
   function renderDetailTasks(){var old=document.getElementById('scheduledActionsDetail');if(old)old.remove();}
 
   function filterRows(kind){
-    var today=todayIso(0),tomorrow=todayIso(1),rows=cache.rows.slice();
+    var today=todayIso(0),tomorrow=todayIso(1),rows=cache.rows.filter(visibleTask);
+    if(managerOnly())return rows.sort(taskSort);
     if(kind==='completed')return rows.filter(function(t){return t.status==='completed';}).sort(function(a,b){return text(b.completed_at||b.updated_at).localeCompare(text(a.completed_at||a.updated_at));});
     rows=rows.filter(function(t){return t.status==='pending'&&t.auto_kind!=='extension_active';});
     if(kind==='modifications')return rows.filter(function(t){return t.workflow_kind==='modification_request';}).sort(function(a,b){return text(b.updated_at||b.created_at).localeCompare(text(a.updated_at||a.created_at))||Number(b.id)-Number(a.id);});
@@ -149,6 +159,7 @@
     var old=document.getElementById('scheduledActionsOverview');if(old)old.remove();
     var section=document.createElement('section');section.id='scheduledActionsOverview';
     section.innerHTML='<div class="scheduled-overview-head"><p class="section-label">Scheduled Actions</p><select id="scheduledOverviewFilter" class="scheduled-overview-select" aria-label="Scheduled action filter">'+overviewOption('today','Today')+overviewOption('tomorrow','Tomorrow')+overviewOption('overdue','Overdue')+overviewOption('modifications',(window.matchMedia&&window.matchMedia('(max-width:520px)').matches)?'Modification Req.':'Modification\u00A0Request')+overviewOption('upcoming','Upcoming')+overviewOption('completed','Completed')+'</select></div><div id="scheduledOverviewList" class="scheduled-overview-list"></div>';
+    if(managerOnly()){section.querySelector('.section-label').textContent='Management Approvals';section.querySelector('select').innerHTML='<option value="approvals">Pending approvals · '+filterRows('approvals').length+'</option>';}
     var foot=overview.querySelector(':scope > .footnote');if(foot)overview.insertBefore(section,foot);else overview.appendChild(section);
     document.getElementById('scheduledOverviewFilter').onchange=function(){cache.overviewFilter=this.value;renderOverviewList();};
     renderOverviewList();
@@ -156,6 +167,7 @@
   function renderOverviewList(){
     var host=document.getElementById('scheduledOverviewList');if(!host)return;
     var rows=filterRows(cache.overviewFilter);
+    if(!rows.length&&managerOnly()){host.innerHTML='<div class="scheduled-empty">No tasks awaiting management approval.</div>';return;}
     if(!rows.length){host.innerHTML='<div class="scheduled-empty">No '+safe(cache.overviewFilter==='completed'?'completed':'pending')+' actions in this view.</div>';return;}
     host.innerHTML=rows.map(function(t){var c=customerForUnit(t.unit_id),st=stateForTask(t),name=c?c.name:'Customer',unit=c?c.unit:'Unit '+t.unit_id;var completion=t.status==='completed'&&t.completion_note?'<div class="scheduled-overview-meta">Completed: '+safe(t.completion_note)+'</div>':'';return '<div class="scheduled-overview-row" data-task-id="'+t.id+'"><div class="scheduled-overview-main" data-open-unit="'+safe(t.unit_id)+'"><div class="scheduled-overview-unit">'+safe(unit)+' · '+safe(name)+'</div><div class="scheduled-overview-title">'+safe(t.action_label)+'</div><div class="scheduled-overview-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span> · '+safe(t.priority)+' · '+safe(formatDate(t.due_date))+(t.note?' · '+safe(t.note):'')+'</div>'+completion+'</div>'+(t.status==='pending'?'<button type="button" class="btn-paper scheduled-overview-done scheduled-mark-done" data-task-id="'+t.id+'">'+safe(taskButtonLabel(t))+'</button>':'')+'</div>';}).join('');
     host.querySelectorAll('[data-open-unit]').forEach(function(el){el.onclick=function(){var c=customerForUnit(Number(el.getAttribute('data-open-unit')));if(!c)return;if(typeof window.goToDetail==='function')window.goToDetail(c.unit,c.sno,'overview');else{state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';if(typeof window.renderMain==='function')window.renderMain();}};});
@@ -461,7 +473,7 @@
     if(!window.state||!window.sb||typeof window.renderDetail!=='function'||typeof window.renderOverview!=='function'){setTimeout(install,60);return;}
     ensureStyles();
     window.__sunblissRefreshScheduledActions=function(){return loadTasks(true);};
-  window.__sunblissScheduledActionRows=function(){return cache.loaded?cache.rows:null;};
+  window.__sunblissScheduledActionRows=function(){return cache.loaded?cache.rows.filter(visibleTask):null;};
   window.__sunblissEnsureScheduledActions=async function(){await loadTasks(false);renderScheduledViews();};
     var rd=window.renderDetail;window.renderDetail=function(){var out=rd.apply(this,arguments);loadTasks(false).then(renderScheduledViews).catch(function(){});return out;};
     var ro=window.renderOverview;window.renderOverview=function(){var out=ro.apply(this,arguments);loadTasks(false).then(renderScheduledViews).catch(function(){});return out;};

@@ -132,6 +132,7 @@
   }
 
   function clean(){
+    if(window.state&&state.userRole==='manager')return;
     observeOverview();
 
     var select=document.getElementById('scheduledOverviewFilter');

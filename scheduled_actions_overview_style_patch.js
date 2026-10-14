@@ -88,6 +88,7 @@
   }
 
   function enhanceEmptyState(){
+    if(window.state&&state.userRole==='manager')return;
     var section=document.getElementById('scheduledActionsOverview');
     if(!section)return;
     var host=document.getElementById('scheduledOverviewList'),select=document.getElementById('scheduledOverviewFilter');
