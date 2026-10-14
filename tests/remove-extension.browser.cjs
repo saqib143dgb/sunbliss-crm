@@ -25,11 +25,11 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  assert.equal(await page.evaluate(()=>record.status),'active');
  await page.evaluate(()=>window.fail=false);
  page.once('dialog',d=>d.accept());await page.locator('.ext-cancel').click();
- await page.waitForFunction(()=>document.querySelector('.ext-card[data-status="cancelled"]'));
+ await page.waitForFunction(()=>document.querySelector('.ext-empty')?.textContent.includes('No active extension'));
  assert.equal(await page.evaluate(()=>writes),1);assert.equal(await page.evaluate(()=>forced),true);
  assert.equal(await page.evaluate(()=>record.original_due_date),'2026-10-01');
  assert.equal(await page.locator('.ext-cancel').count(),0);
- await page.locator('#extClose').click();await page.getByRole('button',{name:'Extension History',exact:true}).waitFor();
+ await page.locator('#extClose').click();assert.equal(await page.locator('#managePaymentExtension').count(),0);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  console.log('PASS removal, cancel, save failure, history and due date at '+width+'px');
  }}finally{await browser.close()}

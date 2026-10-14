@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE,args:JSON.parse(process.env.CHROMIUM_ARGS||'[]')});try{for(const width of [390,1440]){
+const page=await browser.newPage({viewport:{width,height:900}});await page.setContent('<main><div id="customerActionMenu"></div></main>');
+await page.evaluate(()=>{window.state={view:'detail',selectedUnit:'B2::1',userRole:'crm_officer',dues:[{unit:'B2',sno:1,name:'Buyer'}]};window.sb={from:table=>({select(){return this},eq(field,id){if((field==='unit_id'&&id!==1)||(field==='request_id'&&id!==2))throw Error('wrong scope');return this},order(){return this},range:async()=>({data:table==='payment_extensions'?[{id:1,status:'cancelled',cancellation_reason:'Entered in error'}]:table==='payment_extension_requests'?[{id:2,status:'approved'}]:table==='payment_extension_request_events'?[{event_type:'customer_accepted',notes:'Accepted'}]:[]})}),rpc:async name=>({data:name==='crm_get_modification_requests'?[{id:3,title:'Clause change',status:'closed'}]:{events:[{event_type:'approved',note:'Approved change'}]}})}});
+await page.addScriptTag({path:'customer_history_patch.js'});await page.getByRole('button',{name:'History',exact:true}).click();await page.getByText('Removal reason: Entered in error').waitFor();
+await page.locator('#chCategory').selectOption('modifications');await page.locator('[data-mod-id] summary').click();await page.getByText('Approved change',{exact:true}).waitFor();
+await page.locator('#chCategory').selectOption('payments');await page.getByText('No records in this section.').waitFor();
+assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.getByRole('button',{name:'Back',exact:true}).click();assert.equal(await page.locator('#customerHistoryPanel').count(),0);console.log('PASS categorized history and navigation '+width+'px');
+}}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
