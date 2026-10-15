@@ -227,7 +227,7 @@
       state.__smartNcIndividualName='';
 
       state.__ncDldDateManual=false;
-      try{if(typeof window.loadFromSupabase==='function') await window.loadFromSupabase();}catch(refreshError){
+      try{if(typeof window.loadFromSupabase==='function') await window.loadFromSupabase({preserveView:true,render:false});}catch(refreshError){
         var saved=document.getElementById('ncSave');if(saved){saved.disabled=true;saved.textContent='Customer created';}
         var notice=document.createElement('p');notice.setAttribute('role','status');notice.textContent='Customer created successfully. Refresh the CRM to load the new record. Do not create it again.';if(saved)saved.parentNode.insertAdjacentElement('beforebegin',notice);return;
       }

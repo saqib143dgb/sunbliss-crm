@@ -41,8 +41,9 @@ function prepare(gen){
 }
 function wrap(name){var base=window[name];if(typeof base!=='function'||base.__crmReadiness)return;var wrapped=function(){var outer=depth===0,gen;if(outer)gen=begin();depth++;try{return base.apply(this,arguments)}finally{depth--;if(outer){if(signature()!==route)gen=begin();if(gen){prepare(gen);changedAt=Date.now();schedule()}else if(state.view==='detail'&&window.__sunblissCustomerWorkspace){window.__sunblissCustomerWorkspace.prepare(false).catch(function(e){console.warn('Customer details refresh failed',e)})}}}};wrapped.__crmReadiness=true;window[name]=wrapped}
 ['render','renderMain','renderDetail','renderOverview','renderList','renderInsights'].forEach(wrap);
-// User actions retain loading feedback; opening/closing the three-dot menu is local.
-window.__sunblissBeginRenderInteraction=function(){return begin(true)};
+// Only a route change starts the full-page loader. Forms keep their local busy
+// indicators, so Save, validation, and background refreshes do not blank the view.
+window.__sunblissBeginRenderInteraction=function(){return begin(false)};
 function loadingEditor(){return Array.from(document.querySelectorAll('.brand-editor,.crm-full-page-inline,[role="dialog"],#scheduledActionPanel,#paymentExtensionPanel')).some(function(p){if(!p.isConnected||p.hidden)return false;return p.classList.contains('crm-action-awaiting-ready')||p.getAttribute('aria-busy')==='true'||/^(loading|preparing|opening)\b/i.test((p.querySelector('.stat-sub,.record-payment-empty')?.textContent||'').trim())||Array.from(p.querySelectorAll('button:disabled')).some(function(b){return /saving|recording|creating|updating/i.test(b.textContent)})})}
 
 window.addEventListener('pagehide',function(){generation++;pending=0;started=0;route='';window.__sunblissViewPreparing=false;clearTimeout(timer)});

@@ -11,19 +11,19 @@ async function fixture(browser,width=390){
   window.testRows=[{id:962,unit_id:439,customer_id:3,stage_name:'5th Installment',due_amount:99190,due_date:'2026-09-26',paid_amount:0}];
   window.testCalls=[];window.testLoads=[];window.testPageshows=0;window.addEventListener('pageshow',()=>testPageshows++);
   window.sb={auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null}})},from:table=>{
-    const q=new Proxy({then:resolve=>Promise.resolve({data:table==='payment_schedule'?testRows:[],error:null}).then(resolve)},{get:(t,k)=>k==='then'?t.then:()=>q});return q;
-   },rpc:(name,args)=>{if(name!=='crm_record_payment_with_credit_note')throw Error('Unexpected write: '+name);testCalls.push(args);return new Promise(resolve=>window.finishSave=()=>resolve({data:{transaction_id:999},error:null}));}};
+    const q=new Proxy({then:resolve=>Promise.resolve({data:(table==='payment_schedule'||table==='current_payment_schedule')?testRows:[],error:null}).then(resolve)},{get:(t,k)=>k==='then'?t.then:()=>q});return q;
+   },rpc:(name,args)=>{if(name==='crm_set_payment_confirmation_mode')return Promise.resolve({data:{}});if(name!=='crm_record_payment_with_credit_note')throw Error('Unexpected write: '+name);testCalls.push(args);return new Promise(resolve=>window.finishSave=()=>resolve({data:{transaction_id:999},error:null}));}};
   const c={sno:439,customerId:3,unit:'TEST-202',name:'Test Customer',type:'3BR',total:1983800,received:0,outstanding:-1983800,stages:[{id:962,code:'5TH',label:'5th Installment',due:99190,dueDate:new Date(2026,8,26),paid:0}],info:{email:'test@example.com',area:1234,floor:2,pricePerSqft:1000,bookingAmt:null,brokerageAmt:null,brokeragePct:null},spa:'Signed',oqood:'Completed'};
   Object.assign(state,{syncedAt:new Date().toISOString(),userRole:'crm_officer',user:{email:'test@example.com'},view:'detail',selectedUnit:'TEST-202::439',detailFrom:'list',dues:[c],recent:[]});render();
   window.originalLoader=window.loadFromSupabase;
   window.loadFromSupabase=options=>{testLoads.push(options);return new Promise((resolve,reject)=>{window.finishRefresh=resolve;window.failRefresh=()=>reject(Error('Offline test'));});};
   window.__sunblissRefreshScheduledActions=async()=>{};
  });
- await page.waitForTimeout(200);
+ await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'));await page.evaluate(()=>{window.saveLoaderStarts=0;const begin=__sunblissMotion.begin;__sunblissMotion.begin=function(){saveLoaderStarts++;return begin.apply(this,arguments)}});
  return {page,errors};
 }
 async function openForm(page){await page.evaluate(()=>{window.__sunblissOpenRecordPayment();});await page.locator('#recordPaymentReliablePanel #pfAmount').waitFor();}
-async function record(page){await page.locator('#recordPaymentReliablePanel #pfAmount').fill('99190');await page.locator('#recordPaymentReliablePanel #pfDate').fill('2026-09-26');await page.locator('#recordPaymentReliablePanel #pfSave').click();await page.evaluate(()=>finishSave());await page.locator('#recordPaymentReliablePanel #pfReturn').waitFor();}
+async function record(page){await page.getByText('Confirmed by Accounts',{exact:true}).click();await page.locator('#recordPaymentReliablePanel #pfAmount').fill('99190');await page.locator('#recordPaymentReliablePanel #pfDate').fill('2026-09-26');await page.locator('#recordPaymentReliablePanel #pfSave').click();await page.evaluate(()=>finishSave());await page.locator('#recordPaymentReliablePanel #pfReturn').waitFor();}
 (async()=>{
  const server=http.createServer((req,res)=>{const name=req.url.split('?')[0];const file=path.join(root,name==='/'?'index.html':name);try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.html')?'text/html':'application/octet-stream');res.end(fs.readFileSync(file));}catch{res.statusCode=404;res.end();}});
  await new Promise(r=>server.listen(8124,'127.0.0.1',r));
@@ -35,7 +35,7 @@ async function record(page){await page.locator('#recordPaymentReliablePanel #pfA
    assert.equal(await page.locator('#recordPaymentReliablePanel.crm-full-page-inline').count(),0,'No generic editor relocation');
    const footerBefore=await page.locator('.record-payment-footer').boundingBox();assert(Math.abs(footerBefore.y+footerBefore.height-844)<2);
    await page.locator('#recordPaymentReliablePanel #pfSave').click();assert.equal(await page.evaluate(()=>testCalls.length),0,'Empty amount is not saved');
-   await page.locator('#recordPaymentReliablePanel #pfAmount').fill('99190');await page.locator('#recordPaymentReliablePanel #pfDate').fill('2026-09-26');await page.locator('#recordPaymentReliablePanel #pfSave').click();
+   await page.getByText('Confirmed by Accounts',{exact:true}).click();await page.locator('#recordPaymentReliablePanel #pfAmount').fill('99190');await page.locator('#recordPaymentReliablePanel #pfDate').fill('2026-09-26');await page.locator('#recordPaymentReliablePanel #pfSave').click();
    assert(await page.locator('#recordPaymentReliablePanel #pfCancel').isDisabled());await page.evaluate(()=>{__sunblissRecordPaymentSave();__sunblissRecordPaymentSave();});
    assert.equal(await page.evaluate(()=>testCalls.length),1,'Repeated taps produce one save');
    await page.evaluate(()=>finishSave());await page.locator('#recordPaymentReliablePanel #pfReturn').waitFor();
@@ -44,7 +44,7 @@ async function record(page){await page.locator('#recordPaymentReliablePanel #pfA
    const footerAfter=await page.locator('.record-payment-footer').boundingBox();assert.equal(footerAfter.y,footerBefore.y,'Success keeps footer in place');
    if(process.env.CRM_SCREENSHOTS)await page.screenshot({path:path.join(process.env.CRM_SCREENSHOTS,'payment-success-'+width+'.png')});
    const elapsed=await page.evaluate(()=>{const t=performance.now();document.querySelector('#pfReturn').click();return {ms:performance.now()-t,panel:!!document.querySelector('#recordPaymentReliablePanel'),view:state.view};});
-   assert.equal(elapsed.panel,false);assert(elapsed.ms<500);assert.equal(elapsed.view,'detail');
+   assert.equal(await page.evaluate(()=>saveLoaderStarts),0,'Saving and returning must not start full-page transitions');assert.equal(elapsed.panel,false);assert(elapsed.ms<500);assert.equal(elapsed.view,'detail');
    assert.match(await page.locator('.record-payment-refresh-status').innerText(),/Updating balances/);
    await page.evaluate(()=>{state.view='list';renderMain();finishRefresh();});await page.waitForTimeout(100);
    assert.equal(await page.evaluate(()=>state.view),'list','Refresh does not navigate back');assert.equal(await page.evaluate(()=>testPageshows),0,'No synthetic page lifecycle events');
