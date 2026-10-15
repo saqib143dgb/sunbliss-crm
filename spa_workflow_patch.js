@@ -15,7 +15,7 @@
  window.__sunblissOpenSpaTask=function(task){
   close();const c=(window.state?.dues||[]).find(c=>Number(c.sno)===Number(task.unit_id));
   const panel=document.createElement('div');panel.id='scheduledActionPanel';panel.className='brand-editor';panel.dataset.mode='spa';
-  panel.innerHTML='<p class="section-label">'+esc(task.action_label)+'</p><p class="scheduled-form-summary">'+esc(c?c.unit+' · '+c.name:'Unit '+task.unit_id)+'</p><p>'+esc(tips[task.spa_step]||'Record the next step.')+'</p>'+(task.note?'<p class="scheduled-outcome-current">'+esc(task.note)+'</p>':'')+'<p id="spaError" class="brand-error" role="alert" hidden></p><label class="brand-field">Outcome<select id="spaOutcome">'+(options[task.spa_step]||[]).map(o=>'<option value="'+o+'">'+labels[o]+'</option>').join('')+'</select></label><div id="spaFields"></div><details id="spaHistory"><summary>Task history</summary><div>Loading…</div></details><div class="brand-editor-actions"><button type="button" id="spaSave" class="btn btn-gold">Save</button><button type="button" id="spaClose" class="btn-paper">Cancel</button></div>';
+  panel.innerHTML='<p class="section-label">'+esc(task.action_label)+'</p><p class="scheduled-form-summary">'+esc(c?c.unit+' · '+c.name:'Unit '+task.unit_id)+'</p><p>'+esc(tips[task.spa_step]||'Record the next step.')+'</p>'+(task.note?'<p class="scheduled-outcome-current">'+esc(task.note)+'</p>':'')+'<p id="spaError" class="brand-error" role="alert" hidden></p><label class="brand-field">Outcome<select id="spaOutcome">'+(options[task.spa_step]||[]).map(o=>'<option value="'+o+'">'+labels[o]+'</option>').join('')+'</select></label><div id="spaFields"></div><details id="spaHistory"><summary>Task history</summary><div>Loading…</div></details><div class="brand-editor-actions"><button type="button" id="spaSave" class="btn btn-gold">Save</button><button type="button" id="spaClose" class="btn-paper">Back</button></div>';
   document.body.appendChild(panel);
   const field=(label,id,type,required,value='')=>'<label class="brand-field">'+label+(required?' *':'')+'<input id="'+id+'" type="'+type+'" value="'+esc(value)+'" '+(required?'required':'')+' /></label>';
   function fields(){const o=panel.querySelector('#spaOutcome').value;
@@ -24,11 +24,12 @@
    panel.querySelector('#spaSave').textContent=o==='sent'?'Mark Sent':o==='customer_signed'||o==='developer_signed'?'Record Signature':o==='registered'?'Mark Registered':o==='issued'?'Mark Issued':'Save';
   }
   panel.querySelector('#spaOutcome').onchange=fields;fields();panel.querySelector('#spaClose').onclick=close;
+  window.__sunblissEnhanceTaskOutcome?.(panel,{task,selectId:'spaOutcome',saveId:'spaSave'});
   sb.from('scheduled_actions').select('action_label,completed_at,completion_note,status,note,spa_data').eq('spa_sale_id',task.spa_sale_id).order('id',{ascending:false}).then(r=>{
    if(!panel.isConnected)return;const host=panel.querySelector('#spaHistory div');
    host.innerHTML=r.error?'Could not load history.':(r.data||[]).map(t=>'<p><strong>'+esc(t.action_label)+'</strong> · '+esc(t.status)+(t.completed_at?' · '+esc(new Date(t.completed_at).toLocaleDateString('en-GB',{timeZone:'Asia/Dubai'})):'')+'<br>'+esc(t.completion_note||t.note||'')+(t.spa_data?.reference?'<br>Reference: '+esc(t.spa_data.reference):'')+'</p>').join('')||'No earlier actions.';
   });
-  panel.querySelector('#spaSave').onclick=async function(){const button=this,o=panel.querySelector('#spaOutcome').value;
+  panel.querySelector('#spaSave').onclick=async function(){const button=this;if(button.disabled)return;const o=panel.querySelector('#spaOutcome').value;
    const val=id=>panel.querySelector('#'+id)?.value.trim()||null;
    const error=panel.querySelector('#spaError');error.hidden=true;
    function fail(message,id){error.textContent=message;error.hidden=false;const f=panel.querySelector('#'+id);f?.scrollIntoView({block:'center'});f?.focus();}
@@ -37,10 +38,11 @@
    if(needsRef(o)&&!val('spaRef'))return fail('Enter the reference.','spaRef');
    if(needsNote(o)&&!val('spaNote'))return fail('Enter a short note.','spaNote');
    button.disabled=true;button.textContent='Saving…';
+   const completedDate=val('spaDate');
    try{const r=await sb.rpc('crm_resolve_spa_task',{p_task_id:Number(task.id),p_outcome:o,p_data:{date:val('spaDate'),time:val('spaTime'),reference:val('spaRef'),method:val('spaMethod'),note:val('spaNote')}});if(r.error)throw r.error;
     close();await window.__sunblissRefreshScheduledActions?.();
-    if(c&&o==='developer_signed'){c.spa='Signed';if(c.info)c.info.spaDate=val('spaDate');}
-    if(c&&o==='registered'){c.oqood='Completed';if(c.info)c.info.oqoodDate=val('spaDate');}
+    if(c&&o==='developer_signed'){c.spa='Signed';if(c.info)c.info.spaDate=completedDate;}
+    if(c&&o==='registered'){c.oqood='Completed';if(c.info)c.info.oqoodDate=completedDate;}
     if(typeof window.renderMain==='function')window.renderMain();
    }catch(e){fail(e.message||'Could not save. Please try again.','spaOutcome');button.disabled=false;button.textContent='Try Again';}
   };

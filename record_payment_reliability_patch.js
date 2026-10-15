@@ -345,6 +345,7 @@ async function savePayment(){
       credit=creditOpen&&val('pfCreditAmount')!==''?Number(val('pfCreditAmount')):0,creditDate=creditOpen?val('pfCreditDate'):'',
       creditReason=creditOpen?val('pfCreditReason'):'',creditRef=creditOpen?val('pfCreditRef'):'';
   if(!row){setError('Select an installment.');return}
+  if(cache.context&&Number(cache.context.sourceTaskId)&&Number(cache.context.scheduleId)&&Number(cache.context.scheduleId)!==sid){setError('Select the installment linked to this task. Use Record Payment separately for another installment.');return}
   if(!isFinite(cash)||cash<0){setError('Enter a valid cash payment amount.');return}
   if(!isFinite(credit)||credit<0){setError('Enter a valid credit note amount.');return}
   if(cash<=0&&credit<=0){setError('Enter a cash payment, a credit note, or both.');return}
@@ -380,7 +381,7 @@ async function savePayment(){
       }
       var wf=await sb.rpc('crm_set_payment_confirmation_mode',{p_transaction_id:result.transaction_id,p_mode:confirmation,p_note:remarks||null});
       if(wf.error)workflowWarning+=(workflowWarning?' · ':'')+errorText(wf.error);
-      if(cache.context&&Number(cache.context.sourceTaskId)){
+      if(cache.context&&Number(cache.context.sourceTaskId)&&!workflowWarning){
         var sourceDone=await sb.from('scheduled_actions').update({status:'completed',completed_at:new Date().toISOString(),completion_note:'Customer reported payment and payment was recorded.',updated_at:new Date().toISOString()}).eq('id',Number(cache.context.sourceTaskId)).eq('status','pending');
         if(sourceDone.error)workflowWarning+=(workflowWarning?' · ':'')+'Commitment follow-up: '+errorText(sourceDone.error);
       }
