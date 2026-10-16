@@ -329,7 +329,8 @@ function showSuccess(result,row,cash,credit,key,from,confirmation,workflowWarnin
     else if(confirmation==='cheque_pending_clearance')workflowCopy='<strong>Cheque Pending Clearance.</strong><br><strong>Confirm Cheque Clearance</strong> has been created as the next action.';
     else workflowCopy='<strong>Customer Confirmed · Accounts Pending.</strong><br><strong>Confirm Payment with Accounts</strong> has been created as the next action.';
   }
-  if(workflowWarning)workflowCopy+='<br><span style="color:var(--rust)">Workflow setup needs attention: '+safe(workflowWarning)+'</span>';
+  if(cnId)workflowCopy+=(workflowCopy?'<br>':'')+'<strong>Send Credit Note to Customer</strong> has been added to Scheduled Tasks.';
+   if(workflowWarning)workflowCopy+='<br><span style="color:var(--rust)">Workflow setup needs attention: '+safe(workflowWarning)+'</span>';
   setBusy(false);
   renderPanel('<div class="record-payment-success" role="status"><p class="record-payment-success-title">Payment recorded</p><p class="record-payment-success-copy">'+safe(row&&row.stage_name||'Payment')+(summary.length?'<br>'+safe(summary.join(' + ')):'')+'</p>'+(workflowCopy?'<p class="record-payment-success-copy" style="margin-top:10px">'+workflowCopy+'</p>':'')+(refs.length?'<p class="record-payment-success-ref">'+safe(refs.join(' · '))+'</p>':'')+'</div>','<button class="btn btn-gold" type="button" id="pfReturn">Return to customer</button>');
   startCustomerRefresh(key);
