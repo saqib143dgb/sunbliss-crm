@@ -62,7 +62,7 @@ function taskKind(t){
 function docName(s){var n=text(s).toLowerCase();return n==='welcome'?'Welcome Letter':n==='receipt'?'Payment Receipt':n==='soa'?'Statement of Account':n==='spa'?'SPA':label(s||'Document');}
 async function collect(c){
  var unit=Number(c.sno),customerId=Number(c.customerId||c.customer_id||c.info&&c.info.customerId||0);
- var names=['sales','payment_transactions','scheduled_actions','credit_notes','crm_documents','payment_extension_requests','payment_extensions','modification_requests','cancelled_units','payment_schedule_revision_history','sales_note_history','carry_forward_events','spa_generation_records','payment_transaction_edit_log','payment_transaction_deletion_log','crm_history_manual_events','payment_schedule'];
+ var names=['sales','payment_transactions','scheduled_actions','credit_notes','crm_documents','payment_extension_requests','payment_extensions','modification_requests','cancelled_units','payment_schedule_revision_history','sales_note_history','carry_forward_events','spa_generation_records','payment_transaction_edit_log','payment_transaction_deletion_log','crm_history_manual_events','crm_gmail_history_events','payment_schedule'];
  var settled=await Promise.all(names.map(function(t){return read(t,'unit_id',unit).then(function(rows){return {table:t,rows:rows};}).catch(function(err){return {table:t,error:err.message,rows:[]};});}));
  var data={},errors=[];settled.forEach(function(r){data[r.table]=r.rows;if(r.error)errors.push(r.error);});
  var extensionEvents=[],modEvents=[],revisionRequests=data.payment_extension_requests||[],modRequests=data.modification_requests||[];
@@ -222,6 +222,22 @@ async function collect(c){
     'Historical deletion recorded; this is not a new receipt.'
    ],'payments');
  });
+
+ (data.crm_gmail_history_events||[]).forEach(function(g){
+  var entryTitle=text(g.title)||'Email Sent';
+  var when=g.activity_at||g.imported_at;
+  var kind=/spa/.test(g.activity_type)?'contracts':'letters';
+  add(events,'gmail',g.gmail_message_id,when,entryTitle,text(g.summary)||'Verified email',[
+   'Verified Gmail correspondence: '+(g.direction==='sent'?'Sent':'Received'),
+   'Email subject: '+text(g.subject),
+   g.recipient_email?'Recipient: '+g.recipient_email:'',
+   'Source: '+label(g.match_basis),
+   g.has_attachment?'Email includes attachment':'',
+   'Imported: '+(day(g.imported_at)||'Not recorded')
+  ],kind,'Verified Gmail');
+  var last=events[events.length-1];
+  if(last&&g.gmail_url){try{var parsed=new URL(g.gmail_url);if(parsed.protocol==='https:'&&parsed.hostname==='mail.google.com')last.url=g.gmail_url;}catch(e){}}
+ });
  (data.crm_history_manual_events||[]).forEach(function(r){
   add(events,'manual',r.id,r.event_date,r.title,r.details,[
    'Manually recorded: '+(day(r.created_at)||'Date unavailable')+' '+clock(r.created_at),
@@ -230,6 +246,19 @@ async function collect(c){
   ],/payment|credit/.test(r.category)?'payments':/spa|booking|dld|handover/.test(r.category)?'contracts':'updates','Manual entry');
  });
  var unique={},sorted=events.filter(function(e){if(unique[e.key])return false;unique[e.key]=true;return true;});
+ var gmailProof=sorted.filter(function(e){return e.source==='gmail';});
+ sorted=sorted.filter(function(e){
+  if(e.source!=='task'||!/(letter|reminder|receipt|account|invitation)/i.test(e.title))return true;
+  return !gmailProof.some(function(g){
+   if(day(g.time)!==day(e.time))return false;
+   if(/demand letter/i.test(e.title))return /demand letter/i.test(g.title);
+   if(/payment receipt/i.test(e.title))return /payment receipt/i.test(g.title);
+   if(/welcome letter/i.test(e.title))return /welcome letter/i.test(g.title);
+   if(/gentle reminder/i.test(e.title))return /gentle reminder/i.test(g.title);
+   if(/statement of account/i.test(e.title))return /statement of account/i.test(g.title);
+   return false;
+  });
+ });
  sorted.sort(function(a,b){return sortKey(a)-sortKey(b)||a.key.localeCompare(b.key);});
  return {events:sorted,errors:errors,customerId:customerId};
 }
@@ -274,7 +303,7 @@ function styles(){
  ].join('');document.head.appendChild(style);
 }
 function eventHtml(e){
- return '<article class="ch-event" data-category="'+esc(e.kind)+'"><details><summary><span><span class="ch-event-date">'+esc(eventDate(e))+(clock(e.time)?' · '+esc(clock(e.time)):'')+'</span><span class="ch-event-title" style="display:block">'+esc(e.title)+'</span>'+(e.summary?'<span class="ch-summary" style="display:block">'+esc(e.summary)+'</span>':'')+'</span><span class="ch-arrow" aria-hidden="true">⌄</span></summary><div class="ch-details">'+e.details.map(function(x){return '<p>'+esc(x)+'</p>';}).join('')+'<p class="ch-result">Source: '+esc(e.source==='task'?'Completed CRM task':e.source==='manual'?'Manual entry':'CRM '+label(e.source))+(e.meta?' · '+esc(e.meta):'')+'</p></div></details></article>';
+ return '<article class="ch-event" data-category="'+esc(e.kind)+'"><details><summary><span><span class="ch-event-date">'+esc(eventDate(e))+(clock(e.time)?' · '+esc(clock(e.time)):'')+'</span><span class="ch-event-title" style="display:block">'+esc(e.title)+'</span>'+(e.summary?'<span class="ch-summary" style="display:block">'+esc(e.summary)+'</span>':'')+'</span><span class="ch-arrow" aria-hidden="true">⌄</span></summary><div class="ch-details">'+e.details.map(function(x){return '<p>'+esc(x)+'</p>';}).join('')+(e.url?'<p><a target="_blank" rel="noopener noreferrer" href="'+esc(e.url)+'" style="color:var(--gold-deep,#A27C35);text-decoration:underline">Open original Gmail message ↗</a></p>':'')+'<p class="ch-result">Source: '+esc(e.source==='task'?'Completed CRM task':e.source==='manual'?'Manual entry':e.source==='gmail'?'Verified Gmail':'CRM '+label(e.source))+(e.meta?' · '+esc(e.meta):'')+'</p></div></details></article>';
 }
 function filter(panel,events){
  var term=text(panel.querySelector('#chSearch').value).toLowerCase(),kind=panel.querySelector('#chCategory').value;
