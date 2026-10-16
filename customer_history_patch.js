@@ -17,7 +17,7 @@ function makeEvent(source,id,dateValue,title,summary,detail,kind,meta){
  return {key:source+':'+id,time:text(dateValue),title:title,summary:text(summary),details:(detail||[]).filter(Boolean),kind:kind||'updates',meta:meta||'',source:source};
 }
 function eventDate(e){return day(e.time)||'Date not recorded';}
-function sortKey(e){return e.time?Date.parse(e.time.length===10?e.time+'T12:00:00Z':e.time)||0:0;}
+function sortKey(e){return e.time?(Date.parse(e.time.length===10?e.time+'T12:00:00Z':e.time)||Number.MAX_SAFE_INTEGER):Number.MAX_SAFE_INTEGER;}
 function add(list,source,id,when,title,summary,details,kind,meta){
  list.push(makeEvent(source,id,when,title,summary,details,kind,meta));
 }
