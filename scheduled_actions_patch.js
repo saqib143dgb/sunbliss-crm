@@ -132,7 +132,7 @@
   function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(t.workflow_kind==='modification_request'&&/in progress/i.test(text(t.action_label)))return{key:'inprogress',label:'In Progress'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
   function addDaysIso(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(Number(n)||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
   function isBookingWelcome(t){return text(t&&t.auto_key).indexOf('booking_welcome|')===0;}
-  function taskButtonLabel(t){if(collectionOutcomeTask(t))return'Open';if(isBookingWelcome(t))return'Mark Sent';if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder'))return'Mark Sent';return'Mark Done';}
+  function taskButtonLabel(t){if(t&&t.auto_kind==='credit_note_send')return'Mark Sent';if(collectionOutcomeTask(t))return'Open';if(isBookingWelcome(t))return'Mark Sent';if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder'))return'Mark Sent';return'Mark Done';}
   function collectionOutcomeTask(t){return !!(t&&(['overdue_follow_up','extension_residual_overdue','extension_uncovered_overdue'].indexOf(t.auto_kind)>=0||(!t.workflow_kind&&!t.auto_kind&&!isBookingWelcome(t)&&/collect.*payment|payment.*follow|follow.*payment|installment.*follow|dld.*follow/i.test(text(t.action_label)))||['promise_follow_up','payment_query','payment_follow_up','payment_review','partial_payment_commitment'].indexOf(text(t.workflow_kind))>=0));}
 
   function renderDetailTasks(){var old=document.getElementById('scheduledActionsDetail');if(old)old.remove();}
@@ -219,7 +219,10 @@
     removePanel();var c=customerForUnit(task.unit_id),p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode','complete');
     var summary=safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+' · due '+safe(formatDate(task.due_date));
     var body='',button='Mark Done';p.dataset.taskId=task.id;
-    if(isBookingWelcome(task)){
+    if(task.auto_kind==='credit_note_send'){
+      body='<p class="scheduled-outcome-current">Send the issued credit note to the customer. Mark this task as sent only after delivery.</p><label class="brand-field">Email reference / sending note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email, include thread reference"></textarea></label>';
+      button='Mark Sent';
+    }else if(isBookingWelcome(task)){
       body='<p class="scheduled-outcome-current">Send the Welcome Letter before the payment receipt, then mark this task as sent.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label>';
       button='Mark Sent';
     }else if(task.workflow_kind==='accounts_confirmation'){
