@@ -2,385 +2,199 @@
 'use strict';
 if(window.__customerHistoryInstalled)return;
 window.__customerHistoryInstalled=true;
-var categories={all:'All activities',letters:'Letters & receipts',payments:'Payments',contracts:'Booking & SPA',requests:'Requests & approvals',updates:'Other updates'};
-var openVersion=0;
-function text(v){return String(v===null||v===undefined?'':v).trim();}
-function esc(v){return text(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function money(v){var n=Number(v);return isFinite(n)?'AED '+n.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}):'Amount not recorded';}
-function day(v){var t=text(v);if(!t)return '';var d=new Date(t.length===10?t+'T12:00:00Z':t);if(isNaN(d.getTime()))return '';return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'});}
-function clock(v){var t=text(v);if(!t||t.length===10)return '';var d=new Date(t);return isNaN(d.getTime())?'':d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});}
-function label(v){return text(v).replace(/[_-]/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});}
-function current(){return (window.state&&state.dues||[]).find(function(c){return c.unit+'::'+c.sno===state.selectedUnit;});}
-function allowed(){return !!(window.state&&['manager','crm_officer'].includes(state.userRole));}
+// Email-only Customer History. Legacy CRM activity data and task ledgers remain unchanged.
+var openVersion=0,viewMode='installment',directionFilter='all',searchValue='',openGroups={};
+function val(x){return String(x===null||x===undefined?'':x).trim();}
+function safe(x){return val(x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function cunit(){var s=window.state;if(!s)return null;return (s.dues||[]).find(function(c){return c.unit+'::'+c.sno===s.selectedUnit;})||null;}
+function allowed(){return !!(window.state&&['manager','crm_officer'].indexOf(state.userRole)>=0);}
+function timeValue(x){var n=Date.parse(val(x));return isNaN(n)?0:n;}
+function when(x){var d=new Date(x);if(isNaN(d.getTime()))return 'Date unavailable';return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'})+' · '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});}
+function cap(v){return val(v).replace(/_/g,' ').replace(/\b\w/g,function(x){return x.toUpperCase();});}
+function shortSubject(s){return val(s).replace(/^(re:|fw:|fwd:)\s*/ig,'');}
+function isNested(e){return /^(re:|fw:|fwd:)/i.test(val(e.subject))||/request|re.request|extension|approval|approved|reject|reminder|follow.up|decision|commitment|response|reply/i.test(val(e.title)+' '+val(e.activity_type));}
+function isWelcome(e){return ['welcome_letter','spa_correspondence'].indexOf(e.activity_type)>=0||/booking confirmation|welcome letter|spa signing|sales purchase agreement/i.test(e.title);}
+function isInstallmentSubject(e){return ['demand_letter','gentle_reminder','payment_receipt','payment_follow_up','customer_reply','extension_requested','extension_forwarded','extension_approved','extension_approved_conditional','extension_rejected','extension_rerequested','management_decision_sent','extension_customer_accepted','extension_customer_declined','payment_commitment','credit_note_sent'].indexOf(e.activity_type)>=0||/instal(l)?ment|payment|extension|credit note|demand letter/i.test(e.subject);}
 function close(){openVersion++;var p=document.getElementById('customerHistoryPanel');if(p)p.remove();document.body.classList.remove('customer-history-open');}
-function makeEvent(source,id,dateValue,title,summary,detail,kind,meta){
- return {key:source+':'+id,time:text(dateValue),title:title,summary:text(summary),details:(detail||[]).filter(Boolean),kind:kind||'updates',meta:meta||'',source:source};
+function styles(){
+ if(document.getElementById('customerEmailHistoryStyle'))return;
+ var x=document.createElement('style');x.id='customerEmailHistoryStyle';
+ x.textContent=[
+ '#customerHistoryPanel{position:fixed;inset:0;z-index:16050;overflow-y:auto;overflow-x:hidden;background:var(--paper,#F7F3EA);color:var(--ink,#242728);font-family:Inter,CRMInter,Arial,sans-serif;padding:0 18px calc(50px + env(safe-area-inset-bottom));box-sizing:border-box}',
+ '#customerHistoryPanel *{box-sizing:border-box}',
+ 'body.customer-history-open{overflow:hidden}',
+ '#customerHistoryPanel .ch-shell{max-width:960px;margin:0 auto;padding:24px 0}',
+ '#customerHistoryPanel .ch-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:20px}',
+ '#customerHistoryPanel h2{margin:0;font:700 24px/1.2 Inter,CRMInter,sans-serif;letter-spacing:-.025em;color:var(--ink)}',
+ '#customerHistoryPanel .ch-sub{color:var(--muted,#697072);font-size:12px;line-height:1.5;margin:6px 0 0}',
+ '#customerHistoryPanel .ch-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;min-height:36px;padding:8px 13px;border:1px solid var(--paper-line,#dcd6c9);border-radius:999px;background:var(--paper-bright,#fffdf9);color:var(--ink);font:600 11px/1.25 Inter,CRMInter,sans-serif;white-space:nowrap}',
+ '#customerHistoryPanel .ch-btn:focus-visible,#customerHistoryPanel summary:focus-visible{outline:2px solid var(--gold-deep,#a78243);outline-offset:3px}',
+ '#customerHistoryPanel .ch-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 15px}',
+ '#customerHistoryPanel .ch-metric{border:1px solid var(--paper-line,#dcd6c9);border-radius:12px;background:var(--paper-bright,#fffdf9);padding:13px 15px}',
+ '#customerHistoryPanel .ch-metric strong{font:700 20px/1.2 Inter,CRMInter,sans-serif;display:block;color:var(--ink);font-variant-numeric:tabular-nums}',
+ '#customerHistoryPanel .ch-metric span{display:block;margin-top:5px;color:var(--muted);font:500 11px/1.35 Inter,CRMInter,sans-serif}',
+ '#customerHistoryPanel .ch-controls{display:grid;gap:11px;margin:0 0 15px}',
+ '#customerHistoryPanel .ch-segments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--paper-line,#dcd6c9);border-radius:999px;background:var(--paper-bright,#fffdf9);padding:3px;gap:3px}',
+ '#customerHistoryPanel .ch-segments button{border:0;border-radius:999px;background:transparent;min-height:35px;font:650 12px/1.2 Inter,CRMInter,sans-serif;color:var(--muted);cursor:pointer}',
+ '#customerHistoryPanel .ch-segments button[aria-pressed=true]{background:var(--ink,#333839);color:var(--paper-bright,#fffdf9)}',
+ '#customerHistoryPanel .ch-filterrow{display:flex;align-items:center;justify-content:space-between;gap:10px}',
+ '#customerHistoryPanel .ch-dir{display:flex;gap:4px;min-width:0;flex-wrap:wrap}',
+ '#customerHistoryPanel .ch-dir button{min-height:31px;padding:7px 11px;border:1px solid var(--paper-line,#dcd6c9);border-radius:999px;font:600 10.8px Inter,CRMInter,sans-serif;color:var(--muted);background:var(--paper-bright,#fffdf9);cursor:pointer}',
+ '#customerHistoryPanel .ch-dir button[aria-pressed=true]{color:var(--ink);border-color:var(--gold-deep,#a78243);background:rgba(160,125,55,.08)}',
+ '#customerHistoryPanel .ch-search{width:min(380px,100%);min-width:120px;min-height:37px;padding:9px 12px;border:1px solid var(--paper-line,#dcd6c9);border-radius:9px;background:var(--paper-bright,#fffdf9);font:500 12px Inter,CRMInter,sans-serif;color:var(--ink)}',
+ '#customerHistoryPanel .ch-caption{font:500 11px/1.45 Inter,CRMInter,sans-serif;color:var(--muted);margin:5px 0 13px}',
+ '#customerHistoryPanel .ch-group{border:1px solid var(--paper-line,#dcd6c9);border-radius:13px;overflow:hidden;background:var(--paper-bright,#fffdf9);margin:0 0 10px}',
+ '#customerHistoryPanel .ch-group>summary{display:flex;align-items:center;gap:11px;justify-content:space-between;cursor:pointer;list-style:none;padding:15px 16px}',
+ '#customerHistoryPanel summary::-webkit-details-marker{display:none}',
+ '#customerHistoryPanel .ch-icon{flex:none;width:33px;height:33px;display:grid;place-items:center;border-radius:9px;border:1px solid var(--paper-line);color:var(--gold-deep,#97763e);font-size:15px}',
+ '#customerHistoryPanel .ch-gmeta{min-width:0;flex:1}',
+ '#customerHistoryPanel .ch-gname{display:block;font:700 13.5px/1.3 Inter,CRMInter,sans-serif;color:var(--ink)}',
+ '#customerHistoryPanel .ch-gdesc{display:block;margin-top:3px;font:500 10.8px/1.35 Inter,CRMInter,sans-serif;color:var(--muted)}',
+ '#customerHistoryPanel .ch-chevron{flex:none;color:var(--muted);font-size:17px;transition:transform .15s}',
+ '#customerHistoryPanel .ch-group[open]>summary .ch-chevron{transform:rotate(180deg)}',
+ '#customerHistoryPanel .ch-groupbody{border-top:1px solid var(--paper-line,#dcd6c9);padding:13px 15px 16px}',
+ '#customerHistoryPanel .ch-line{border-left:1.5px solid var(--paper-line,#dcd6c9);margin-left:10px;padding:0 0 0 19px}',
+ '#customerHistoryPanel .ch-item{position:relative;margin:0 0 10px;min-width:0}',
+ '#customerHistoryPanel .ch-item:last-child{margin-bottom:0}',
+ '#customerHistoryPanel .ch-item:before{position:absolute;content:"";width:9px;height:9px;border:2px solid var(--gold-deep,#a78243);border-radius:50%;background:var(--paper-bright,#fffdf9);left:-25px;top:17px}',
+ '#customerHistoryPanel .ch-item[data-nested=true]{margin-left:13px}',
+ '#customerHistoryPanel .ch-item[data-nested=true]:before{width:7px;height:7px;left:-38px;border-color:var(--muted,#85908f)}',
+ '#customerHistoryPanel .ch-email{border:1px solid var(--paper-line,#dcd6c9);border-radius:10px;background:var(--paper-bright,#fffdf9);overflow:hidden}',
+ '#customerHistoryPanel .ch-email>summary{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px 13px;cursor:pointer;list-style:none}',
+ '#customerHistoryPanel .ch-date{display:block;font:500 10.5px/1.35 Inter,CRMInter,sans-serif;color:var(--muted);margin-bottom:4px}',
+ '#customerHistoryPanel .ch-title{display:block;font:650 12.8px/1.35 Inter,CRMInter,sans-serif;color:var(--ink);overflow-wrap:anywhere}',
+ '#customerHistoryPanel .ch-preview{display:block;margin-top:5px;font:500 11.3px/1.45 Inter,CRMInter,sans-serif;color:var(--muted);overflow-wrap:anywhere}',
+ '#customerHistoryPanel .ch-side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}',
+ '#customerHistoryPanel .ch-direction{border:1px solid var(--paper-line);border-radius:999px;padding:3px 7px;font:650 9.5px/1.2 Inter,CRMInter,sans-serif;white-space:nowrap;color:var(--muted)}',
+ '#customerHistoryPanel .ch-direction.sent{color:var(--gold-deep,#92723a)}',
+ '#customerHistoryPanel .ch-details{padding:12px 13px 14px;border-top:1px solid var(--paper-line);display:grid;gap:8px;background:rgba(130,111,75,.035)}',
+ '#customerHistoryPanel .ch-detailrow{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:start}',
+ '#customerHistoryPanel .ch-detailrow small{font:600 10.5px/1.45 Inter,CRMInter,sans-serif;color:var(--muted)}',
+ '#customerHistoryPanel .ch-detailrow span{font:500 11.3px/1.5 Inter,CRMInter,sans-serif;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}',
+ '#customerHistoryPanel .ch-original{font:650 11px Inter,CRMInter,sans-serif;color:var(--gold-deep,#97763e);text-decoration:underline;text-underline-offset:3px;display:inline-block;margin-top:3px}',
+ '#customerHistoryPanel .ch-info{border:1px solid var(--paper-line,#dcd6c9);padding:12px;border-radius:10px;font:500 11.5px/1.5 Inter,CRMInter,sans-serif;color:var(--muted);margin:0 0 13px;background:var(--paper-bright,#fffdf9)}',
+ '#customerHistoryPanel .ch-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}',
+ '#customerHistoryPanel .ch-flag{display:inline-block;color:var(--gold-deep,#97763e);font-weight:650}',
+ '@media(max-width:650px){#customerHistoryPanel{padding:0 10px calc(30px + env(safe-area-inset-bottom))}#customerHistoryPanel .ch-shell{padding:16px 0}#customerHistoryPanel h2{font-size:21px}#customerHistoryPanel .ch-header{margin-bottom:15px}#customerHistoryPanel .ch-metric{padding:10px}#customerHistoryPanel .ch-metric strong{font-size:18px}#customerHistoryPanel .ch-group>summary{padding:12px 10px}#customerHistoryPanel .ch-groupbody{padding:11px 9px 12px}#customerHistoryPanel .ch-filterrow{align-items:stretch;flex-direction:column}#customerHistoryPanel .ch-search{width:100%;max-width:none}#customerHistoryPanel .ch-dir{justify-content:flex-start}#customerHistoryPanel .ch-item[data-nested=true]{margin-left:6px}#customerHistoryPanel .ch-item[data-nested=true]:before{left:-31px}#customerHistoryPanel .ch-email>summary{padding:11px 10px}#customerHistoryPanel .ch-title{font-size:12px}#customerHistoryPanel .ch-details{padding:11px}}'
+ ].join('');
+ document.head.appendChild(x);
 }
-function eventDate(e){return day(e.time)||'Date not recorded';}
-function sortKey(e){return e.time?(Date.parse(e.time.length===10?e.time+'T12:00:00Z':e.time)||Number.MAX_SAFE_INTEGER):Number.MAX_SAFE_INTEGER;}
-function add(list,source,id,when,title,summary,details,kind,meta){
- list.push(makeEvent(source,id,when,title,summary,details,kind,meta));
+function resultRow(e,k,v){if(!val(v))return '';return '<div class="ch-detailrow"><small>'+safe(k)+'</small><span>'+safe(v)+'</span></div>';}
+function itemHtml(e,context,allView){
+ var matched=val(context),nest=isNested(e),url=/^https:\/\/mail\.google\.com\/mail\//i.test(val(e.gmail_url))?val(e.gmail_url):'';
+ var detail=resultRow(e,'Subject',e.subject)+resultRow(e,'From',e.sender_email)+resultRow(e,'To',e.recipient_email)+resultRow(e,'Linked to',matched)+resultRow(e,'Summary',e.summary);
+ if(e._threadCount>1)detail+=resultRow(e,'Conversation',e._threadCount+' verified messages in this Gmail thread');
+ if(e.has_attachment)detail+=resultRow(e,'Attachment','Original email includes an attachment');
+ return '<article class="ch-item" data-nested="'+(nest?'true':'false')+'"><details class="ch-email"><summary><span style="min-width:0;flex:1"><span class="ch-date">'+safe(when(e.activity_at))+(allView&&matched?' · '+safe(matched):'')+'</span><span class="ch-title">'+safe(e.title||cap(e.activity_type))+'</span>'+(val(e.summary)?'<span class="ch-preview">'+safe(e.summary)+'</span>':'')+'</span><span class="ch-side"><span class="ch-direction '+(e.direction==='sent'?'sent':'received')+'">'+(e.direction==='sent'?'Sent':'Received')+'</span><span class="ch-chevron" aria-hidden="true">⌄</span></span></summary><div class="ch-details">'+detail+(url?'<a class="ch-original" target="_blank" rel="noopener noreferrer" href="'+safe(url)+'">Open original Gmail message ↗</a>':'<span class="ch-preview">Original Gmail link not available</span>')+'</div></details></article>';
 }
-async function read(table,field,value){
- var r=await sb.from(table).select('*').eq(field,value).limit(1200);
- if(r.error)throw new Error(table+': '+r.error.message);
- return r.data||[];
+function stagesSort(a,b){
+ if(a.sortPriority!==b.sortPriority)return a.sortPriority-b.sortPriority;
+ return val(a.sortDate).localeCompare(val(b.sortDate))||val(a.name).localeCompare(val(b.name));
 }
-async function readIds(table,field,ids){
- if(!ids.length)return [];
- var results=[];
- for(var i=0;i<ids.length;i+=50){
-  var r=await sb.from(table).select('*').in(field,ids.slice(i,i+50)).limit(1200);
-  if(r.error)throw new Error(table+': '+r.error.message);
-  results.push.apply(results,r.data||[]);
- }
- return results;
-}
-function stageById(rows){var m={};rows.forEach(function(r){m[r.id]=r.stage_name;});return m;}
-function stageName(map,id){return id&&map[id]?map[id]:'';}
-function taskTitle(t){
- var name=text(t.action_label),low=name.toLowerCase();
- if(/send.*credit note|credit note.*send/.test(low))return 'Credit Note Sent';
- if(/send.*welcome letter|welcome letter.*send/.test(low))return 'Welcome Letter Sent';
- if(/send.*demand letter|demand letter.*send/.test(low))return 'Demand Letter Sent'+(name.includes('—')?' — '+name.split('—').slice(1).join('—').trim():'');
- if(/send.*gentle reminder|gentle reminder.*send/.test(low))return 'Gentle Reminder Sent';
- if(/send.*payment receipt|payment receipt.*send/.test(low))return 'Payment Receipt Sent';
- if(/send.*(email|letter)|email.*sent/.test(low))return 'Email / Letter Sent';
- if(/send.*soa|statement of account/.test(low))return 'Statement of Account Sent';
- if(/call customer/.test(low))return 'Customer Called';
- if(/management (re-?)?approval/.test(low))return 'Management Approval Reviewed';
- if(/confirm with customer/.test(low))return 'Customer Confirmation Recorded';
- if(/confirm with accounts/.test(low))return 'Accounts Confirmation Follow-up';
- if(/payment commitment/.test(low))return 'Payment Commitment Follow-up';
- if(/spa/.test(low))return 'SPA Follow-up Completed';
- if(/oqood|dld/.test(low))return 'Registration Follow-up Completed';
- return name?name.replace(/^send /i,'Sent ')+' — Completed':'Task Completed';
-}
-function taskKind(t){
- var s=text(t.action_label).toLowerCase();
- return /demand|letter|receipt|reminder|soa|email|credit note/.test(s)?'letters':/payment|collection|cheque/.test(s)?'payments':/spa|oqood|dld/.test(s)?'contracts':'requests';
-}
-function docName(s){var n=text(s).toLowerCase();return n==='welcome'?'Welcome Letter':n==='receipt'?'Payment Receipt':n==='soa'?'Statement of Account':n==='spa'?'SPA':label(s||'Document');}
-async function collect(c){
- var unit=Number(c.sno),customerId=Number(c.customerId||c.customer_id||c.info&&c.info.customerId||0);
- var names=['sales','payment_transactions','scheduled_actions','credit_notes','crm_documents','payment_extension_requests','payment_extensions','modification_requests','cancelled_units','payment_schedule_revision_history','sales_note_history','carry_forward_events','spa_generation_records','payment_transaction_edit_log','payment_transaction_deletion_log','crm_history_manual_events','crm_gmail_history_events','payment_schedule'];
- var settled=await Promise.all(names.map(function(t){return read(t,'unit_id',unit).then(function(rows){return {table:t,rows:rows};}).catch(function(err){return {table:t,error:err.message,rows:[]};});}));
- var data={},errors=[];settled.forEach(function(r){data[r.table]=r.rows;if(r.error)errors.push(r.error);});
- var extensionEvents=[],modEvents=[],revisionRequests=data.payment_extension_requests||[],modRequests=data.modification_requests||[];
- var extra=await Promise.all([
-  readIds('payment_extension_request_events','request_id',revisionRequests.map(function(r){return r.id;})),
-  readIds('modification_request_events','request_id',modRequests.map(function(r){return r.id;}))
- ].map(function(p){return p.catch(function(e){errors.push(e.message);return [];});}));
- extensionEvents=extra[0];modEvents=extra[1];
- var events=[],stage=stageById(data.payment_schedule||[]);
- (data.sales||[]).forEach(function(s){
-  if(s.booking_date||s.created_at)add(events,'booking',s.id,s.booking_date||s.created_at,'Booking Confirmed','Booking recorded'+(s.booking_amount!=null?' · '+money(s.booking_amount):''),[
-   'Booking date: '+(day(s.booking_date)||'Not recorded'),
-   'Booking amount: '+money(s.booking_amount),
-   'Original sale reference: '+s.id
-  ],'contracts');
-  if(text(s.spa_status).toLowerCase()==='signed')add(events,'sale-spa',s.id,s.spa_date||'', 'SPA Signed','SPA marked signed in CRM',[
-   'SPA signing date: '+(day(s.spa_date)||'Not recorded'), 'Only details recorded in CRM are shown; document revisions require their own evidence.'
-  ],'contracts');
-  if(text(s.oqood_status).toLowerCase()==='completed')add(events,'sale-oqood',s.id,s.oqood_date||'', 'Oqood Registration Completed','Registration marked completed in CRM',[
-   'Registration date: '+(day(s.oqood_date)||'Not recorded'),'Verify against official registration documents.'
-  ],'contracts');
+function groupsFor(rows,stages,links){
+ var stageMap={},linkMap={},groups={},threadCount={};
+ stages.forEach(function(s){stageMap[String(s.id)]=s;});
+ links.forEach(function(l){
+  var s=stageMap[String(l.payment_schedule_id)];if(!s)return;
+  var key=String(l.email_event_id);(linkMap[key]=linkMap[key]||[]).push(s);
  });
- var receipts={};
- (data.payment_transactions||[]).forEach(function(t){
-  var inst=stageName(stage,t.payment_schedule_id);
-  var desc=money(t.amount)+(inst?' · '+inst:'');
-  add(events,'payment',t.id,t.payment_date||t.created_at,'Payment Recorded',desc,[
-   'Amount: '+money(t.amount),inst?'Installment: '+inst:'',t.payment_type?'Method: '+t.payment_type:'',
-   t.payment_reference?'Reference: '+t.payment_reference:'',t.remarks?'Remarks: '+t.remarks:'',
-   t.accounts_confirmation_status?'Accounts status: '+label(t.accounts_confirmation_status):'Accounts confirmation not recorded'
-  ],'payments');
-  if(t.accounts_confirmed_at)add(events,'payment-confirmed',t.id,t.accounts_confirmed_at,'Payment Confirmed by Accounts',desc,[
-   t.accounts_confirmation_note?'Confirmation note: '+t.accounts_confirmation_note:'',
-   t.payment_reference?'Payment reference: '+t.payment_reference:''
-  ],'payments');
-  if(t.receipt_sent_at){
-   receipts[t.id]=true;
-   add(events,'receipt-sent',t.id,t.receipt_sent_at,'Payment Receipt Sent',desc,[
-    'Sending recorded in CRM: '+day(t.receipt_sent_at)+' '+clock(t.receipt_sent_at),
-    t.receipt_send_note?'Sending note: '+t.receipt_send_note:'',
-    t.payment_reference?'Payment reference: '+t.payment_reference:''
-   ],'letters');
-  }
- });
- (data.scheduled_actions||[]).forEach(function(t){
-  var status=text(t.status).toLowerCase();
-  if(status!=='completed'&&!t.completed_at)return;
-  var title=taskTitle(t),low=text(t.action_label).toLowerCase();
-  if(t.transaction_id&&receipts[t.transaction_id]&&/receipt/.test(low))return;
-  var isSend=/^(send|email)/i.test(text(t.action_label))||/sent/i.test(text(t.action_label));
-  var dateValue=t.completed_at||t.updated_at||t.created_at;
-  add(events,'task',t.id,dateValue,title,isSend?'Sending marked complete in CRM':(text(t.completion_note)||'Task completed'),[
-   'Original task: '+(t.action_label||'Task'),t.completion_note?'Completion details: '+t.completion_note:'',
-   t.note?'Task note: '+t.note:'',
-   'Task outcome: '+label(status), 'Completed: '+(day(t.completed_at)||day(t.updated_at)||'Date unavailable'),
-   t.due_date?'Original task due date: '+day(t.due_date):''
-  ],taskKind(t),isSend?'Recorded as sent in CRM':'');
- });
- (data.crm_documents||[]).forEach(function(d){
-  var doc=docName(d.document_type);
-  add(events,'document',d.id,d.created_at,doc+' Generated',
-    text(d.file_name)||'Document recorded in CRM',[
-     'Document type: '+doc,d.file_name?'File: '+d.file_name:'',
-     'Document status: '+(label(d.status)||'Recorded'), 'Generation is not proof of sending.'
-    ],doc==='Payment Receipt'?'letters':'contracts');
- });
- (data.spa_generation_records||[]).forEach(function(r){
-  add(events,'spa-generated',r.id,r.generated_at||r.created_at,'SPA Generated',
-   'SPA document prepared in CRM', ['Generation status: '+(label(r.status)||'Recorded')],'contracts');
- });
- (data.credit_notes||[]).forEach(function(n){
-  add(events,'credit',n.id,n.issue_date||n.created_at,'Credit Note Recorded',money(n.amount)+
-   (stageName(stage,n.payment_schedule_id)?' · '+stageName(stage,n.payment_schedule_id):''),[
-    n.reason?'Reason: '+n.reason:'',n.reference_number?'Reference: '+n.reference_number:'',
-    'Credit adjustments are separate from cash received.'
-   ],'payments');
- });
- (data.carry_forward_events||[]).forEach(function(n){
-  add(events,'carry',n.id,n.event_date||n.created_at,'Carry Forward '+(Number(n.amount)>=0?'Recorded':'Adjusted'),
-    money(Math.abs(Number(n.amount)||0)),[n.reason?'Reason: '+n.reason:'', 'Carry forward is not a new cash payment.'],'payments');
- });
- (data.payment_extensions||[]).forEach(function(e){
-  var state=text(e.status).toLowerCase();
-  add(events,'extension',e.id,e.created_at||e.approved_on,'Payment Extension '+(state==='cancelled'?'Cancelled':'Recorded'),
-   stageName(stage,e.payment_schedule_id)||'Installment extension',[
-    'Original due: '+(day(e.original_due_date)||'Not recorded'),
-    'Extended until: '+(day(e.extended_due_date)||'Not recorded'),
-    e.reason?'Reason: '+e.reason:'',e.approved_by?'Approved by: '+e.approved_by:'',
-    'Current recorded status: '+label(e.status)
-   ],'requests');
- });
- revisionRequests.forEach(function(r){
-  add(events,'extension-request',r.id,r.requested_at||r.created_at,'Payment Extension Requested',
-   'Requested until '+(day(r.requested_until)||'date not recorded'),[
-    r.reason?'Reason: '+r.reason:'',
-    r.original_due_date?'Original deadline: '+day(r.original_due_date):'',
-    'Request status: '+label(r.status)
-   ],'requests');
- });
- extensionEvents.forEach(function(e){
-  var kind=text(e.event_type).toLowerCase();
-  if(/request_received|request_created/.test(kind))return;
-  add(events,'extension-action',e.id,e.created_at,'Extension — '+label(e.event_type),
-   text(e.notes)||'Extension case updated',[
-    e.notes?'Details: '+e.notes:'',e.request_id?'Extension request reference: '+e.request_id:''
-   ],'requests');
- });
- modRequests.forEach(function(r){
-  add(events,'modification',r.id,r.request_date||r.created_at,'Modification Requested',
-   r.title||'Customer modification request',[
-    r.details?'Details: '+r.details:'', 'Status: '+label(r.status),r.request_no?'Reference: '+r.request_no:''
-   ],'requests');
- });
- modEvents.forEach(function(e){
-  if(text(e.event_type).toLowerCase()==='request_received')return;
-  add(events,'modification-event',e.id,e.created_at,'Modification — '+label(e.event_type),
-   text(e.note)||'Modification case updated',[
-    e.note?'Details: '+e.note:'',e.to_status?'Result: '+label(e.to_status):''
-   ],'requests');
- });
- (data.payment_schedule_revision_history||[]).forEach(function(r){
-  add(events,'plan-revision',r.id,r.created_at||r.approved_on,'Payment Plan Revised',
-   (r.stage_name||'Installment')+' · '+money(r.previous_revised_due_amount==null?r.contractual_due_amount:r.previous_revised_due_amount)+' → '+money(r.new_revised_due_amount==null?r.contractual_due_amount:r.new_revised_due_amount),[
-    'Previous due date: '+(day(r.previous_revised_due_date||r.contractual_due_date)||'Not recorded'),
-    'Revised due date: '+(day(r.new_revised_due_date||r.contractual_due_date)||'Not recorded'),
-    r.reason?'Reason: '+r.reason:'',r.approved_by?'Approved by: '+r.approved_by:''
-   ],'contracts');
- });
- (data.cancelled_units||[]).forEach(function(r){
-  add(events,'cancellation',r.id,r.cancellation_date||r.created_at,'Unit Cancellation Recorded',
-   r.cancellation_reason||'Unit cancelled',[
-    'Cancellation reason: '+(r.cancellation_reason||'Not recorded'),
-    r.settlement_type?'Settlement: '+r.settlement_type:'',
-    'Refund: '+money(r.refund_amount),'Forfeited: '+money(r.forfeited_amount),
-    r.remarks?'Remarks: '+r.remarks:''
-   ],'contracts');
- });
- (data.sales_note_history||[]).forEach(function(r){
-  add(events,'note',r.id,r.edited_at,'Customer Note Updated',
-   text(r.new_note)||'Note revised or removed',[
-    r.old_note?'Before: '+r.old_note:'',r.new_note?'After: '+r.new_note:'',
-    r.note_type?'Note type: '+label(r.note_type):''
-   ],'updates');
- });
- (data.payment_transaction_edit_log||[]).forEach(function(r){
-  add(events,'payment-edit',r.id,r.edited_at,'Payment Details Corrected',
-   money(r.old_amount)+' → '+money(r.new_amount),[
-    'Original amount: '+money(r.old_amount),'Corrected amount: '+money(r.new_amount),
-    'Old reference: '+(r.old_payment_reference||'—'),'New reference: '+(r.new_payment_reference||'—')
-   ],'payments');
- });
- (data.payment_transaction_deletion_log||[]).forEach(function(r){
-  add(events,'payment-deletion',r.id,r.deleted_at,'Payment Record Removed',
-   money(r.amount)+' · previous transaction preserved in audit',[
-    'Original payment date: '+(day(r.payment_date)||'Not recorded'),
-    r.payment_reference?'Reference: '+r.payment_reference:'',
-    'Historical deletion recorded; this is not a new receipt.'
-   ],'payments');
- });
-
- (data.crm_gmail_history_events||[]).forEach(function(g){
-  var entryTitle=text(g.title)||'Email Sent';
-  var when=g.activity_at||g.imported_at;
-  var kind=/spa/.test(g.activity_type)?'contracts':'letters';
-  add(events,'gmail',g.gmail_message_id,when,entryTitle,text(g.summary)||'Verified email',[
-   'Verified Gmail correspondence: '+(g.direction==='sent'?'Sent':'Received'),
-   'Email subject: '+text(g.subject),
-   g.recipient_email?'Recipient: '+g.recipient_email:'',
-   'Source: '+label(g.match_basis),
-   g.has_attachment?'Email includes attachment':'',
-   'Imported: '+(day(g.imported_at)||'Not recorded')
-  ],kind,'Verified Gmail');
-  var last=events[events.length-1];
-  if(last&&g.gmail_url){try{var parsed=new URL(g.gmail_url);if(parsed.protocol==='https:'&&parsed.hostname==='mail.google.com')last.url=g.gmail_url;}catch(e){}}
- });
- (data.crm_history_manual_events||[]).forEach(function(r){
-  add(events,'manual',r.id,r.event_date,r.title,r.details,[
-   'Manually recorded: '+(day(r.created_at)||'Date unavailable')+' '+clock(r.created_at),
-   r.outcome?'Result: '+label(r.outcome):'',r.evidence_reference?'Evidence: '+r.evidence_reference:'',
-   r.source?'Source: '+label(r.source):''
-  ],/payment|credit/.test(r.category)?'payments':/spa|booking|dld|handover/.test(r.category)?'contracts':'updates','Manual entry');
- });
- var unique={},sorted=events.filter(function(e){if(unique[e.key])return false;unique[e.key]=true;return true;});
- var gmailProof=sorted.filter(function(e){return e.source==='gmail';});
- sorted=sorted.filter(function(e){
-  if(e.source!=='task'||!/(letter|reminder|receipt|account|invitation)/i.test(e.title))return true;
-  return !gmailProof.some(function(g){
-   if(day(g.time)!==day(e.time))return false;
-   if(/demand letter/i.test(e.title))return /demand letter/i.test(g.title);
-   if(/payment receipt/i.test(e.title))return /payment receipt/i.test(g.title);
-   if(/welcome letter/i.test(e.title))return /welcome letter/i.test(g.title);
-   if(/gentle reminder/i.test(e.title))return /gentle reminder/i.test(g.title);
-   if(/statement of account/i.test(e.title))return /statement of account/i.test(g.title);
-   return false;
+ rows.forEach(function(e){if(e.gmail_thread_id){var id=String(e.gmail_thread_id);threadCount[id]=(threadCount[id]||0)+1;}});
+ rows.forEach(function(e){
+  e._threadCount=e.gmail_thread_id?threadCount[String(e.gmail_thread_id)]||1:1;
+  var matched=linkMap[String(e.id)]||[];
+  e._matched=matched;
+  var items=matched.length?matched.map(function(s){return{id:'stage:'+s.id,name:s.stage_name,desc:'Verified installment correspondence',sortPriority:1,sortDate:s.due_date||'9999-12-31'};}):[isWelcome(e)?{id:'booking',name:'Booking & Welcome',desc:'Welcome letters and SPA correspondence',sortPriority:0,sortDate:''}:isInstallmentSubject(e)?{id:'review',name:'Needs Installment Review',desc:'Verified email · installment not yet confirmed',sortPriority:3,sortDate:''}:{id:'general',name:'General Correspondence',desc:'Messages not tied to a specific installment',sortPriority:2,sortDate:''}];
+  items.forEach(function(g){
+   if(!groups[g.id])groups[g.id]={id:g.id,name:g.name,desc:g.desc,sortPriority:g.sortPriority,sortDate:g.sortDate,events:[]};
+   groups[g.id].events.push(e);
   });
  });
- sorted.sort(function(a,b){return sortKey(a)-sortKey(b)||a.key.localeCompare(b.key);});
- return {events:sorted,errors:errors,customerId:customerId};
+ return Object.keys(groups).map(function(id){var g=groups[id];g.events.sort(function(a,b){return timeValue(a.activity_at)-timeValue(b.activity_at)||Number(a.id)-Number(b.id);});return g;}).sort(stagesSort);
 }
-function styles(){
- if(document.getElementById('simpleConnectedCustomerHistoryStyles'))return;
- var style=document.createElement('style');style.id='simpleConnectedCustomerHistoryStyles';style.textContent=[
-  'body.customer-history-open{overflow:hidden!important}',
-  '#customerHistoryPanel{position:fixed;inset:0;z-index:12400;overflow:auto;overscroll-behavior:contain;background:var(--paper,#F6F1E4);padding:0 16px calc(32px + env(safe-area-inset-bottom));box-sizing:border-box;font-family:Inter,Arial,sans-serif;color:var(--ink,#172332)}',
-  '#customerHistoryPanel *{box-sizing:border-box}',
-  '#customerHistoryPanel .ch-shell{max-width:960px;margin:auto}',
-  '#customerHistoryPanel .ch-head{position:sticky;top:0;z-index:2;background:var(--paper,#F6F1E4);display:flex;justify-content:space-between;align-items:center;gap:12px;padding:22px 0 16px;border-bottom:1px solid var(--paper-line,#D7CDBD)}',
-  '#customerHistoryPanel .ch-head h2{margin:0;font:600 27px/1.2 Fraunces,Georgia,serif;color:var(--ink)}',
-  '#customerHistoryPanel .ch-sub{font-size:12px;line-height:1.5;color:var(--muted);margin:5px 0 0}',
-  '#customerHistoryPanel .ch-toolbar{display:flex;gap:8px;align-items:center;margin:16px 0 18px}',
-  '#customerHistoryPanel .ch-toolbar select,#customerHistoryPanel .ch-toolbar input{min-width:0;flex:1 1 0;min-height:40px;border:1px solid var(--paper-line,#D7CDBD);border-radius:10px;background:var(--paper-bright,#FFFCF6);padding:8px 10px;font:500 12px Inter,Arial,sans-serif;color:var(--ink)}',
-  '#customerHistoryPanel .ch-toolbar input{flex:2 1 160px}',
-  '#customerHistoryPanel .ch-button{min-height:40px;white-space:nowrap;padding:9px 14px;border:1px solid var(--paper-line,#D7CDBD);border-radius:10px;background:var(--paper-bright,#FFFCF6);color:var(--ink);font:600 12px Inter,Arial,sans-serif;cursor:pointer}',
-  '#customerHistoryPanel .ch-primary{background:var(--ink,#172332);border-color:var(--ink,#172332);color:var(--paper,#F6F1E4)}',
-  '#customerHistoryPanel .ch-caption{font:600 10px/1.4 "IBM Plex Mono",monospace;letter-spacing:.04em;color:var(--muted);margin:0 0 12px}',
-  '#customerHistoryPanel .ch-timeline{margin:0 0 32px 12px;padding:0 0 0 26px;border-left:2px solid var(--paper-line,#D7CDBD)}',
-  '#customerHistoryPanel .ch-event{position:relative;margin:0 0 11px;padding:0;min-width:0}',
-  '#customerHistoryPanel .ch-event:before{content:"";position:absolute;left:-35px;top:17px;width:14px;height:14px;border:2px solid var(--paper,#F6F1E4);border-radius:50%;background:var(--gold-deep,#A27C35);box-shadow:0 0 0 1px var(--paper-line,#D7CDBD)}',
-  '#customerHistoryPanel .ch-event details{border:1px solid var(--paper-line,#D7CDBD);background:var(--paper-bright,#FFFCF6);border-radius:11px;overflow:hidden}',
-  '#customerHistoryPanel .ch-event summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;padding:12px 14px;align-items:center}',
-  '#customerHistoryPanel .ch-event summary::-webkit-details-marker{display:none}',
-  '#customerHistoryPanel .ch-event-title{font:650 13px/1.4 Inter,Arial,sans-serif;color:var(--ink);overflow-wrap:anywhere}',
-  '#customerHistoryPanel .ch-event-date{font:500 10.5px/1.5 Inter,Arial,sans-serif;color:var(--muted);margin:0 0 2px}',
-  '#customerHistoryPanel .ch-summary{margin:3px 0 0;font:500 11.5px/1.45 Inter,Arial,sans-serif;color:var(--muted);overflow-wrap:anywhere}',
-  '#customerHistoryPanel .ch-arrow{flex:none;font-size:14px;color:var(--muted);transform:rotate(0deg)}',
-  '#customerHistoryPanel details[open] .ch-arrow{transform:rotate(180deg)}',
-  '#customerHistoryPanel .ch-details{padding:12px 14px 14px;border-top:1px solid var(--paper-line,#D7CDBD);display:grid;gap:7px}',
-  '#customerHistoryPanel .ch-details p{margin:0;font:500 11.5px/1.5 Inter,Arial,sans-serif;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}',
-  '#customerHistoryPanel .ch-result{font-size:10px;color:var(--muted);margin:0}',
-  '#customerHistoryPanel .ch-empty{padding:32px 14px;text-align:center;color:var(--muted);font-size:13px}',
-  '#customerHistoryPanel .ch-warn{padding:11px 12px;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper-bright,#FFFCF6);color:var(--muted);font-size:11.5px;margin-bottom:13px}',
-  '#customerHistoryPanel .ch-form{border:1px solid var(--paper-line);border-radius:12px;padding:16px;background:var(--paper-bright,#FFFCF6);margin:16px 0}',
-  '#customerHistoryPanel .ch-form label{display:block;font:600 11px/1.3 Inter,Arial,sans-serif;margin:10px 0 5px}',
-  '#customerHistoryPanel .ch-form input,#customerHistoryPanel .ch-form textarea,#customerHistoryPanel .ch-form select{display:block;width:100%;min-height:42px;padding:10px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper,#F6F1E4);color:var(--ink);font:500 12px Inter,Arial,sans-serif}',
-  '#customerHistoryPanel .ch-form textarea{min-height:92px;resize:vertical}',
-  '#customerHistoryPanel .ch-form-actions{display:flex;gap:9px;margin-top:14px}',
-  '@media(max-width:600px){#customerHistoryPanel{padding:0 12px calc(30px + env(safe-area-inset-bottom))}#customerHistoryPanel .ch-head{padding:14px 0 12px}#customerHistoryPanel .ch-head h2{font-size:23px}#customerHistoryPanel .ch-toolbar{flex-wrap:wrap}#customerHistoryPanel .ch-toolbar input{flex:1 1 100%}#customerHistoryPanel .ch-toolbar select{flex:1 1 40%}#customerHistoryPanel .ch-timeline{margin-left:9px;padding-left:21px}#customerHistoryPanel .ch-event:before{left:-29px}#customerHistoryPanel .ch-event summary{padding:11px}#customerHistoryPanel .ch-event-title{font-size:12px}#customerHistoryPanel .ch-form-actions .ch-button{flex:1}}'
- ].join('');document.head.appendChild(style);
+function matches(e,context){
+ return (directionFilter==='all'||e.direction===directionFilter)&&(!searchValue||(val(e.title)+' '+val(e.summary)+' '+val(e.subject)+' '+val(e.sender_email)+' '+val(e.recipient_email)+' '+context).toLowerCase().indexOf(searchValue)>=0);
 }
-function eventHtml(e){
- return '<article class="ch-event" data-category="'+esc(e.kind)+'"><details><summary><span><span class="ch-event-date">'+esc(eventDate(e))+(clock(e.time)?' · '+esc(clock(e.time)):'')+'</span><span class="ch-event-title" style="display:block">'+esc(e.title)+'</span>'+(e.summary?'<span class="ch-summary" style="display:block">'+esc(e.summary)+'</span>':'')+'</span><span class="ch-arrow" aria-hidden="true">⌄</span></summary><div class="ch-details">'+e.details.map(function(x){return '<p>'+esc(x)+'</p>';}).join('')+(e.url?'<p><a target="_blank" rel="noopener noreferrer" href="'+esc(e.url)+'" style="color:var(--gold-deep,#A27C35);text-decoration:underline">Open original Gmail message ↗</a></p>':'')+'<p class="ch-result">Source: '+esc(e.source==='task'?'Completed CRM task':e.source==='manual'?'Manual entry':e.source==='gmail'?'Verified Gmail':'CRM '+label(e.source))+(e.meta?' · '+esc(e.meta):'')+'</p></div></details></article>';
+function render(panel,model){
+ if(!panel.isConnected)return;
+ panel.querySelectorAll('[data-history-view]').forEach(function(n){n.setAttribute('aria-pressed',String(n.getAttribute('data-history-view')===viewMode));});
+ panel.querySelectorAll('[data-history-dir]').forEach(function(n){n.setAttribute('aria-pressed',String(n.getAttribute('data-history-dir')===directionFilter));});
+ var host=panel.querySelector('#chRecords'),count=panel.querySelector('#chCount'),html='',seen={};
+ if(viewMode==='all'){
+  var items=model.emails.filter(function(e){return matches(e,e._matched.map(function(s){return s.stage_name;}).join(' · '));});
+  items.sort(function(a,b){return timeValue(a.activity_at)-timeValue(b.activity_at)||Number(a.id)-Number(b.id);});
+  html=items.length?'<div class="ch-group"><div class="ch-groupbody" style="border:0"><div class="ch-line">'+items.map(function(e){return itemHtml(e,e._matched.length?e._matched.map(function(s){return s.stage_name;}).join(' · '):isInstallmentSubject(e)&&!isWelcome(e)?'Installment not yet verified':isWelcome(e)?'Booking & Welcome':'General Correspondence',true);}).join('')+'</div></div></div>':'<p class="ch-empty">No verified emails match these filters.</p>';
+  count.textContent=items.length+' of '+model.emails.length+' verified emails · Oldest to newest';
+ }else{
+  var total=0,shown=0;
+  model.groups.forEach(function(g,idx){
+   var list=g.events.filter(function(e){return matches(e,g.name);});if(!list.length)return;
+   list.forEach(function(e){seen[e.id]=1;});total+=list.length;
+   var opened=openGroups[g.id]!==undefined?openGroups[g.id]:idx<3;
+   html+='<details class="ch-group" data-group="'+safe(g.id)+'"'+(searchValue||opened?' open':'')+'><summary><span class="ch-icon" aria-hidden="true">'+(g.id==='booking'?'✉':g.id==='review'?'?':g.id==='general'?'↗':'▤')+'</span><span class="ch-gmeta"><span class="ch-gname">'+safe(g.name)+'</span><span class="ch-gdesc">'+list.length+' email'+(list.length===1?'':'s')+' · '+safe(g.desc)+'</span></span><span class="ch-chevron" aria-hidden="true">⌄</span></summary><div class="ch-groupbody">'+(g.id==='review'?'<p class="ch-info">These emails are verified, but their exact installment has not been confirmed. ChatGPT can link them after reviewing the full correspondence.</p>':'')+'<div class="ch-line">'+list.map(function(e){return itemHtml(e,g.name,false);}).join('')+'</div></div></details>';
+   shown++;
+  });
+  count.textContent=Object.keys(seen).length+' of '+model.emails.length+' verified emails · '+shown+' correspondence groups';
+  if(!html)html='<p class="ch-empty">No verified emails match these filters.</p>';
+ }
+ host.innerHTML=html;
+ host.querySelectorAll('details.ch-group').forEach(function(g){g.addEventListener('toggle',function(){if(!searchValue)openGroups[g.getAttribute('data-group')]=g.open;});});
 }
-function filter(panel,events){
- var term=text(panel.querySelector('#chSearch').value).toLowerCase(),kind=panel.querySelector('#chCategory').value;
- var filtered=events.filter(function(e){return(kind==='all'||e.kind===kind)&&(!term||(e.title+' '+e.summary+' '+e.details.join(' ')).toLowerCase().includes(term));});
- var host=panel.querySelector('#chRecords');host.innerHTML=filtered.length?filtered.map(eventHtml).join(''):'<p class="ch-empty">No matching activities recorded.</p>';
- panel.querySelector('#chCount').textContent=filtered.length+' activities · Booking to current';
-}
-function manualForm(panel,c,refresh){
- var host=panel.querySelector('#chFormArea');
- if(host.innerHTML){host.innerHTML='';return;}
- host.innerHTML='<form class="ch-form" id="chManualForm"><strong>Add Missing Activity</strong><p class="ch-sub">For phone calls, meetings or past events not captured automatically.</p>'+
-  '<label for="chManualTitle">What happened? *</label><input id="chManualTitle" maxlength="160" placeholder="e.g. Customer called about 1st installment" required>'+
-  '<label for="chManualDate">Actual activity date *</label><input id="chManualDate" type="date" required>'+
-  '<label for="chManualCategory">Category</label><select id="chManualCategory"><option value="communication">Communication</option><option value="payment">Payment discussion</option><option value="spa">SPA / Booking</option><option value="extension">Extension</option><option value="credit">Credit Note</option><option value="dld">DLD / Oqood</option><option value="handover">Handover</option><option value="other">Other</option></select>'+
-  '<label for="chManualDetails">What happened and what was the result? *</label><textarea id="chManualDetails" maxlength="5000" placeholder="Short factual explanation" required></textarea>'+
-  '<label for="chManualEvidence">Document or email reference (optional)</label><input id="chManualEvidence" maxlength="400" placeholder="Reference only — no automatic email sending">'+
-  '<p id="chManualError" class="ch-sub" role="alert"></p>'+
-  '<div class="ch-form-actions"><button class="ch-button ch-primary" type="submit" id="chManualSave">Save Activity</button><button type="button" class="ch-button" id="chManualCancel">Cancel</button></div></form>';
- host.querySelector('#chManualCancel').onclick=function(){host.innerHTML='';};
- host.querySelector('#chManualForm').onsubmit=async function(ev){
-  ev.preventDefault();
-  var save=host.querySelector('#chManualSave'),err=host.querySelector('#chManualError');
-  var title=text(host.querySelector('#chManualTitle').value),when=text(host.querySelector('#chManualDate').value),details=text(host.querySelector('#chManualDetails').value);
-  if(title.length<3||!when||details.length<3){err.textContent='Please enter the activity, date and explanation.';return;}
-  if(window.__crmTestMode&&window.__crmTestMode.active){err.textContent='Use live customer mode to record historical activities. Demo records are not stored here.';return;}
-  save.disabled=true;save.textContent='Saving…';err.textContent='';
-  try{
-   var customerId=Number(c.customerId||c.customer_id||c.info&&c.info.customerId||0);
-   if(!customerId){var lookup=await sb.from('units').select('customer_id').eq('id',Number(c.sno)).single();if(lookup.error)throw lookup.error;customerId=Number(lookup.data.customer_id);}
-   if(!customerId)throw new Error('Customer ID could not be verified.');
-   var user=await sb.auth.getUser();if(user.error||!user.data||!user.data.user)throw new Error('Login verification required.');
-   var result=await sb.from('crm_history_manual_events').insert({
-    customer_id:customerId,unit_id:Number(c.sno),event_date:when,
-    title:title,details:details,category:host.querySelector('#chManualCategory').value,
-    evidence_reference:text(host.querySelector('#chManualEvidence').value)||null,
-    recorded_by:user.data.user.id,source:'manual'
-   }).select('id').single();
-   if(result.error)throw result.error;
-   host.innerHTML='';await refresh();
-  }catch(e){err.textContent='Could not save activity: '+(e.message||'Please try again.');}
-  finally{if(save.isConnected){save.disabled=false;save.textContent='Save Activity';}}
- };
- host.querySelector('#chManualTitle').focus();
+async function load(c){
+ if(window.__crmTestMode&&window.__crmTestMode.active)return{emails:[],groups:[],testMode:true};
+ var unit=Number(c.sno);if(!unit||!isFinite(unit))throw new Error('Customer unit not available.');
+ var res=await Promise.all([
+  sb.from('crm_gmail_history_events').select('id,unit_id,customer_id,gmail_message_id,gmail_thread_id,activity_at,direction,activity_type,title,summary,subject,sender_email,recipient_email,gmail_url,has_attachment,match_basis').eq('unit_id',unit).order('activity_at',{ascending:true}).order('id',{ascending:true}).limit(1200),
+  sb.from('payment_schedule').select('id,unit_id,stage_name,due_date').eq('unit_id',unit).limit(200),
+  sb.from('units').select('customer_id,unit_no').eq('id',unit).single()
+ ]);
+ for(var k=0;k<res.length;k++)if(res[k].error)throw new Error('The email history could not be loaded. Please retry.');
+ var actualCustomer=Number(res[2].data&&res[2].data.customer_id)||0;
+ if(!actualCustomer)throw new Error('Customer identity could not be verified.');
+ var emails=(res[0].data||[]).filter(function(e){return Number(e.customer_id)===actualCustomer;});
+ var links=[];
+ for(var i=0;i<emails.length;i+=100){
+  var ids=emails.slice(i,i+100).map(function(e){return Number(e.id);});
+  var r=await sb.from('crm_gmail_history_installment_links').select('email_event_id,payment_schedule_id,conversation_key,link_basis').in('email_event_id',ids).limit(1200);
+  if(r.error)throw new Error('Installment relationships could not be loaded. Please retry.');
+  links.push.apply(links,r.data||[]);
+ }
+ var stages=res[1].data||[];
+ return{emails:emails,groups:groupsFor(emails,stages,links),testMode:false};
 }
 async function open(){
- var c=current();if(!allowed()||!c)return;
- close();styles();var version=++openVersion;
- var menu=document.getElementById('customerActionMenu');if(menu)menu.style.display='none';
+ var c=cunit();if(!allowed()||!c)return;
+ close();styles();var v=++openVersion;
+ var m=document.getElementById('customerActionMenu');if(m)m.style.display='none';
  var mb=document.getElementById('customerActionMenuButton');if(mb)mb.setAttribute('aria-expanded','false');
+ viewMode='installment';directionFilter='all';searchValue='';openGroups={};
  document.body.classList.add('customer-history-open');
- var panel=document.createElement('section');panel.id='customerHistoryPanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Customer History');
- panel.innerHTML='<div class="ch-shell"><div class="ch-head"><div><h2>Customer History</h2><p class="ch-sub">'+esc(c.name)+' · '+esc(c.unit)+' · '+esc(c.info&&c.info.project||'Sunbliss Residences')+'</p></div><button type="button" class="ch-button" id="chBack">Back</button></div>'+
-  '<div class="ch-toolbar"><input type="search" id="chSearch" placeholder="Search activities" aria-label="Search customer history"><select id="chCategory" aria-label="Filter activity">'+Object.keys(categories).map(function(k){return '<option value="'+k+'">'+esc(categories[k])+'</option>';}).join('')+'</select><button type="button" class="ch-button" id="chAdd">+ Add</button></div>'+
-  '<div id="chFormArea"></div><p id="chCount" class="ch-caption">Loading history…</p><div id="chNotice"></div><div class="ch-timeline" id="chRecords" aria-live="polite"><p class="ch-empty">Loading activities…</p></div></div>';
- document.body.appendChild(panel);panel.querySelector('#chBack').onclick=close;
- var all=[];
- async function refresh(){
-  var host=panel.querySelector('#chRecords');host.innerHTML='<p class="ch-empty">Loading activities…</p>';
-  try{
-   var result=await collect(c);if(!panel.isConnected||version!==openVersion)return;
-   all=result.events;
-   panel.querySelector('#chNotice').innerHTML=result.errors.length?'<p class="ch-warn">Some history sources could not be loaded. The timeline may be incomplete. Please retry or contact your CRM administrator.</p>':'';
-   filter(panel,all);
-  }catch(e){if(!panel.isConnected||version!==openVersion)return;host.innerHTML='<p class="ch-warn">Could not load customer history. Please reopen and try again.</p>';}
- }
- panel.querySelector('#chSearch').oninput=function(){filter(panel,all);};
- panel.querySelector('#chCategory').onchange=function(){filter(panel,all);};
- panel.querySelector('#chAdd').onclick=function(){manualForm(panel,c,refresh);};
- await refresh();
+ var p=document.createElement('section');p.id='customerHistoryPanel';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');p.setAttribute('aria-label','Customer Email History');
+ p.innerHTML='<div class="ch-shell"><div class="ch-header"><div><h2>Email History</h2><p class="ch-sub">'+safe(c.name)+' · '+safe(c.unit)+' · '+safe(c.info&&c.info.project||'Sunbliss Residences')+'</p></div><button type="button" class="ch-btn" id="chBack">Back</button></div>'+
+ '<div class="ch-metrics"><div class="ch-metric"><strong id="chTotal">—</strong><span>Total emails</span></div><div class="ch-metric"><strong id="chSent">—</strong><span>Sent</span></div><div class="ch-metric"><strong id="chReceived">—</strong><span>Received</span></div></div>'+
+ '<div class="ch-controls"><div class="ch-segments" aria-label="Email history view"><button type="button" data-history-view="installment" aria-pressed="true">By Installment</button><button type="button" data-history-view="all" aria-pressed="false">All Emails</button></div><div class="ch-filterrow"><div class="ch-dir" aria-label="Email direction"><button type="button" data-history-dir="all" aria-pressed="true">All</button><button type="button" data-history-dir="sent" aria-pressed="false">Sent</button><button type="button" data-history-dir="received" aria-pressed="false">Received</button></div><input class="ch-search" id="chSearch" type="search" placeholder="Search email history" aria-label="Search email history"></div></div>'+
+ '<p id="chNotice"></p><p class="ch-caption" id="chCount">Loading verified correspondence…</p><div id="chRecords" aria-live="polite"><p class="ch-empty">Loading verified emails…</p></div></div>';
+ document.body.appendChild(p);
+ p.querySelector('#chBack').onclick=close;
+ p.querySelector('#chSearch').addEventListener('input',function(e){searchValue=val(e.target.value).toLowerCase();if(p._emailModel)render(p,p._emailModel);});
+ p.querySelectorAll('[data-history-view]').forEach(function(b){b.addEventListener('click',function(){viewMode=b.getAttribute('data-history-view');if(p._emailModel)render(p,p._emailModel);});});
+ p.querySelectorAll('[data-history-dir]').forEach(function(b){b.addEventListener('click',function(){directionFilter=b.getAttribute('data-history-dir');if(p._emailModel)render(p,p._emailModel);});});
+ try{
+  var model=await load(c);if(!p.isConnected||v!==openVersion)return;
+  p._emailModel=model;
+  p.querySelector('#chTotal').textContent=model.emails.length;
+  p.querySelector('#chSent').textContent=model.emails.filter(function(e){return e.direction==='sent';}).length;
+  p.querySelector('#chReceived').textContent=model.emails.filter(function(e){return e.direction==='received';}).length;
+  if(model.testMode)p.querySelector('#chNotice').innerHTML='<p class="ch-info">Test Mode does not display live customer emails. Switch to live CRM to view verified correspondence.</p>';
+  else if(!model.emails.length)p.querySelector('#chNotice').innerHTML='<p class="ch-info">No verified Gmail correspondence has been imported for this customer yet. Use ChatGPT to review and update the email history.</p>';
+  else p.querySelector('#chNotice').innerHTML='<p class="ch-info">Read-only correspondence from verified email records. Related emails are grouped by installment. Sent or received labels are based only on original Gmail evidence.</p>';
+  render(p,model);
+ }catch(e){if(!p.isConnected||v!==openVersion)return;p.querySelector('#chCount').textContent='History unavailable';p.querySelector('#chRecords').innerHTML='<p class="ch-info">Could not load verified email history. Please reopen and try again. No CRM data was changed.</p>';}
 }
 function menu(){
  if(!allowed()||state.view!=='detail')return;
- var m=document.getElementById('customerActionMenu');if(!m)return;
- if(m.querySelector('#actionCustomerHistory'))return;
+ var m=document.getElementById('customerActionMenu');if(!m||m.querySelector('#actionCustomerHistory'))return;
  var b=document.createElement('button');b.type='button';b.id='actionCustomerHistory';b.style.cssText='display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink);cursor:pointer';
- b.textContent='Customer History';b.onclick=function(e){e.preventDefault();e.stopPropagation();open();};m.appendChild(b);
+ b.textContent='Email History';b.onclick=function(e){e.preventDefault();e.stopPropagation();open();};m.appendChild(b);
 }
 new MutationObserver(menu).observe(document.body,{childList:true,subtree:true});menu();
 window.__sunblissOpenCustomerHistory=open;
