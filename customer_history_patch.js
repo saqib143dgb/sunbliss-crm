@@ -40,6 +40,7 @@ function stageById(rows){var m={};rows.forEach(function(r){m[r.id]=r.stage_name;
 function stageName(map,id){return id&&map[id]?map[id]:'';}
 function taskTitle(t){
  var name=text(t.action_label),low=name.toLowerCase();
+ if(/send.*credit note|credit note.*send/.test(low))return 'Credit Note Sent';
  if(/send.*welcome letter|welcome letter.*send/.test(low))return 'Welcome Letter Sent';
  if(/send.*demand letter|demand letter.*send/.test(low))return 'Demand Letter Sent'+(name.includes('—')?' — '+name.split('—').slice(1).join('—').trim():'');
  if(/send.*gentle reminder|gentle reminder.*send/.test(low))return 'Gentle Reminder Sent';
@@ -57,7 +58,7 @@ function taskTitle(t){
 }
 function taskKind(t){
  var s=text(t.action_label).toLowerCase();
- return /demand|letter|receipt|reminder|soa|email/.test(s)?'letters':/payment|collection|cheque/.test(s)?'payments':/spa|oqood|dld/.test(s)?'contracts':'requests';
+ return /demand|letter|receipt|reminder|soa|email|credit note/.test(s)?'letters':/payment|collection|cheque/.test(s)?'payments':/spa|oqood|dld/.test(s)?'contracts':'requests';
 }
 function docName(s){var n=text(s).toLowerCase();return n==='welcome'?'Welcome Letter':n==='receipt'?'Payment Receipt':n==='soa'?'Statement of Account':n==='spa'?'SPA':label(s||'Document');}
 async function collect(c){
