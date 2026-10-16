@@ -148,7 +148,7 @@ async function context(c){
   ]);
   const customer=unwrap(results[0]),transactions=unwrap(results[1])||[],paymentSchedule=unwrap(results[2])||[],sale=unwrap(results[3]);
   const snapshot=documentSnapshot(c);snapshot.paidPercent=window.__sunblissPaymentPercentageRules?window.__sunblissPaymentPercentageRules.progressPct(c):null;
-  return {unit,customer,transactions:transactions.filter(t=>Number(t.amount)>0),soaTransactions:transactions,paymentSchedule,sale,account:snapshot};
+  return {testMode:!!(window.__crmTestMode&&window.__crmTestMode.active),unit,customer,transactions:transactions.filter(t=>Number(t.amount)>0),soaTransactions:transactions,paymentSchedule,sale,account:snapshot};
 }
 async function open(c){
   if(dialog||opening)return;opening=true;const opener=document.activeElement;

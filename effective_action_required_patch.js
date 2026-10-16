@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissEffectiveActionRequiredInstalled)return;
 window.__sunblissEffectiveActionRequiredInstalled=true;
-var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV8';
+var cache={},loading={},preloading=null,timer=null,guardTimer=null,observer=null,rendering=false,CACHE_TTL=120000,STORE_KEY='sunblissEffectiveActionCacheV8'+(window.__crmTestMode&&window.__crmTestMode.active?':test':'');
 function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}

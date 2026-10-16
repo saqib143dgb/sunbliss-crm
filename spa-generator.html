@@ -96,7 +96,7 @@ tr:last-child td{border-bottom:0}
   button{font-size:13px}
 }
 </style>
-</head>
+<script defer src="test_document_watermark.js"></script></head>
 <body>
 <main>
 <section>
@@ -594,6 +594,7 @@ async function generateReferencePdf(snapshot){
     var page=pages[pageIndex];page.drawImage(png,{x:0,y:0,width:page.getWidth(),height:page.getHeight()});
   }
   await applyVerifiedUnitLayout(pdf);
+  await window.__crmStampTestPdf(pdf);
   return await pdf.save();
 }
 async function generateSpa(){
