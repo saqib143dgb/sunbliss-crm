@@ -217,16 +217,16 @@
   function openComplete(task){
     if(task&&task.workflow_kind==='modification_request'&&typeof window.__sunblissOpenModificationTask==='function'){window.__sunblissOpenModificationTask(task);return;}
     removePanel();var c=customerForUnit(task.unit_id),p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode','complete');
-    var summary=safe(task.action_label)+' · '+safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+' · due '+safe(formatDate(task.due_date));
+    var summary=safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+' · due '+safe(formatDate(task.due_date));
     var body='',button='Mark Done';p.dataset.taskId=task.id;
     if(isBookingWelcome(task)){
       body='<p class="scheduled-outcome-current">Send the Welcome Letter before the payment receipt, then mark this task as sent.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label>';
       button='Mark Sent';
     }else if(task.workflow_kind==='accounts_confirmation'){
-      body='<p class="scheduled-outcome-help">Record the result from Accounts. A receipt task is created only after Accounts confirms the payment.</p><label class="brand-field">Accounts verification<select id="saOutcome"><option value="">Select outcome</option><option value="confirmed">Confirmed</option><option value="not_received">Not Received</option><option value="amount_mismatch">Amount Mismatch</option></select></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Reference, confirmation detail or issue"></textarea></label>';
+      body='<label class="brand-field">Accounts verification<select id="saOutcome"><option value="">Select outcome</option><option value="confirmed">Confirmed</option><option value="not_received">Not Received</option><option value="amount_mismatch">Amount Mismatch</option></select></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Reference, confirmation detail or issue"></textarea></label>';
       button='Save Outcome';
     }else if(task.workflow_kind==='cheque_clearance'){
-      body='<p class="scheduled-outcome-help">Record the cheque clearance result. Receipt generation stays locked until the cheque is cleared.</p><label class="brand-field">Cheque status<select id="saOutcome"><option value="">Select outcome</option><option value="cleared">Cleared</option><option value="still_pending">Still Pending</option><option value="returned">Returned</option></select></label><label class="brand-field" id="saNextDateWrap" style="display:none">Next clearance check<input type="date" id="saNextDate" value="'+safe(addDaysIso(1))+'" /></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Clearance reference or issue"></textarea></label>';
+      body='<label class="brand-field">Cheque status<select id="saOutcome"><option value="">Select outcome</option><option value="cleared">Cleared</option><option value="still_pending">Still Pending</option><option value="returned">Returned</option></select></label><label class="brand-field" id="saNextDateWrap" style="display:none">Next clearance check<input type="date" id="saNextDate" value="'+safe(addDaysIso(1))+'" /></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Clearance reference or issue"></textarea></label>';
       button='Save Outcome';
     }else if(task.workflow_kind==='payment_receipt'){
       body='<p class="scheduled-outcome-current">Accounts confirmation is complete. Send and complete the Welcome Letter task first, then send the payment receipt and mark this task done.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label><input type="hidden" id="saOutcome" value="sent">';
@@ -273,9 +273,9 @@
       body='<label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="What happened or what did the customer confirm?"></textarea></label>'+(task.auto_kind==='demand_letter'||task.auto_kind==='gentle_reminder'?'':'<label class="scheduled-next-check"><input type="checkbox" id="saScheduleNext" /><span>Schedule the next action after marking this one done</span></label>');
       button=task.auto_kind==='demand_letter'||task.auto_kind==='gentle_reminder'?'Mark Sent':'Mark Done';
     }
-    p.innerHTML='<p class="section-label" style="margin-top:0">'+'Record Outcome'+'</p><p class="scheduled-form-summary">'+summary+'</p><p class="brand-error" id="saError" style="display:none"></p>'+body+'<div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saComplete">'+safe(button)+'</button><button type="button" class="btn-paper" id="saClose">Back</button></div>';
+    p.innerHTML='<p class="section-label" style="margin-top:0">'+safe(task.action_label)+'</p><p class="scheduled-form-summary">'+summary+'</p><p class="brand-error" id="saError" style="display:none"></p>'+body+'<div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saComplete">'+safe(button)+'</button><button type="button" class="btn-paper" id="saClose">Back</button></div>';
     document.body.appendChild(p);
-    if(task.note){var prior=document.createElement('p');prior.className='scheduled-outcome-current';prior.textContent='Previous note: '+task.note;p.querySelector('.scheduled-form-summary').after(prior);}
+    if(task.note){var prior=document.createElement('details');prior.className='task-prior-note';var label=document.createElement('summary');var amount=String(task.note).match(/AED\s+[\d,]+(?:\.\d{1,2})?/i);label.textContent=amount&&['accounts_confirmation','cheque_clearance','payment_receipt'].indexOf(task.workflow_kind)>=0?'Payment details · '+amount[0]:'Previous note';var note=document.createElement('p');note.textContent=task.note;prior.append(label,note);p.querySelector('.scheduled-form-summary').after(prior);}
     if(collectionOutcomeTask(task))loadOutcomePayment(task,p);
     document.getElementById('saClose').onclick=removePanel;
     var outcome=document.getElementById('saOutcome');

@@ -38,6 +38,16 @@ const root=path.resolve(__dirname,'../dist');
  }
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow');
  await page.screenshot({path:'/tmp/task-screen-'+width+'-'+testMode+'.png'});
+ await page.locator('#saClose').click();
+ await page.evaluate(()=>{testTask.auto_key='';testTask.workflow_kind='accounts_confirmation';testTask.action_label='Confirm Payment with Accounts';testTask.note='Customer payment recorded: AED 10,000.00. Confirm with Accounts.';});
+ await page.locator('.scheduled-mark-done[data-task-id="99001"]').click();await page.locator('#saOutcome').waitFor();
+ assert(await page.locator('.task-next-preview').isHidden());assert(await page.locator('#saComplete').isDisabled());
+ assert.equal(await page.locator('.task-outcome-choice').count(),0);
+ assert.match(await page.locator('.task-prior-note summary').innerText(),/AED 10,000/);
+ assert.equal(await page.locator('.task-prior-note').getAttribute('open'),null);
+ await page.locator('#saOutcome').selectOption('confirmed');assert(await page.locator('#saComplete').isEnabled());
+ assert.match(await page.locator('.task-next-preview').innerText(),/Send Payment Receipt/);
+ await page.screenshot({path:'/tmp/accounts-clean-'+width+'-'+testMode+'.png'});
  await page.locator('#saClose').click();assert.deepEqual(errors,[]);
  console.log('PASS',width,testMode?'test':'live','Back visible, no save on Back, mode indicator, verification-aware preview');await page.close();
  }}

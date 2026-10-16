@@ -18,20 +18,20 @@ const root=path.resolve(__dirname,'../dist');
   render();
  });
 
- const open=async()=>{await page.locator('.scheduled-mark-done[data-task-id="99001"]').waitFor();await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'));await page.locator('.scheduled-mark-done[data-task-id="99001"]').click();await page.locator('.task-outcome-choices').waitFor();};
- await open();assert.equal(await page.locator('.task-outcome-choice').count(),7);assert(await page.locator('#saComplete').isDisabled());
- await page.locator('[data-value="extension_request"]').click();
+ const open=async()=>{await page.locator('.scheduled-mark-done[data-task-id="99001"]').waitFor();await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'));await page.locator('.scheduled-mark-done[data-task-id="99001"]').click();await page.locator('#saOutcome').waitFor();};
+ await open();assert.equal(await page.locator('#saOutcome option').count(),8);assert(await page.locator('#saComplete').isDisabled());assert(await page.locator('.task-next-preview').isHidden());
+ await page.locator('#saOutcome').selectOption('extension_request');
  assert.match(await page.locator('.task-next-preview').innerText(),/Management Approval/);
  await page.locator('#saComplete').click();assert.match(await page.locator('#saError').innerText(),/reason/);assert.equal(await page.evaluate(()=>spaCalls.length),0);
  await page.locator('#saCompletionNote').fill('Customer requested more time');await page.locator('#saComplete').click();await page.locator('#scheduledActionPanel').waitFor({state:'detached'});
  assert.equal(await page.evaluate(()=>spaCalls.at(-1).name),'crm_record_scheduled_outcome');assert.equal(await page.evaluate(()=>spaCalls.at(-1).data.p_outcome),'extension_request');
- await open();await page.locator('[data-value="partial_payment_commitment"]').click();await page.locator('.saCommitmentAmount').nth(0).fill('90000');await page.locator('.saCommitmentAmount').nth(1).fill('100000');await page.locator('.saCommitmentDate').nth(0).fill('2026-11-01');await page.locator('.saCommitmentDate').nth(1).fill('2026-12-01');
+ await open();await page.locator('#saOutcome').selectOption('partial_payment_commitment');await page.locator('.saCommitmentAmount').nth(0).fill('90000');await page.locator('.saCommitmentAmount').nth(1).fill('100000');await page.locator('.saCommitmentDate').nth(0).fill('2026-11-01');await page.locator('.saCommitmentDate').nth(1).fill('2026-12-01');
  assert.match(await page.locator('.task-next-preview').innerText(),/every promised part/);
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow');
  await page.screenshot({path:'/tmp/task-outcomes-'+width+'.png',fullPage:true});
  await page.locator('#saComplete').click();await page.locator('#scheduledActionPanel').waitFor({state:'detached'});
  assert.equal(await page.evaluate(()=>spaCalls.at(-1).data.p_parts.length),2);
- await open();await page.locator('[data-value="payment_reported"]').click();await page.evaluate(()=>{window.__sunblissOpenRecordPayment=context=>{window.paymentContext=context};window.beforeCalls=spaCalls.length});await page.locator('#saComplete').click();await page.waitForFunction(()=>window.paymentContext);
+ await open();await page.locator('#saOutcome').selectOption('payment_reported');await page.evaluate(()=>{window.__sunblissOpenRecordPayment=context=>{window.paymentContext=context};window.beforeCalls=spaCalls.length});await page.locator('#saComplete').click();await page.waitForFunction(()=>window.paymentContext);
  assert.equal(await page.evaluate(()=>spaCalls.length),await page.evaluate(()=>beforeCalls),'Opening payment does not write or close task');assert.equal(await page.evaluate(()=>paymentContext.sourceTaskId),99001);assert.equal(await page.evaluate(()=>paymentContext.scheduleId),77);
  assert.deepEqual(errors,[]);console.log('PASS',width,'manual task outcome routing, validation, preview, split parts and payment handoff without early completion');await page.close();
  }
