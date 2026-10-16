@@ -13,7 +13,10 @@ function when(x){var d=new Date(x);if(isNaN(d.getTime()))return 'Date unavailabl
 function cap(v){return val(v).replace(/_/g,' ').replace(/\b\w/g,function(x){return x.toUpperCase();});}
 function shortSubject(s){return val(s).replace(/^(re:|fw:|fwd:)\s*/ig,'');}
 function isNested(e){return /^(re:|fw:|fwd:)/i.test(val(e.subject))||/request|re.request|extension|approval|approved|reject|reminder|follow.up|decision|commitment|response|reply/i.test(val(e.title)+' '+val(e.activity_type));}
-function isWelcome(e){return ['welcome_letter','spa_correspondence'].indexOf(e.activity_type)>=0||/booking confirmation|welcome letter|spa signing|sales purchase agreement/i.test(e.title);}
+function isSpa(e){return e.activity_type==='spa_correspondence'||/\bspa\b|sales\s*(?:and|&)\s*purchase\s*agreement|sale\s*purchase\s*agreement/i.test(val(e.title)+' '+val(e.subject));}
+function isWelcome(e){return e.activity_type==='welcome_letter'||/booking confirmation|welcome letter/i.test(e.title);}
+function isDownPayment(e){return /\bdown[\s-]*payment\b|\bbooking[\s-]*(?:amount|payment|fee)\b/i.test(val(e.title)+' '+val(e.subject));}
+function stagePosition(n){var name=val(n).toLowerCase();if(/\bdown\s+payment\b/.test(name))return 10;if(/^1st\s+instal/.test(name))return 20;if(/^dld\b|^admin\b/.test(name))return 25;if(/^([2-9])(nd|rd|th)\s+instal/.test(name)){var m=name.match(/^([2-9])/);return 20+10*Number(m[1]);}if(/^final/.test(name))return 150;return 160;}
 function isInstallmentSubject(e){return ['demand_letter','gentle_reminder','payment_receipt','payment_follow_up','customer_reply','extension_requested','extension_forwarded','extension_approved','extension_approved_conditional','extension_rejected','extension_rerequested','management_decision_sent','extension_customer_accepted','extension_customer_declined','payment_commitment','credit_note_sent'].indexOf(e.activity_type)>=0||/instal(l)?ment|payment|extension|credit note|demand letter/i.test(e.subject);}
 function close(){openVersion++;var p=document.getElementById('customerHistoryPanel');if(p)p.remove();document.body.classList.remove('customer-history-open');}
 function styles(){
@@ -103,7 +106,7 @@ function groupsFor(rows,stages,links){
   e._threadCount=e.gmail_thread_id?threadCount[String(e.gmail_thread_id)]||1:1;
   var matched=linkMap[String(e.id)]||[];
   e._matched=matched;
-  var items=matched.length?matched.map(function(s){return{id:'stage:'+s.id,name:s.stage_name,desc:'Verified installment correspondence',sortPriority:1,sortDate:s.due_date||'9999-12-31'};}):[isWelcome(e)?{id:'booking',name:'Booking & Welcome',desc:'Welcome letters and SPA correspondence',sortPriority:0,sortDate:''}:isInstallmentSubject(e)?{id:'review',name:'Needs Installment Review',desc:'Verified email · installment not yet confirmed',sortPriority:3,sortDate:''}:{id:'general',name:'General Correspondence',desc:'Messages not tied to a specific installment',sortPriority:2,sortDate:''}];
+  var items=isSpa(e)?[{id:'spa',name:'SPA Correspondence',desc:'SPA signing invitations and related emails · Separate from Welcome',sortPriority:30,sortDate:''}]:matched.length?matched.map(function(s){return{id:'stage:'+s.id,name:s.stage_name,desc:isDownPayment(e)?'Booking amount and down payment correspondence':'Verified installment correspondence',sortPriority:stagePosition(s.stage_name),sortDate:s.due_date||'9999-12-31'};}):[isWelcome(e)?{id:'booking',name:'Booking & Welcome',desc:'Booking confirmations and Welcome Letters',sortPriority:0,sortDate:''}:isDownPayment(e)?{id:'deposit-review',name:'Booking Amount / Down Payment',desc:'Email verified · exact installment link needs review',sortPriority:9,sortDate:''}:isInstallmentSubject(e)?{id:'review',name:'Needs Installment Review',desc:'Verified email · installment not yet confirmed',sortPriority:220,sortDate:''}:{id:'general',name:'General Correspondence',desc:'Messages not tied to a specific installment',sortPriority:210,sortDate:''}];
   items.forEach(function(g){
    if(!groups[g.id])groups[g.id]={id:g.id,name:g.name,desc:g.desc,sortPriority:g.sortPriority,sortDate:g.sortDate,events:[]};
    groups[g.id].events.push(e);
@@ -122,7 +125,7 @@ function render(panel,model){
  if(viewMode==='all'){
   var items=model.emails.filter(function(e){return matches(e,e._matched.map(function(s){return s.stage_name;}).join(' · '));});
   items.sort(function(a,b){return timeValue(a.activity_at)-timeValue(b.activity_at)||Number(a.id)-Number(b.id);});
-  html=items.length?'<div class="ch-group"><div class="ch-groupbody" style="border:0"><div class="ch-line">'+items.map(function(e){return itemHtml(e,e._matched.length?e._matched.map(function(s){return s.stage_name;}).join(' · '):isInstallmentSubject(e)&&!isWelcome(e)?'Installment not yet verified':isWelcome(e)?'Booking & Welcome':'General Correspondence',true);}).join('')+'</div></div></div>':'<p class="ch-empty">No verified emails match these filters.</p>';
+  html=items.length?'<div class="ch-group"><div class="ch-groupbody" style="border:0"><div class="ch-line">'+items.map(function(e){return itemHtml(e,e._matched.length?e._matched.map(function(s){return s.stage_name;}).join(' · '):isSpa(e)?'SPA Correspondence':isDownPayment(e)?'Down Payment · link needs review':isInstallmentSubject(e)&&!isWelcome(e)?'Installment not yet verified':isWelcome(e)?'Booking & Welcome':'General Correspondence',true);}).join('')+'</div></div></div>':'<p class="ch-empty">No verified emails match these filters.</p>';
   count.textContent=items.length+' of '+model.emails.length+' verified emails · Oldest to newest';
  }else{
   var total=0,shown=0;
@@ -130,7 +133,7 @@ function render(panel,model){
    var list=g.events.filter(function(e){return matches(e,g.name);});if(!list.length)return;
    list.forEach(function(e){seen[e.id]=1;});total+=list.length;
    var opened=openGroups[g.id]!==undefined?openGroups[g.id]:idx<3;
-   html+='<details class="ch-group" data-group="'+safe(g.id)+'"'+(searchValue||opened?' open':'')+'><summary><span class="ch-icon" aria-hidden="true">'+(g.id==='booking'?'✉':g.id==='review'?'?':g.id==='general'?'↗':'▤')+'</span><span class="ch-gmeta"><span class="ch-gname">'+safe(g.name)+'</span><span class="ch-gdesc">'+list.length+' email'+(list.length===1?'':'s')+' · '+safe(g.desc)+'</span></span><span class="ch-chevron" aria-hidden="true">⌄</span></summary><div class="ch-groupbody">'+(g.id==='review'?'<p class="ch-info">These emails are verified, but their exact installment has not been confirmed. ChatGPT can link them after reviewing the full correspondence.</p>':'')+'<div class="ch-line">'+list.map(function(e){return itemHtml(e,g.name,false);}).join('')+'</div></div></details>';
+   html+='<details class="ch-group" data-group="'+safe(g.id)+'"'+(searchValue||opened?' open':'')+'><summary><span class="ch-icon" aria-hidden="true">'+(g.id==='booking'?'✉':g.id==='spa'?'✎':g.id==='review'?'?':g.id==='deposit-review'?'↳':g.id==='general'?'↗':'▤')+'</span><span class="ch-gmeta"><span class="ch-gname">'+safe(g.name)+'</span><span class="ch-gdesc">'+list.length+' email'+(list.length===1?'':'s')+' · '+safe(g.desc)+'</span></span><span class="ch-chevron" aria-hidden="true">⌄</span></summary><div class="ch-groupbody">'+(g.id==='review'?'<p class="ch-info">These emails are verified, but their exact installment has not been confirmed. ChatGPT can link them after reviewing the full correspondence.</p>':'')+'<div class="ch-line">'+list.map(function(e){return itemHtml(e,g.name,false);}).join('')+'</div></div></details>';
    shown++;
   });
   count.textContent=Object.keys(seen).length+' of '+model.emails.length+' verified emails · '+shown+' correspondence groups';
