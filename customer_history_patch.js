@@ -348,9 +348,9 @@ async function open(){
 function menu(){
  if(!allowed()||state.view!=='detail')return;
  var m=document.getElementById('customerActionMenu');if(!m)return;
- var b=m.querySelector('#actionCustomerHistory');
- if(!b){b=document.createElement('button');b.type='button';b.id='actionCustomerHistory';b.style.cssText='display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink);cursor:pointer';m.appendChild(b);}
- b.textContent='Customer History';b.onclick=function(e){e.preventDefault();e.stopPropagation();open();};
+ if(m.querySelector('#actionCustomerHistory'))return;
+ var b=document.createElement('button');b.type='button';b.id='actionCustomerHistory';b.style.cssText='display:block;width:100%;border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink);cursor:pointer';
+ b.textContent='Customer History';b.onclick=function(e){e.preventDefault();e.stopPropagation();open();};m.appendChild(b);
 }
 new MutationObserver(menu).observe(document.body,{childList:true,subtree:true});menu();
 window.__sunblissOpenCustomerHistory=open;
