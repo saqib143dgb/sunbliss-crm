@@ -285,7 +285,7 @@
     if(['extension_approval','extension_customer_confirmation','extension_clarification'].indexOf(task.workflow_kind)>=0)loadExtensionApproval(task);
     var addPart=document.getElementById('saAddCommitmentPart');if(addPart)addPart.onclick=function(){var host=document.getElementById('saCommitmentParts'),n=host?host.querySelectorAll('.sa-commitment-part').length+1:0;if(!host||!n)return;var row=document.createElement('div');row.className='sa-commitment-part';row.setAttribute('data-part',n);row.innerHTML='<label class="brand-field">Part '+n+' amount (AED)<input type="number" min="0.01" step="0.01" inputmode="decimal" class="saCommitmentAmount" /></label><label class="brand-field">Commitment date<input type="date" class="saCommitmentDate" /></label><button type="button" class="btn-paper saRemoveCommitmentPart" style="width:100%;justify-content:center;margin:0 0 10px">Remove part</button>';host.appendChild(row);var remove=row.querySelector('.saRemoveCommitmentPart');if(remove)remove.onclick=function(){row.remove();};};
     document.getElementById('saComplete').onclick=function(){completeTask(task);};
-    if(window.__sunblissEnhanceTaskOutcome)window.__sunblissEnhanceTaskOutcome(p,{task:task,selectId:'saOutcome',saveId:'saComplete'});
+    if(window.__sunblissEnhanceTaskOutcome)window.__sunblissEnhanceTaskOutcome(p,{task:task,selectId:'saOutcome',saveId:'saComplete',pendingPaymentSteps:cache.rows.filter(function(t){return t.unit_id===task.unit_id&&t.status==='pending';}).map(function(t){return t.workflow_kind;})});
   }
 
   async function loadOutcomePayment(task,panel){

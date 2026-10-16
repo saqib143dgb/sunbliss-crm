@@ -31,6 +31,11 @@
     var found=[];
     document.querySelectorAll('button,a').forEach(function(el){
       if(!el||el.id==='sunblissPersistentBack')return;
+      // Full-screen task panels keep their own footer Back control.
+      if(el.closest('#scheduledActionPanel')){
+        if(el.classList.contains('sunbliss-inline-back-source')){el.classList.remove('sunbliss-inline-back-source');el.removeAttribute('aria-hidden');el.removeAttribute('tabindex');}
+        return;
+      }
       var explicit=el.id==='btnBack'||(el.classList&&el.classList.contains('back'));
       if(!explicit&&!isBackText(el.textContent))return;
       el.classList.add('sunbliss-inline-back-source');

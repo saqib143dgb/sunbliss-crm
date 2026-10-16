@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function preview(task,value,panel){
+function preview(task,value,panel,pendingPaymentSteps){
  const date=panel.querySelector('#saNextDate,#spaDate')?.value;
  const when=date?' · '+new Date(date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
  if(task.workflow_kind==='spa'){
@@ -11,8 +11,13 @@ function preview(task,value,panel){
   return map[value]||'Choose an outcome to see the next step.';
  }
  const map={payment_reported:'Open Record Payment. Choose Accounts confirmed, customer reported, or cheque pending. This task stays open until payment is saved.',record_payment:'Open Record Payment. This task stays open until the payment is saved.',will_pay_later:'Follow up on the promised payment'+when+'. The installment balance and contractual date stay unchanged.',partial_payment_commitment:'Create a follow-up for every promised part on its date. No payment is recorded.',extension_request:'Management Approval → Confirm with Customer. Activate the extension only after acceptance.',payment_issue:'Resolve Payment Query'+when+'. The balance stays unchanged.',query_resolved:'Resume payment follow-up'+when+'. Resolving a query does not mark the installment paid.',no_response:'Follow up with the customer'+when+'.',cancel_task:'Cancel this task and preserve its reason in History. The balance stays unchanged.',recheck_accounts:'Confirm the existing payment with Accounts. Do not record the same payment again.',confirmed:'Send Payment Receipt after Accounts confirmation.',cleared:'Send Payment Receipt after cheque clearance.',still_pending:'Check cheque clearance again'+when+'.',not_received:'Follow up with the customer and verify the payment details.',amount_mismatch:'Review the recorded amount before sending a receipt.',returned:'Review the returned cheque before continuing collection.',approved:'Confirm the approved date with the customer. No extension is active yet.',approved_with_changes:'Confirm the revised date and conditions with the customer.',rejected:'Communicate the rejection and record the customer’s response.',clarification:'Obtain clarification, then return to Management.',accepted:'Activate the approved extension and follow up on its deadline.',rerequest:'Management re-approval → Reconfirm with Customer.',declined:'Record disagreement and continue collection.',withdrawn:'Withdraw the request and continue collection.',acknowledged:'Record acknowledgement and continue collection.'};
+ if(String(task.auto_key||'').startsWith('booking_welcome|')){
+  if((pendingPaymentSteps||[]).includes('accounts_confirmation'))return 'Record Welcome Letter sent. Confirm payment with Accounts, then send the payment receipt.';
+  if((pendingPaymentSteps||[]).includes('cheque_clearance'))return 'Record Welcome Letter sent. Confirm cheque clearance, then send the payment receipt.';
+  if((pendingPaymentSteps||[]).includes('payment_receipt'))return 'Record Welcome Letter sent. Continue with the Payment Receipt task.';
+  return 'Record Welcome Letter sent. Send a payment receipt once Accounts confirms the payment.';
+ }
  if(value==='sent'||task.workflow_kind==='payment_receipt')return 'Record receipt sent. The CRM checks SPA eligibility and creates an invitation only when the required payments and receipts are complete.';
- if(String(task.auto_key||'').startsWith('booking_welcome|'))return 'Record Welcome Letter sent. Continue with the Payment Receipt task.';
  return map[value]||'Choose an outcome to see the next step.';
 }
 window.__sunblissEnhanceTaskOutcome=function(panel,config){
@@ -28,7 +33,7 @@ window.__sunblissEnhanceTaskOutcome=function(panel,config){
   function rebuild(){choices.replaceChildren();Array.from(select.options).filter(o=>o.value).forEach(o=>{const b=document.createElement('button');b.type='button';b.className='task-outcome-choice';b.dataset.value=o.value;b.textContent=o.textContent;b.onclick=()=>{select.value=o.value;select.dispatchEvent(new Event('change',{bubbles:true}));};choices.appendChild(b)});}
   rebuild();panel.addEventListener('outcome-options-changed',()=>{rebuild();update()});
  }
- function update(){const value=select?.value||'';box.innerHTML='<strong>What happens next</strong><p>'+esc(preview(config.task,value,panel))+'</p>';choices?.querySelectorAll('button').forEach(b=>{const active=b.dataset.value===value;b.classList.toggle('chosen',active);b.setAttribute('aria-pressed',String(active))});if(save&&select?.tagName==='SELECT'&&save.textContent!=='Saving…')save.disabled=!value;if(save&&value==='payment_reported')save.textContent='Continue to payment';else if(save&&config.selectId==='saOutcome'&&value&&save.textContent!=='Saving…')save.textContent='Save Outcome';}
+ function update(){const value=select?.value||'';box.innerHTML='<strong>What happens next</strong><p>'+esc(preview(config.task,value,panel,config.pendingPaymentSteps))+'</p>';choices?.querySelectorAll('button').forEach(b=>{const active=b.dataset.value===value;b.classList.toggle('chosen',active);b.setAttribute('aria-pressed',String(active))});if(save&&select?.tagName==='SELECT'&&save.textContent!=='Saving…')save.disabled=!value;if(save&&value==='payment_reported')save.textContent='Continue to payment';else if(save&&config.selectId==='saOutcome'&&value&&save.textContent!=='Saving…')save.textContent='Save Outcome';}
  panel.addEventListener('change',update);panel.addEventListener('input',update);update();
 };
 const style=document.createElement('style');style.textContent=`
