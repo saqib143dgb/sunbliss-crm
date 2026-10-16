@@ -13,7 +13,7 @@ function when(x){var d=new Date(x);if(isNaN(d.getTime()))return 'Date unavailabl
 function cap(v){return val(v).replace(/_/g,' ').replace(/\b\w/g,function(x){return x.toUpperCase();});}
 function shortSubject(s){return val(s).replace(/^(re:|fw:|fwd:)\s*/ig,'');}
 function isNested(e){return /^(re:|fw:|fwd:)/i.test(val(e.subject))||/request|re.request|extension|approval|approved|reject|reminder|follow.up|decision|commitment|response|reply/i.test(val(e.title)+' '+val(e.activity_type));}
-function isSpa(e){return e.activity_type==='spa_correspondence'||/\bspa\b|sales\s*(?:and|&)\s*purchase\s*agreement|sale\s*purchase\s*agreement/i.test(val(e.title)+' '+val(e.subject));}
+function isSpa(e){return e.activity_type==='spa_correspondence'||/\bspa\b[\s-]*(?:signing|invitation|execution|agreement|contract|signature)|\binvitation\b.{0,30}\bspa\b|\bsales?\s*(?:and|&)\s*purchase\s*agreement\b/i.test(val(e.title)+' '+val(e.subject));}
 function isWelcome(e){return e.activity_type==='welcome_letter'||/booking confirmation|welcome letter/i.test(e.title);}
 function isDownPayment(e){return /\bdown[\s-]*payment\b|\bbooking[\s-]*(?:amount|payment|fee)\b/i.test(val(e.title)+' '+val(e.subject));}
 function stagePosition(n){var name=val(n).toLowerCase();if(/\bdown\s+payment\b/.test(name))return 10;if(/^1st\s+instal/.test(name))return 20;if(/^dld\b|^admin\b/.test(name))return 25;if(/^([2-9])(nd|rd|th)\s+instal/.test(name)){var m=name.match(/^([2-9])/);return 20+10*Number(m[1]);}if(/^final/.test(name))return 150;return 160;}
