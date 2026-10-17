@@ -66,8 +66,8 @@ function build(data,c,selection){
  else result.message=stage+' are '+focusOrdered.map(function(x){return money(x.remaining)}).join(' & ')+' — total '+money(sum)+(delta===null?', payable at handover.':'.');
  var protectedRows=ordered(rows.filter(function(x){var ed=day(x.e.date),contract=day(x.e.contractual);return x.e.kind==='extension'&&ed&&ed>=td&&contract&&contract<td}));
  if(protectedRows.length){
-  var extSum=Math.round(protectedRows.reduce(function(n,x){return n+x.remaining},0)*100)/100,extDate=protectedRows.map(function(x){return x.e.date}).sort().pop(),extDay=day(extDate),extDays=extDay?Math.round((extDay-td)/86400000):null;
-  result.extension='Extension active: '+protectedRows.map(label).join(' & ')+' — '+money(extSum)+' until '+date(extDate)+(extDays===0?' (due today).':extDays===1?' (1 day remaining).':extDays>1?' ('+extDays+' days remaining).':'.');
+  var extSum=Math.round(protectedRows.reduce(function(n,x){return n+x.remaining},0)*100)/100,extDate=protectedRows.map(function(x){return x.e.date}).sort().pop();
+  result.extension='Extension active: '+protectedRows.map(label).join(' & ')+' — '+money(extSum)+' until '+date(extDate)+'.';
  }
  if(over.length){
   result.detail+=' · '+Math.abs(delta)+' day'+(Math.abs(delta)===1?'':'s')+' overdue.';
