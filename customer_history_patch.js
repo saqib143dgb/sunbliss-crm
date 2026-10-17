@@ -133,7 +133,7 @@ function render(panel,model){
    var list=g.events.filter(function(e){return matches(e,g.name);});if(!list.length)return;
    list.forEach(function(e){seen[e.id]=1;});total+=list.length;
    var opened=openGroups[g.id]!==undefined?openGroups[g.id]:idx<3;
-   html+='<details class="ch-group" data-group="'+safe(g.id)+'"'+(searchValue||opened?' open':'')+'><summary><span class="ch-icon" aria-hidden="true">'+(g.id==='booking'?'✉':g.id==='spa'?'✎':g.id==='review'?'?':g.id==='deposit-review'?'↳':g.id==='general'?'↗':'▤')+'</span><span class="ch-gmeta"><span class="ch-gname">'+safe(g.name)+'</span><span class="ch-gdesc">'+list.length+' email'+(list.length===1?'':'s')+' · '+safe(g.desc)+'</span></span><span class="ch-chevron" aria-hidden="true">⌄</span></summary><div class="ch-groupbody">'+(g.id==='review'?'<p class="ch-info">These emails are verified, but their exact installment has not been confirmed. ChatGPT can link them after reviewing the full correspondence.</p>':'')+'<div class="ch-line">'+list.map(function(e){return itemHtml(e,g.name,false);}).join('')+'</div></div></details>';
+   html+='<details class="ch-group" data-group="'+safe(g.id)+'"'+(searchValue||opened?' open':'')+'><summary><span class="ch-icon" aria-hidden="true">'+(g.id==='booking'?'✉':g.id==='spa'?'✎':g.id==='review'?'?':g.id==='deposit-review'?'↳':g.id==='general'?'↗':'▤')+'</span><span class="ch-gmeta"><span class="ch-gname">'+safe(g.name)+'</span><span class="ch-gdesc">'+list.length+' email'+(list.length===1?'':'s')+' · '+safe(g.desc)+'</span></span><span class="ch-chevron" aria-hidden="true">⌄</span></summary><div class="ch-groupbody">'+(g.id==='review'?'<p class="ch-info">These emails are verified, but their exact installment has not been confirmed. They can be linked after reviewing the full correspondence.</p>':'')+'<div class="ch-line">'+list.map(function(e){return itemHtml(e,g.name,false);}).join('')+'</div></div></details>';
    shown++;
   });
   count.textContent=Object.keys(seen).length+' of '+model.emails.length+' verified emails · '+shown+' correspondence groups';
@@ -188,7 +188,7 @@ async function open(){
   p.querySelector('#chSent').textContent=model.emails.filter(function(e){return e.direction==='sent';}).length;
   p.querySelector('#chReceived').textContent=model.emails.filter(function(e){return e.direction==='received';}).length;
   if(model.testMode)p.querySelector('#chNotice').innerHTML='<p class="ch-info">Test Mode does not display live customer emails. Switch to live CRM to view verified correspondence.</p>';
-  else if(!model.emails.length)p.querySelector('#chNotice').innerHTML='<p class="ch-info">No verified Gmail correspondence has been imported for this customer yet. Use ChatGPT to review and update the email history.</p>';
+  else if(!model.emails.length)p.querySelector('#chNotice').innerHTML='<p class="ch-info">No verified email correspondence is available for this customer yet.</p>';
   else p.querySelector('#chNotice').innerHTML='<p class="ch-info">Read-only correspondence from verified email records. Related emails are grouped by installment. Sent or received labels are based only on original Gmail evidence.</p>';
   render(p,model);
  }catch(e){if(!p.isConnected||v!==openVersion)return;p.querySelector('#chCount').textContent='History unavailable';p.querySelector('#chRecords').innerHTML='<p class="ch-info">Could not load verified email history. Please reopen and try again. No CRM data was changed.</p>';}
