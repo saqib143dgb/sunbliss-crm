@@ -8,10 +8,10 @@
   style.textContent=[
     /* Never let a temporary dock created inside #app reach the screen. */
     '#app .tabs{visibility:hidden!important;pointer-events:none!important}',
-    'body>.tabs{visibility:visible!important;pointer-events:auto!important;position:fixed!important;left:50%!important;right:auto!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;top:auto!important;transform:translateX(-50%)!important;-webkit-transform:translateX(-50%)!important;width:min(600px,calc(100vw - 20px))!important;z-index:1200!important;margin:0!important;border-radius:999px!important}',
+    'body>.tabs{visibility:visible!important;pointer-events:auto!important;position:fixed!important;left:50%!important;right:auto!important;bottom:calc(34px + env(safe-area-inset-bottom))!important;top:auto!important;transform:translateX(-50%)!important;-webkit-transform:translateX(-50%)!important;width:min(600px,calc(100vw - 20px))!important;z-index:1200!important;margin:0!important;border-radius:999px!important}',
     'body.sunbliss-back-dock-mode> .tabs{display:none!important}',
     '#app{padding-bottom:0!important}',
-    '@media(max-width:420px){body>.tabs{bottom:calc(14px + env(safe-area-inset-bottom))!important;width:calc(100vw - 16px)!important}#app{padding-bottom:0!important}}'
+    '@media(max-width:420px){body>.tabs{bottom:calc(30px + env(safe-area-inset-bottom))!important;width:calc(100vw - 16px)!important}#app{padding-bottom:0!important}}'
   ].join('');
   document.head.appendChild(style);
 

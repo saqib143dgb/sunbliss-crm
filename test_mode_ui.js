@@ -27,7 +27,8 @@ function mount(){
  if(mode.active){document.getElementById('crmOpenDemo').onclick=demo;document.getElementById('crmResetTest').onclick=function(){if(confirm('Reset Test Mode for everyone? This clears all demo bookings, payments, tasks and history, then restores TEST-001. Live records are not changed.'))prepare(true);};document.getElementById('crmExitTest').onclick=function(){mode.switchTo(false);};}
  else document.getElementById('crmEnterTest').onclick=function(){prepare(false);};
  }
- bar.hidden=!mode.active&&!authorized();
+ // Temporarily hide the Live CRM / Open Test Mode banner without removing the isolated workspace.
+ bar.hidden=!mode.active;
  if(mode.active){document.getElementById('crmOpenDemo').hidden=!authorized();document.getElementById('crmResetTest').hidden=!authorized()||state.userRole!=='crm_officer';}
 }
 function queue(){if(scheduled)return;scheduled=true;requestAnimationFrame(function(){scheduled=false;mount();});}

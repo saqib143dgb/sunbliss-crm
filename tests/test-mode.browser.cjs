@@ -9,11 +9,13 @@ try{for(const width of [390,1440]){
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async r=>{let u=new URL(r.request().url());if(u.origin==='http://127.0.0.1:8142')return r.continue();
  if(u.hostname==='aeaakgndnihmuicyierp.supabase.co'&&u.pathname.startsWith('/rest/v1/')){requests.push({path:u.pathname,headers:r.request().headers(),body:r.request().postData()});return r.fulfill({status:200,contentType:'application/json',body:u.pathname.endsWith('prepare_test_workspace')?'{}':'[]'});}return r.abort();});
- const ready=async()=>{await page.waitForFunction(()=>window.__sunblissUiReady);await page.evaluate(()=>{state.userRole='crm_officer';state.user={email:'test@example.invalid'};state.view='overview';state.syncedAt=new Date().toISOString();state.dues=[{sno:991,customerId:992,unit:'TEST-001',name:'Demo Customer — TEST ONLY',type:'2BR',total:1000000,received:10000,outstanding:-990000,stages:[],info:{},spa:'Pending',oqood:'Pending'}];state.recent=[];render();});await page.locator('#crmTestModeBar').waitFor({state:'visible'});};
+ const ready=async()=>{await page.waitForFunction(()=>window.__sunblissUiReady);await page.evaluate(()=>{state.userRole='crm_officer';state.user={email:'test@example.invalid'};state.view='overview';state.syncedAt=new Date().toISOString();state.dues=[{sno:991,customerId:992,unit:'TEST-001',name:'Demo Customer — TEST ONLY',type:'2BR',total:1000000,received:10000,outstanding:-990000,stages:[],info:{},spa:'Pending',oqood:'Pending'}];state.recent=[];render();});await page.locator('#crmTestModeBar').waitFor({state:'attached'});};
  await page.goto('http://127.0.0.1:8142');await ready();
  assert.equal(await page.evaluate(()=>__crmTestMode.active),false);
  await page.evaluate(()=>sb.from('customers').select('*'));assert.equal(requests.at(-1).headers['accept-profile'],'public');
- await page.locator('#crmEnterTest').click();await page.waitForFunction(()=>window.__crmTestMode&&__crmTestMode.active);await ready();
+ assert(await page.locator('#crmTestModeBar').isHidden(),'Live CRM must not show the Test Mode banner');
+ assert(await page.locator('#crmEnterTest').isHidden(),'Test Mode entry must be temporarily hidden');
+ await page.evaluate(()=>__crmTestMode.switchTo(true));await page.waitForFunction(()=>window.__crmTestMode&&__crmTestMode.active);await ready();
  assert(requests.some(r=>r.path.endsWith('prepare_test_workspace')&&r.headers['content-profile']==='crm_test'));
  assert.match(await page.locator('#crmTestModeBar').innerText(),/Shared demo workspace/);
  await page.evaluate(()=>sb.schema('public').from('customers').insert({customer_name:'TEST ONLY'}));assert.equal(requests.at(-1).headers['content-profile'],'crm_test');
