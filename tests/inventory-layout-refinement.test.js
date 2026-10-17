@@ -63,3 +63,15 @@ test('reference screenshot action pills and unified inventory panel have matchin
  assert.match(s,/#main \.inventory-status-bar \+ #sunblissUnitTypeBreakdown\{margin:0 0 11px!important/);
  assert.doesNotMatch(stylesheet,/fetch\(|supabase|onClick|addEventListener/);
 });
+
+
+test('mobile action controls share the same grid row and fixed box dimensions',()=>{
+ const s=css();
+ assert.match(s,/#main \.controls \.units-action-toolbar>#btnToggleFilters\{grid-column:1!important;grid-row:1!important/);
+ assert.match(s,/#main \.controls \.units-action-toolbar>\.units-secondary-actions\{grid-column:2!important;grid-row:1!important/);
+ assert.match(s,/#main \.controls \.units-action-toolbar>#btnToggleFilters\{[^}]*box-sizing:border-box!important;display:flex!important;[^}]*height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important/);
+ assert.match(s,/#main \.controls \.units-action-toolbar>\.units-secondary-actions>#btnExportList\{[^}]*box-sizing:border-box!important;display:flex!important;[^}]*height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important/);
+ assert.match(s,/#main \.controls \.units-action-toolbar>\.units-secondary-actions\{[^}]*height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important/);
+ assert.match(s,/@media\(max-width:359px\)/);
+ assert.doesNotMatch(stylesheet,/addEventListener|\.onclick=|\.click\(/);
+});
