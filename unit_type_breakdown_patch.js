@@ -4,7 +4,7 @@
   window.__sunblissUnitTypeBreakdownInstalled=true;
 
   var units=[],hasLoaded=false,loading=null,lastFetch=0,error='';
-  var selectedStatus='all',selectedType='all',selectedProject='',expandedType='';
+  var expanded=false,expandedType='',expandedStatus='all',selectedProject='';
   var preferredTypes=['1BR','1BR+STORE','2BR','2BR+MAID','2BR+STORE','3BR','3BR+MAID','3BR+STORE'];
   var sectionId='sunblissUnitTypeBreakdown';
   function str(value){return value==null?'':String(value);}
@@ -22,7 +22,7 @@
     return units.filter(function(u){return (str(u.project_name).trim()||'Sunbliss Residences')===selectedProject;});
   }
   function typeNames(rows){
-    var names=new Set(preferredTypes);
+    var names=new Set();
     rows.forEach(function(u){names.add(norm(u.unit_type)||'NOT SPECIFIED');});
     return Array.from(names).sort(function(a,b){
       var ai=preferredTypes.indexOf(a),bi=preferredTypes.indexOf(b);
@@ -39,35 +39,7 @@
   }
   var style=document.createElement('style');
   style.id='sunblissUnitTypeBreakdownStyle';
-  style.textContent=[
-    '.utb-panel{margin:11px 0 12px;border:1px solid var(--paper-line);border-radius:13px;background:var(--paper);padding:13px;box-shadow:0 1px 2px rgba(15,26,38,.035);color:var(--ink);font-family:Inter,CRMInter,sans-serif;}',
-    '.utb-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}',
-    '.utb-title{font-size:13px;font-weight:700;letter-spacing:0;line-height:1.3;margin:0;color:var(--ink);}',
-    '.utb-subtitle{font-size:10.5px;color:var(--muted);margin-top:2px;}',
-    '.utb-refresh{border:1px solid var(--paper-line);background:var(--paper-dim);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap;}',
-    '.utb-tools{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:9px;margin-bottom:12px;}',
-    '.utb-segment{display:flex;gap:3px;background:var(--paper-dim);padding:3px;border:1px solid var(--paper-line);border-radius:10px;}',
-    '.utb-segment button{border:0;border-radius:7px;background:transparent;color:var(--muted);padding:8px 13px;font-size:11px;font-weight:600;cursor:pointer;}',
-    '.utb-segment button[aria-pressed="true"]{background:var(--ink);color:var(--paper);}',
-    '.utb-selects{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;}',
-    '.utb-select-label{display:grid;gap:4px;font-size:10px;font-weight:600;color:var(--muted);}',
-    '.utb-select-label select{min-width:145px;max-width:210px;min-height:34px;padding:6px 26px 6px 9px;border:1px solid var(--paper-line);background:var(--paper);color:var(--ink);border-radius:8px;font-size:11.5px;font-family:inherit;}',
-    '.utb-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}',
-    '.utb-type{width:100%;border:1px solid var(--paper-line);border-radius:10px;background:var(--paper-dim);color:var(--ink);padding:10px 11px;display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;cursor:pointer;min-width:0;}',
-    '.utb-type[aria-expanded="true"]{border-color:var(--gold-deep);background:var(--paper);}',
-    '.utb-type-name{font-size:12px;font-weight:700;display:block;}',
-    '.utb-type-meta{font-size:10px;color:var(--muted);display:block;margin-top:4px;}',
-    '.utb-type-count{font-size:19px;line-height:1;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}',
-    '.utb-total-line{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-top:11px;}',
-    '.utb-detail{background:var(--paper-dim);border:1px solid var(--paper-line);border-radius:10px;padding:11px;margin-top:10px;}',
-    '.utb-detail-heading{font-size:11.5px;font-weight:700;color:var(--ink);margin-bottom:9px;}',
-    '.utb-numbers{display:flex;flex-wrap:wrap;gap:6px;}',
-    '.utb-unit{display:inline-flex;gap:5px;align-items:center;background:var(--paper);border:1px solid var(--paper-line);padding:7px 9px;border-radius:7px;font-size:11px;font-weight:600;color:var(--ink);}',
-    '.utb-unit small{color:var(--muted);font-size:9px;font-weight:500;}',
-    '.utb-state{padding:12px 3px;font-size:11.5px;color:var(--muted);}',
-    '.utb-error{color:var(--rust);}',
-    '@media(max-width:620px){.utb-list{grid-template-columns:1fr}.utb-tools{align-items:stretch;flex-direction:column}.utb-selects{width:100%}.utb-select-label{flex:1;min-width:0}.utb-select-label select{max-width:none;width:100%}.utb-segment{align-self:flex-start}.utb-panel{padding:11px}.utb-type-count{font-size:18px}}'
-  ].join('');
+  style.textContent=".utb-panel{margin:9px 0 13px;border:1px solid var(--paper-line);border-radius:13px;background:var(--paper);padding:0;box-shadow:0 1px 2px rgba(15,26,38,.025);color:var(--ink);font-family:Inter,CRMInter,sans-serif;overflow:hidden;}\n.utb-head{display:flex;align-items:center;gap:9px;width:100%;box-sizing:border-box;padding:12px 13px;border:0;background:transparent;color:var(--ink);text-align:left;cursor:pointer;font:inherit;}\n.utb-head:focus-visible,.utb-count:focus-visible,.utb-unit:focus-visible{outline:2px solid var(--gold-deep);outline-offset:-2px;}\n.utb-head-main{flex:1;min-width:0;display:grid;gap:2px;}\n.utb-title{font-size:13px;font-weight:700;line-height:1.3;color:var(--ink);}\n.utb-subtitle{font-size:10.5px;line-height:1.3;color:var(--muted);}\n.utb-head-summary{font-size:11px;white-space:nowrap;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;}\n.utb-chevron{display:inline-block;width:7px;height:7px;flex:none;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .16s ease;margin:0 3px 4px 2px;color:var(--ink);}\n.utb-head[aria-expanded=\"true\"] .utb-chevron{transform:rotate(225deg);margin-top:5px;margin-bottom:0;}\n.utb-body{padding:0 13px 12px;border-top:1px solid var(--paper-line);}\n.utb-project{margin:9px 0;display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--muted);}\n.utb-project select{min-width:0;max-width:220px;min-height:30px;border:1px solid var(--paper-line);border-radius:7px;background:var(--paper);color:var(--ink);font:500 11px Inter,CRMInter,sans-serif;padding:4px 7px;}\n.utb-table{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums;}\n.utb-table th{font-size:10.5px;font-weight:600;color:var(--muted);padding:10px 2px 7px;white-space:nowrap;text-align:right;}\n.utb-table th:first-child,.utb-table td:first-child{text-align:left;width:40%;}\n.utb-table td{font-size:12px;text-align:right;padding:8px 2px;border-top:1px solid var(--paper-line);color:var(--ink);vertical-align:middle;}\n.utb-table .utb-type{font-weight:650;overflow-wrap:anywhere;line-height:1.4;}\n.utb-count{background:transparent;border:0;border-radius:5px;min-width:27px;min-height:30px;padding:3px 4px;cursor:pointer;color:inherit;font:650 12px Inter,CRMInter,sans-serif;font-variant-numeric:tabular-nums;}\n.utb-count:not(:disabled):hover,.utb-count[aria-expanded=\"true\"]{background:var(--paper-dim);}\n.utb-count:disabled{opacity:.55;cursor:default;}\n.utb-count.available{color:var(--sage-deep,#337653);}\n.utb-total td{font-weight:750;background:var(--paper-dim);border-top:1px solid var(--paper-line);}\n.utb-detail-row td{background:var(--paper-dim);padding:10px!important;text-align:left!important;}\n.utb-detail-heading{font-size:11px;font-weight:700;color:var(--ink);margin-bottom:8px;}\n.utb-numbers{display:flex;flex-wrap:wrap;gap:5px;}\n.utb-unit{display:inline-flex;gap:5px;align-items:center;background:var(--paper);border:1px solid var(--paper-line);padding:6px 8px;border-radius:7px;font-size:10.5px;font-weight:600;color:var(--ink);}\n.utb-unit small{color:var(--muted);font-size:9px;font-weight:500;}\n.utb-state{margin:0;padding:12px 3px;font-size:11.5px;color:var(--muted);}\n.utb-error{color:var(--rust);}\n.utb-retry{border:1px solid var(--paper-line);background:var(--paper-dim);border-radius:7px;padding:6px 9px;font-size:11px;color:var(--ink);cursor:pointer;}\n.utb-foot{margin-top:8px;font-size:10px;color:var(--muted);}\n@media(max-width:420px){.utb-head{padding:10px 11px}.utb-body{padding:0 10px 10px}.utb-table th{font-size:9.4px}.utb-table td{font-size:11px;padding:6px 1px}.utb-count{font-size:11px;min-width:26px}.utb-title{font-size:12.5px}.utb-head-summary{font-size:10px;}}\n@media(prefers-reduced-motion:reduce){.utb-chevron{transition:none;}}";
   document.head.appendChild(style);
 
   function ensureSection(){
@@ -85,36 +57,65 @@
     else if(!section.isConnected)controls.appendChild(section);
     return section;
   }
+  function rowsForProject(){
+    return visibleUnits().filter(function(u){var s=availability(u);return s==='sold'||s==='available';});
+  }
+  function counts(rows,type){
+    var subset=type==='ALL'?rows:rows.filter(function(u){return (norm(u.unit_type)||'NOT SPECIFIED')===type;});
+    return {all:subset.length,sold:subset.filter(function(u){return availability(u)==='sold';}).length,
+      available:subset.filter(function(u){return availability(u)==='available';}).length};
+  }
+  function countButton(type,status,count){
+    return '<button type="button" class="utb-count'+(status==='available'?' available':'')+
+      '" data-utb-count="'+esc(type)+'" data-utb-scope="'+status+'" aria-label="'+
+      esc('Show '+count+' '+(status==='all'?'total':status)+' '+(type==='ALL'?'units':type+' units'))+
+      '" aria-expanded="'+(expandedType===type&&expandedStatus===status)+'"'+(count===0?' disabled':'')+
+      '>'+count+'</button>';
+  }
+  function detailRow(type,status,rows){
+    if(expandedType!==type)return '';
+    var matches=rows.filter(function(u){return (type==='ALL'||(norm(u.unit_type)||'NOT SPECIFIED')===type)&&
+      (status==='all'||availability(u)===status);}).sort(function(a,b){return str(a.unit_no).localeCompare(str(b.unit_no),undefined,{numeric:true});});
+    return '<tr class="utb-detail-row"><td colspan="4"><div class="utb-detail-heading">'+
+      esc(type==='ALL'?'All units':type)+' · '+matches.length+' '+(status==='all'?'total':status)+' units</div>'+
+      '<div class="utb-numbers">'+matches.map(function(u){return '<span class="utb-unit">'+esc(u.unit_no||'Unnumbered')+
+      '<small>'+esc(availability(u))+'</small></span>';}).join('')+'</div></td></tr>';
+  }
   function render(){
     var section=ensureSection();if(!section)return;
     ensureProject();
-    var projectRows=visibleUnits();
-    var types=typeNames(projectRows);
-    if(types.indexOf(selectedType)<0)selectedType='all';
-    var selectedRows=projectRows.filter(function(u){return selectedStatus==='all'||availability(u)===selectedStatus;});
-    var totals={all:projectRows.length,sold:0,available:0};
-    projectRows.forEach(function(u){var status=availability(u);if(status==='sold'||status==='available')totals[status]++;});
-    var projects=allProjects();
-    var projectSelector=projects.length>1?'<label class="utb-select-label">Project<select data-utb-project>'+projects.map(function(p){return '<option value="'+esc(p)+'"'+(p===selectedProject?' selected':'')+'>'+esc(p)+'</option>';}).join('')+'</select></label>':'';
-    var typeSelector='<label class="utb-select-label">Unit type<select data-utb-type><option value="all">All unit types</option>'+types.map(function(t){return '<option value="'+esc(t)+'"'+(t===selectedType?' selected':'')+'>'+esc(t)+'</option>';}).join('')+'</select></label>';
-    var segment=['all','sold','available'].map(function(s){
-      return '<button type="button" data-utb-status="'+s+'" aria-pressed="'+(s===selectedStatus)+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>';
-    }).join('');
-    var cards=types.filter(function(t){return selectedType==='all'||t===selectedType;}).map(function(t){
-      var typed=projectRows.filter(function(u){return (norm(u.unit_type)||'NOT SPECIFIED')===t;});
-      var scoped=typed.filter(function(u){return selectedStatus==='all'||availability(u)===selectedStatus;});
-      var sold=typed.filter(function(u){return availability(u)==='sold';}).length;
-      var available=typed.filter(function(u){return availability(u)==='available';}).length;
-      var info=selectedStatus==='all'?sold+' sold · '+available+' available':scoped.length+' '+selectedStatus;
-      return '<button type="button" class="utb-type" data-utb-open="'+esc(t)+'" aria-expanded="'+(expandedType===t)+'" aria-label="'+esc(t+', '+scoped.length+' units, view unit numbers')+'"><span><span class="utb-type-name">'+esc(t)+'</span><span class="utb-type-meta">'+esc(info)+'</span></span><strong class="utb-type-count">'+scoped.length+'</strong></button>';
-    }).join('');
-    var detail='';
-    if(expandedType&&(selectedType==='all'||selectedType===expandedType)){
-      var matches=selectedRows.filter(function(u){return (norm(u.unit_type)||'NOT SPECIFIED')===expandedType;}).sort(function(a,b){return str(a.unit_no).localeCompare(str(b.unit_no),undefined,{numeric:true});});
-      detail='<div class="utb-detail" aria-live="polite"><div class="utb-detail-heading">'+esc(expandedType)+' · '+matches.length+' '+(selectedStatus==='all'?'total':selectedStatus)+' units</div><div class="utb-numbers">'+(matches.length?matches.map(function(u){return '<span class="utb-unit">'+esc(u.unit_no||'Unnumbered')+'<small>'+esc(availability(u))+'</small></span>';}).join(''):'<span class="utb-state">No units in this category.</span>')+'</div></div>';
+    var projects=allProjects(),rows=rowsForProject(),total=counts(rows,'ALL'),names=typeNames(rows);
+    if(expandedType&&expandedType!=='ALL'&&names.indexOf(expandedType)<0)expandedType='';
+    var title='<span class="utb-head-main"><span class="utb-title">Unit Type Breakdown</span>'+
+      '<span class="utb-subtitle">'+(error?'Inventory temporarily unavailable':!hasLoaded?'Loading inventory…':
+      total.all+' active '+(total.all===1?'unit':'units')+' · '+names.length+' unit '+(names.length===1?'type':'types'))+'</span></span>'+
+      '<span class="utb-chevron" aria-hidden="true"></span>';
+    var body='';
+    if(expanded){
+      var projectSelector=projects.length>1?'<label class="utb-project">Project <select data-utb-project aria-label="Select inventory project">'+
+        projects.map(function(p){return '<option value="'+esc(p)+'"'+(p===selectedProject?' selected':'')+'>'+esc(p)+'</option>';}).join('')+
+        '</select></label>':'';
+      var rowsHtml=names.map(function(t){
+        var cnt=counts(rows,t);
+        var tr='<tr><td class="utb-type">'+esc(t)+'</td>'+
+          '<td>'+countButton(t,'all',cnt.all)+'</td>'+
+          '<td>'+countButton(t,'sold',cnt.sold)+'</td>'+
+          '<td>'+countButton(t,'available',cnt.available)+'</td></tr>';
+        return tr+(expandedType===t?detailRow(t,expandedStatus,rows):'');
+      }).join('');
+      var sum='<tr class="utb-total"><td>TOTAL</td><td>'+countButton('ALL','all',total.all)+'</td>'+
+        '<td>'+countButton('ALL','sold',total.sold)+'</td><td>'+countButton('ALL','available',total.available)+'</td></tr>';
+      var table='<table class="utb-table"><thead><tr><th scope="col">Unit Type</th><th scope="col">Total</th>'+
+        '<th scope="col">Sold</th><th scope="col">Available</th></tr></thead><tbody>'+rowsHtml+sum+
+        (expandedType==='ALL'?detailRow('ALL',expandedStatus,rows):'')+'</tbody></table>';
+      var content=error?'<div class="utb-state utb-error">'+esc(error)+' <button type="button" class="utb-retry" data-utb-retry>Retry</button></div>':
+        !hasLoaded?'<div class="utb-state">Loading unit inventory…</div>':
+        projectSelector+(rows.length?table:'<div class="utb-state">No active units found for this project.</div>')+
+        '<div class="utb-foot">Tap a number to view the corresponding unit numbers.</div>';
+      body='<div class="utb-body" id="utbBreakdownContent">'+content+'</div>';
     }
-    var body=error?'<p class="utb-state utb-error">'+esc(error)+'</p>':!hasLoaded?'<p class="utb-state">Loading unit inventory…</p>':'<div class="utb-list">'+cards+'</div>'+detail+'<div class="utb-total-line"><span>'+selectedRows.length+' units · '+(selectedStatus==='all'?'all statuses':selectedStatus)+'</span><span>Read-only · Supabase inventory</span></div>';
-    section.innerHTML='<div class="utb-head"><div><h3 class="utb-title">Unit Type Breakdown</h3><div class="utb-subtitle">Select a count to see the unit numbers</div></div><button class="utb-refresh" data-utb-refresh type="button"'+(loading?' disabled':'')+'>Refresh</button></div><div class="utb-tools"><div class="utb-segment" role="group" aria-label="Unit availability">'+segment+'</div><div class="utb-selects">'+projectSelector+typeSelector+'</div></div>'+body;
+    section.innerHTML='<button type="button" class="utb-head" data-utb-toggle aria-expanded="'+expanded+
+      '" aria-controls="utbBreakdownContent">'+title+'</button>'+body;
   }
   function load(force){
     if(loading)return loading;
@@ -163,22 +164,29 @@
   document.addEventListener('click',function(event){
     var target=event.target&&event.target.closest&&event.target.closest('#'+sectionId);
     if(!target)return;
-    var button=event.target.closest('[data-utb-status],[data-utb-open],[data-utb-refresh]');
+    var button=event.target.closest('[data-utb-toggle],[data-utb-count],[data-utb-retry]');
     if(!button)return;
     event.preventDefault();event.stopPropagation();
-    if(button.hasAttribute('data-utb-status')){
-      selectedStatus=button.getAttribute('data-utb-status');expandedType='';render();
-    }else if(button.hasAttribute('data-utb-open')){
-      var t=button.getAttribute('data-utb-open');
-      expandedType=expandedType===t?'':t;render();
-    }else if(button.hasAttribute('data-utb-refresh')){
+    if(button.hasAttribute('data-utb-toggle')){
+      expanded=!expanded;
+      if(!expanded){expandedType='';expandedStatus='all';}
+      render();
+      if(expanded)load(false);
+    }else if(button.hasAttribute('data-utb-count')){
+      var t=button.getAttribute('data-utb-count'),s=button.getAttribute('data-utb-scope');
+      if(expandedType===t&&expandedStatus===s){expandedType='';expandedStatus='all';}
+      else{expandedType=t;expandedStatus=s;}
+      render();
+      if(Date.now()-lastFetch>60000)load(true);
+    }else if(button.hasAttribute('data-utb-retry')){
       hasLoaded=false;load(true);
     }
   });
   document.addEventListener('change',function(event){
     var select=event.target;if(!select||!select.closest||!select.closest('#'+sectionId))return;
-    if(select.matches('[data-utb-type]')){selectedType=select.value;expandedType='';render();}
-    if(select.matches('[data-utb-project]')){selectedProject=select.value;selectedType='all';expandedType='';render();}
+    if(select.matches('[data-utb-project]')){
+      selectedProject=select.value;expandedType='';expandedStatus='all';render();
+    }
   });
   window.addEventListener('pageshow',show);
   show();
