@@ -50,3 +50,16 @@ test('only search results display a count above the unit list',()=>{
  assert.equal(style.display,'');
  assert.equal(line.textContent,'2 matching sold units');
 });
+
+
+test('reference screenshot action pills and unified inventory panel have matching mobile proportions',()=>{
+ const s=css();
+ assert.match(s,/\.units-action-toolbar\{column-gap:9px!important;margin:0 0 11px!important/);
+ assert.match(s,/\.units-action-toolbar>#btnToggleFilters\{height:36px!important;min-height:36px!important/);
+ assert.match(s,/\.units-action-toolbar \.units-secondary-actions>#btnExportList\{height:36px!important;min-height:36px!important/);
+ assert.match(s,/#main \.inventory-status-chip\{min-height:34px!important;height:34px!important/);
+ assert.match(s,/#sunblissUnitTypeBreakdown \.utb-head\{box-sizing:border-box!important;height:39px!important;min-height:39px!important/);
+ assert.match(s,/#main \.inventory-status-bar:has\(\+ #sunblissUnitTypeBreakdown\)\{margin:0!important/);
+ assert.match(s,/#main \.inventory-status-bar \+ #sunblissUnitTypeBreakdown\{margin:0 0 11px!important/);
+ assert.doesNotMatch(stylesheet,/fetch\(|supabase|onClick|addEventListener/);
+});
