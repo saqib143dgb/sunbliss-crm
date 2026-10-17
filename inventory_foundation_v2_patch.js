@@ -157,7 +157,7 @@
       if(toolbar)toolbar.insertAdjacentElement('afterend',bar);else controls.appendChild(bar);
     }
     var c=counts();
-    bar.innerHTML='<div class="inventory-status-head"><span class="inventory-status-title">Inventory View</span><span class="inventory-status-total">Total Inventory · '+c.all+'</span></div><div class="inventory-status-chips">'+[
+    bar.innerHTML='<div class="inventory-status-head"><span class="inventory-status-title">Inventory</span><span class="inventory-status-total">'+c.all+' units</span></div><div class="inventory-status-chips">'+[
       chip('Sold','all',c.sold),chip('Available','available',c.available),chip('Cancelled','cancelled',c.cancelled)
     ].join('')+'</div>';
     return bar;
@@ -212,17 +212,21 @@
 
   function updateResultLine(visibleBaseCount,inventoryOnlyCount){
     var line=document.querySelector('#main .result-count');
-    if(!line||hasCustomerConditionFilter())return;
-    var c=counts(),q=currentSearch(),shown=visibleBaseCount+inventoryOnlyCount,copy='';
-    if(activeFilter==='all'&&!q){
-      copy=c.sold+' sold units · '+c.available+' available · '+c.all+' total inventory';
-    }else{
-      if(activeFilter==='available'&&!q)copy=c.available+' available units · '+c.all+' total inventory';
-      else if(activeFilter==='cancelled'&&!q)copy=c.cancelled+' cancelled bookings · '+c.all+' total inventory';
-      else copy=shown+' of '+c.all+' total units';
-      if(q)copy+=' · matching inventory';
-      else if(activeFilter==='cancelled')copy+=' · available for resale';
+    if(!line)return;
+    if(hasCustomerConditionFilter()){
+      line.style.removeProperty('display');
+      return;
     }
+    var q=currentSearch();
+    if(!q){
+      // Inventory totals already appear in the status chips. Do not repeat them above the list.
+      line.style.setProperty('display','none','important');
+      return;
+    }
+    var shown=visibleBaseCount+inventoryOnlyCount;
+    var status=activeFilter==='available'?'available units':activeFilter==='cancelled'?'cancelled bookings':'sold units';
+    var copy=shown+' matching '+status;
+    line.style.removeProperty('display');
     if(text(line.textContent)!==copy)line.textContent=copy;
   }
 

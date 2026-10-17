@@ -86,9 +86,7 @@
     ensureProject();
     var projects=allProjects(),rows=rowsForProject(),total=counts(rows,'ALL'),names=typeNames(rows);
     if(expandedType&&expandedType!=='ALL'&&names.indexOf(expandedType)<0)expandedType='';
-    var title='<span class="utb-head-main"><span class="utb-title">Unit Type Breakdown</span>'+
-      '<span class="utb-subtitle">'+(error?'Inventory temporarily unavailable':!hasLoaded?'Loading inventory…':
-      total.all+' active '+(total.all===1?'unit':'units')+' · '+names.length+' unit '+(names.length===1?'type':'types'))+'</span></span>'+
+    var title='<span class="utb-head-main"><span class="utb-title">By unit type</span></span>'+
       '<span class="utb-chevron" aria-hidden="true"></span>';
     var body='';
     if(expanded){
@@ -103,15 +101,12 @@
           '<td>'+countButton(t,'available',cnt.available)+'</td></tr>';
         return tr+(expandedType===t?detailRow(t,expandedStatus,rows):'');
       }).join('');
-      var sum='<tr class="utb-total"><td>TOTAL</td><td>'+countButton('ALL','all',total.all)+'</td>'+
-        '<td>'+countButton('ALL','sold',total.sold)+'</td><td>'+countButton('ALL','available',total.available)+'</td></tr>';
       var table='<table class="utb-table"><thead><tr><th scope="col">Unit Type</th><th scope="col">Total</th>'+
-        '<th scope="col">Sold</th><th scope="col">Available</th></tr></thead><tbody>'+rowsHtml+sum+
-        (expandedType==='ALL'?detailRow('ALL',expandedStatus,rows):'')+'</tbody></table>';
+        '<th scope="col">Sold</th><th scope="col">Available</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>';
       var content=error?'<div class="utb-state utb-error">'+esc(error)+' <button type="button" class="utb-retry" data-utb-retry>Retry</button></div>':
         !hasLoaded?'<div class="utb-state">Loading unit inventory…</div>':
         projectSelector+(rows.length?table:'<div class="utb-state">No active units found for this project.</div>')+
-        '<div class="utb-foot">Tap a number to view the corresponding unit numbers.</div>';
+        '';
       body='<div class="utb-body" id="utbBreakdownContent">'+content+'</div>';
     }
     section.innerHTML='<button type="button" class="utb-head" data-utb-toggle aria-expanded="'+expanded+

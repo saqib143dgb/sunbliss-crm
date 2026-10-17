@@ -50,14 +50,15 @@ function unit(type,status,no,project='Sunbliss Residences'){
 }
 test('collapsed summary, no duplicate filters, zero types excluded, and correct totals',async()=>{
  const f=await fixture([unit('2BR','Sold','B2-101'),unit('2BR','Available','B2-102'),unit('2BR+STORE','Sold','B2-103'),unit('1BR','Cancelled','B2-404')]);
- assert.match(f.section.innerHTML,/3 active units · 2 unit types/);
+ assert.match(f.section.innerHTML,/By unit type/);
+ assert.doesNotMatch(f.section.innerHTML,/3 active units|2 unit types/);
  assert.doesNotMatch(f.section.innerHTML,/<table/);
  const html=f.click({'data-utb-toggle':''});
  assert.match(html,/<table class="utb-table">/);
  assert.doesNotMatch(html,/data-utb-status|data-utb-type|data-utb-refresh/);
  assert.doesNotMatch(html,/class="utb-type">1BR</);
  assert.match(html,/data-utb-count="2BR" data-utb-scope="available"[^>]*>1<\/button>/);
- assert.match(html,/data-utb-count="ALL" data-utb-scope="all"[^>]*>3<\/button>/);
+ assert.doesNotMatch(html,/data-utb-count="ALL"|<td>TOTAL<\/td>/);
  assert.equal(f.reads(),1);
 });
 test('count drilldowns show correct numbers, collapse, and retain read-only behavior',async()=>{
@@ -79,7 +80,8 @@ test('multiple projects stay scoped and unit numbers are safely escaped',async()
  let html=f.click({'data-utb-toggle':''});
  assert.match(html,/data-utb-project/);
  html=f.selectProject('Triana Residences');
- assert.match(html,/1 active unit · 1 unit type/);
+ assert.match(html,/By unit type/);
+ assert.doesNotMatch(html,/1 active unit/);
  html=f.click({'data-utb-count':'3BR','data-utb-scope':'all'});
  assert.match(html,/T-101/);
  assert.doesNotMatch(html,/A<script>/);
