@@ -197,7 +197,7 @@
   });
 
   document.addEventListener('click',function(event){
-    var nav = event.target && event.target.closest ? event.target.closest('.tabs .tab[data-view="overview"],.tabs .tab[data-view="insights"]') : null;
+    var nav = event.target && event.target.closest ? event.target.closest('.tabs .tab[data-view="overview"],.tabs .tab[data-view="insights"],.tabs .tab[data-view="list"]') : null;
     if (nav) setSearchOpen(false);
   },true);
 
