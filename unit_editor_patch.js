@@ -187,9 +187,11 @@
       if (status.toLowerCase() === 'cancelled') throw new Error('Use the Cancel Unit workflow to cancel a unit.');
       if (furnishing !== 'Fully Furnished' && furnishing !== 'Semi Furnished') throw new Error('Choose Fully Furnished or Semi Furnished.');
 
-      var originalValue=Number((document.getElementById('unitEditPanel')||panel).getAttribute('data-original-total'));
+      var editor=document.getElementById('unitEditPanel');
+      if(!editor)throw new Error('The unit editor is no longer open. Reopen it before saving.');
+      var originalValue=Number(editor.getAttribute('data-original-total'));
       var enteredValue=numberOrNull('euTotalPrice','Total unit value');
-      if(Number.isFinite(originalValue) && enteredValue!==null && Math.abs(enteredValue-originalValue)>.005){
+      if(Number.isFinite(originalValue) && (enteredValue===null || Math.abs(enteredValue-originalValue)>.005)){
         throw new Error('The sold unit value cannot be changed in Edit Unit because the existing contractual payment plan would no longer reconcile. Use a separately approved sale-value revision workflow. No data has been changed.');
       }
       var payload = {
