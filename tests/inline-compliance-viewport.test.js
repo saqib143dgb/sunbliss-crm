@@ -119,3 +119,13 @@ test('reference design preserves backend status update and does not introduce da
   assert.match(component,/sb\.from\('sales'\)\.update\(payload\)\.eq\('unit_id',c\.sno\)/);
   assert.doesNotMatch(css,/sb\.from\(|sb\.rpc\(/);
 });
+
+test('SPA/Oqood actions clear iPhone rounded bottom by additional 20px',()=>{
+  const css=fs.readFileSync('inline_compliance_full_page_fix_patch.js','utf8');
+  const rule=css.match(/body\.sunbliss-inline-compliance-full-page>#inlineComplianceEditor>\.crm-compliance-editor-actions\{([^']+)\}/);
+  assert.ok(rule,'mobile sticky action footer must exist');
+  assert.match(rule[1],/padding:12px 16px calc\(32px \+ env\(safe-area-inset-bottom\)\)!important/);
+  assert.match(rule[1],/flex-direction:row!important/);
+  assert.match(rule[1],/gap:10px!important/);
+  assert.match(css,/\.crm-compliance-editor-actions button\{[^']*flex:1 1 0%!important/);
+});
