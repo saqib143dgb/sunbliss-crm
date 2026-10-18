@@ -15,6 +15,7 @@ style.textContent=`
  .detail,.overview,.units,.insights{max-width:100%!important}
  .field-val,.field-value,.field-address,.customer-name,.d-name>span:first-child{min-width:0!important;overflow-wrap:anywhere!important}
  .detail{position:relative!important;isolation:isolate!important}
+ body.crm-mobile-editor-open .detail{isolation:auto!important;contain:none!important;transform:none!important}
  .detail .detail-top-actions-sticky{position:static!important;display:block!important;width:100%!important;margin:0 0 10px!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
  #btnGenerateDocument{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:16px!important;width:100%!important;min-height:58px!important;margin:0!important;padding:14px 22px!important;border:1px solid var(--paper-line)!important;border-radius:9px!important;background:var(--paper-dim)!important;color:var(--ink)!important;box-shadow:none!important;text-transform:uppercase!important;letter-spacing:.055em!important;font-size:15px!important;font-weight:700!important;line-height:1.3!important}
  #btnGenerateDocument svg{width:24px;height:28px;flex:none}
