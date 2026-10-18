@@ -63,7 +63,7 @@ function fixture(width=390){
     MutationObserver:class{constructor(fn){observer=fn}observe(){}},
     addEventListener(k,fn){callbacks['window:'+k]=fn}
   };
-  vm.runInNewContext(source,{document,window,setTimeout(){}});
+  vm.runInNewContext(source,{document,window,MutationObserver:window.MutationObserver,setTimeout(){}});
   function open(){
     const panel=node('div','unitEditPanel','brand-editor');
     panel.appendChild(node('p','','section-label'));
