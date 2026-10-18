@@ -19,7 +19,7 @@ function runtime(){
         assert.equal(table,'payment_transactions');
         return {
           select(query){
-            assert.match(query,/payment_schedule_id/);
+            assert.equal(query,'payment_date,payment_type,amount');
             return {eq(key,unit){
               assert.equal(key,'unit_id');
               assert.equal(unit,543);
@@ -47,22 +47,22 @@ function css(){
   return styles[0].textContent;
 }
 
-test('booking amount linked to Down Payment is counted regardless of label',async()=>{
+test('original CRM transaction matching uses stage label, not new schedule-ID logic',async()=>{
   const x=runtime();
   const result=await x.summarize({sno:543},{id:1524,code:'DP',label:'Down Payment'});
-  assert.equal(result.count,1);
-  assert.equal(result.total,20634);
-  assert.equal(result.lastDate,'2026-10-16');
+  assert.equal(result.count,0);
+  assert.equal(result.total,0);
+  assert.equal(result.lastDate,null);
 });
 
-test('DLD transaction is counted only in its corresponding schedule',async()=>{
+test('original DLD matching uses existing stage-type conventions',async()=>{
   const x=runtime();
   const result=await x.summarize({sno:543},{id:1526,code:'DLD',label:'DLD + Admin Fees'});
   assert.equal(result.count,1);
   assert.equal(result.total,5100);
 });
 
-test('unlinked legacy payments use exact stage-label fallback without duplicates',async()=>{
+test('original matching handles installment partial payments',async()=>{
   const x=runtime();
   const result=await x.summarize({sno:543},{id:1525,code:'1ST',label:'1st Installment'});
   assert.equal(result.count,1);
@@ -70,9 +70,9 @@ test('unlinked legacy payments use exact stage-label fallback without duplicates
 });
 
 test('editing an installment remains separate from transaction history writes',()=>{
-  assert.match(logic,/sb\.from\('payment_transactions'\)\.select\('payment_date,payment_type,amount,payment_schedule_id'\)/);
-  assert.match(logic,/linkedId!==null && linkedId!==undefined/);
-  assert.match(logic,/Number\(linkedId\)===scheduleId/);
+  assert.match(logic,/sb\.from\('payment_transactions'\)\.select\('payment_date,payment_type,amount'\)/);
+  assert.match(logic,/var matches=\(result\.data\|\|\[\]\)\.filter\(function\(row\)\{ return stageMatchesTransaction\(stage,row\.payment_type\); \}\)/);
+  assert.doesNotMatch(logic,/Number\(linkedId\)===scheduleId/);
   assert.doesNotMatch(logic,/sb\.from\('payment_transactions'\)\.(?:update|delete|insert|upsert)/);
   assert.match(logic,/sb\.rpc\('crm_save_installment'/);
   assert.match(logic,/Verify the payment record before changing any amount/);
@@ -108,4 +108,12 @@ test('new CSS does not change customer editors, other workflows or monetary reco
   assert.doesNotMatch(stylesheet,/sb\.from\(|sb\.rpc\(|fetch\(/);
   const build=fs.readFileSync('build.js','utf8');
   assert.ok(build.includes("'payment_plan_mobile_reference_patch.js'"));
+});
+
+
+test('UI-only rollout preserves existing monetary validation, status and save RPC',()=>{
+  assert.match(logic,/if \(paid>due\+0\.01\)/);
+  assert.match(logic,/if \(paid>0 && !paidDate\)/);
+  assert.match(logic,/function derivedStatus\(due,paid\)/);
+  assert.match(logic,/sb\.rpc\('crm_save_installment'/);
 });
