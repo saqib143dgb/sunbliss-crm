@@ -55,7 +55,7 @@ test('SPA and Oqood mobile editor is elevated to body, above customer header',()
   assert.match(css,/z-index:30000!important/);
   assert.match(css,/#app>\.topbar\{visibility:hidden!important/);
   assert.match(css,/safe-area-inset-bottom/);
-  assert.match(css,/\.brand-field :is\(input,select\)\{display:block!important/);
+  assert.match(css,/\.crm-compliance-editor-card \.brand-field:last-child\{margin-bottom:0!important/);
 });
 
 test('closing an SPA/Oqood editor unlocks the page',()=>{
@@ -83,4 +83,39 @@ test('successful SPA/Oqood save explicitly removes portaled editor',()=>{
   const s=fs.readFileSync('inline_spa_oqood_patch.js','utf8');
   assert.match(s,/if\(savedEditor\)savedEditor\.remove\(\)/);
   assert.match(s,/if \(result\.error\) throw result\.error;[\s\S]*savedEditor\.remove\(\)/);
+});
+
+test('reference SPA/Oqood editor has matching header and grouped status/date inputs',()=>{
+  const component=fs.readFileSync('inline_spa_oqood_patch.js','utf8');
+  const css=fs.readFileSync('inline_compliance_full_page_fix_patch.js','utf8');
+  assert.match(component,/id="inlineComplianceBack"/);
+  assert.match(component,/crm-compliance-editor-title/);
+  assert.match(component,/crm-compliance-editor-card/);
+  assert.match(component,/id="inlineComplianceStatus"/);
+  assert.match(component,/id="inlineComplianceDate"/);
+  assert.match(component,/crm-compliance-date-placeholder/);
+  assert.match(component,/Select date/);
+  assert.match(component,/aria-label="Back to customer"/);
+  assert.match(component,/inlineComplianceBack'\)\.onclick=function\(\)\{ panel\.remove\(\); \}/);
+  assert.match(css,/crm-compliance-select-wrap/);
+  assert.match(css,/crm-compliance-optional/);
+});
+
+test('Save and Cancel share one fixed row, each equal width on narrow mobile',()=>{
+  const component=fs.readFileSync('inline_spa_oqood_patch.js','utf8');
+  const css=fs.readFileSync('inline_compliance_full_page_fix_patch.js','utf8');
+  assert.match(component,/crm-compliance-editor-actions/);
+  assert.match(component,/id="inlineComplianceSave"/);
+  assert.match(component,/id="inlineComplianceCancel"/);
+  assert.match(css,/body\.sunbliss-inline-compliance-full-page>#inlineComplianceEditor>\.crm-compliance-editor-actions\{[^']*flex-direction:row!important/);
+  assert.match(css,/\.crm-compliance-editor-actions button\{[^']*flex:1 1 0%!important/);
+  assert.match(css,/gap:10px!important/);
+  assert.doesNotMatch(css,/body\.sunbliss-inline-compliance-full-page>#inlineComplianceEditor>\.brand-editor-actions\{[^']*flex-direction:column!important/);
+});
+
+test('reference design preserves backend status update and does not introduce database mutations',()=>{
+  const component=fs.readFileSync('inline_spa_oqood_patch.js','utf8');
+  const css=fs.readFileSync('inline_compliance_full_page_fix_patch.js','utf8');
+  assert.match(component,/sb\.from\('sales'\)\.update\(payload\)\.eq\('unit_id',c\.sno\)/);
+  assert.doesNotMatch(css,/sb\.from\(|sb\.rpc\(/);
 });
