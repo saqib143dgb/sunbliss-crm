@@ -14,7 +14,7 @@
       '#inlineComplianceEditor .crm-compliance-editor-card{width:100%;min-width:0;flex-shrink:0;padding:18px 15px 21px;margin:0;background:transparent;border:1px solid var(--paper-line,#ded7c8);border-radius:14px;box-sizing:border-box;box-shadow:none}',
       '#inlineComplianceEditor .crm-compliance-editor-card .brand-field{display:block;min-width:0;margin:0 0 23px;color:var(--ink,#102333)}',
       '#inlineComplianceEditor .crm-compliance-editor-card .brand-field:last-child{margin-bottom:0}',
-      '#inlineComplianceEditor .crm-compliance-field-label{display:block;margin-bottom:9px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:650;color:var(--ink,#102333)}',
+      '#inlineComplianceEditor .crm-compliance-field-label{display:block;margin-bottom:9px;font-family:Inter,Arial,sans-serif;font-size:11.5px;line-height:1.4;font-weight:400;color:var(--muted,#66635c)}',
       '#inlineComplianceEditor .crm-compliance-optional{color:var(--muted,#66635c);font-weight:400}',
       '#inlineComplianceEditor .crm-compliance-select-wrap,#inlineComplianceEditor .crm-compliance-date-wrap{display:block;position:relative;width:100%;min-width:0}',
       '#inlineComplianceEditor .crm-compliance-select-wrap select,#inlineComplianceEditor .crm-compliance-date-wrap input{appearance:none;-webkit-appearance:none;display:block;width:100%;height:44px;min-height:44px;max-width:100%;box-sizing:border-box;margin:0;padding:8px 42px 8px 12px;border:1px solid var(--paper-line,#ded7c8);border-radius:8px;background:var(--paper-dim,#efe9d9);font-family:Inter,Arial,sans-serif;font-size:16px;font-weight:450;line-height:1.3;color:var(--ink,#102333);box-shadow:none}',

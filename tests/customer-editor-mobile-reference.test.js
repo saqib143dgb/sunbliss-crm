@@ -87,7 +87,7 @@ test('typography follows CRM global font family and consistent field scale',()=>
   const css=fixture().styles[0].textContent;
   assert.match(css,/font-family:CRMInter,Inter,Arial,sans-serif!important/);
   assert.match(css,/\.crm-customer-editor-title\{[^']*font-size:24px!important/);
-  assert.match(css,/\.brand-field\{[^']*font-size:14px!important/);
+  assert.match(css,/\.brand-field\{[^']*font-size:11\.5px!important;font-weight:400!important/);
   assert.match(css,/\.brand-field input\{[^']*font-size:16px!important/);
   assert.match(css,/\.crm-customer-editor-actions>button\{[^']*font-size:15px!important/);
 });
