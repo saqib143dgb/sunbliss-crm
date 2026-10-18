@@ -100,9 +100,9 @@ test('iPhone Edit Unit has a fixed CRM header and portals above the page',()=>{
   assert.equal(panel.getAttribute('data-crm-unit-owner'),'B2-408::543');
   assert.ok(panel.querySelector('.crm-unit-editor-head'));
   const css=f.styles[0].textContent;
-  assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel'),/z-index:30060!important/);
-  assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel'),/height:var\(--crm-vh,100dvh\)!important/);
-  assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel'),/overflow:hidden!important/);
+  assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel,body.crm-unit-editor-open>#unitEditPanel.crm-full-page-inline'),/z-index:30060!important/);
+  assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel,body.crm-unit-editor-open>#unitEditPanel.crm-full-page-inline'),/height:var\(--crm-vh,100dvh\)!important/);
+  assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel,body.crm-unit-editor-open>#unitEditPanel.crm-full-page-inline'),/overflow:hidden!important/);
   assert.match(rule(css,'body.crm-unit-editor-open>#unitEditPanel .crm-unit-editor-title'),/font-size:24px!important/);
 });
 
@@ -126,8 +126,8 @@ test('all nine original unit fields and existing values survive grouping',()=>{
 test('fixed footer has equal side-by-side buttons with approved iPhone clearance',()=>{
   const css=fixture().styles[0].textContent;
   const card=rule(css,'body.crm-unit-editor-open>#unitEditPanel .crm-unit-editor-card');
-  const footer=rule(css,'body.crm-unit-editor-open>#unitEditPanel>.crm-unit-editor-actions');
-  const buttons=rule(css,'body.crm-unit-editor-open>#unitEditPanel>.crm-unit-editor-actions>button');
+  const footer=rule(css,'body.crm-unit-editor-open>#unitEditPanel>.crm-unit-editor-actions,body.crm-unit-editor-open>#unitEditPanel.crm-full-page-inline>.crm-unit-editor-actions');
+  const buttons=rule(css,'body.crm-unit-editor-open>#unitEditPanel>.crm-unit-editor-actions>button,body.crm-unit-editor-open>#unitEditPanel.crm-full-page-inline>.crm-unit-editor-actions>button');
   assert.match(card,/flex:1 1 auto!important;min-height:0!important/);
   assert.match(card,/overflow-y:auto!important/);
   assert.match(card,/border-bottom:0!important/);
