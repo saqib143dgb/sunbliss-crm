@@ -167,7 +167,7 @@
     var status=isSpa?displayStatus('spa',c.spa):displayStatus('oqood',c.oqood);
     var currentDate=isSpa?(c.info&&c.info.spaDate):(c.info&&c.info.oqoodDate);
     var options=isSpa?['Pending','Signed']:['Pending','Completed'];
-    var dateLabel=isSpa?'SPA signed date (optional)':'OQOOD completed date (optional)';
+    var dateLabel=isSpa?'SPA signed date (required when Signed)':'OQOOD completed date (required when Completed)';
 
     var panel=document.createElement('div');
     panel.id='inlineComplianceEditor';
@@ -196,6 +196,13 @@
     var save=document.getElementById('inlineComplianceSave');
     var err=document.getElementById('inlineComplianceError');
     if (!c || !statusEl || !save) return;
+
+    var complete=kind==='spa'?statusEl.value==='Signed':statusEl.value==='Completed';
+    if(complete && !(dateEl && dateEl.value)){
+      if(err){err.textContent='Enter the '+(kind==='spa'?'SPA signed':'OQOOD completed')+' date before marking this status complete.';err.style.display='block';}
+      if(dateEl)dateEl.focus();
+      return;
+    }
 
     var payload={updated_at:new Date().toISOString()};
     if (kind==='spa'){
