@@ -182,9 +182,17 @@
   }
 
   async function transactionSummary(c,stage){
-    var result=await sb.from('payment_transactions').select('payment_date,payment_type,amount').eq('unit_id',c.sno);
+    var result=await sb.from('payment_transactions').select('payment_date,payment_type,amount,payment_schedule_id').eq('unit_id',c.sno);
     if (result.error) throw result.error;
-    var matches=(result.data||[]).filter(function(row){ return stageMatchesTransaction(stage,row.payment_type); });
+    // The database schedule ID is authoritative. A "Booking Amount" transaction
+    // may correctly belong to Down Payment even though their labels differ.
+    // Keep a label fallback only for legacy, unlinked transactions.
+    var scheduleId=Number(stage&&stage.id);
+    var matches=(result.data||[]).filter(function(row){
+      var linkedId=row.payment_schedule_id;
+      if(linkedId!==null && linkedId!==undefined) return scheduleId>0 && Number(linkedId)===scheduleId;
+      return stageMatchesTransaction(stage,row.payment_type);
+    });
     var total=matches.reduce(function(sum,row){ return sum+(Number(row.amount)||0); },0);
     matches.sort(function(a,b){ return text(a.payment_date).localeCompare(text(b.payment_date)); });
     return {total:Math.round(total*100)/100,count:matches.length,lastDate:matches.length?matches[matches.length-1].payment_date:null};
@@ -223,9 +231,15 @@
     var dialog=document.getElementById('installmentEditDialog');
     if (!dialog) return;
     dialog.innerHTML=
-      '<h3>'+safe(stage.label)+'</h3>'+
-      '<p class="installment-edit-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+'</p>'+
-      '<p class="brand-error" id="ieError" style="display:none"></p>'+
+      '<div class="installment-edit-head">'+
+        '<button type="button" id="ieBack" class="installment-edit-back" aria-label="Back to customer">'+
+          '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'+
+        '</button>'+
+        '<div class="installment-edit-heading"><h3>'+safe(stage.label)+'</h3>'+
+          '<p class="installment-edit-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+'</p></div>'+
+      '</div>'+
+      '<div class="installment-edit-scroll">'+
+      '<p class="brand-error" id="ieError" style="display:none" role="alert"></p>'+
       '<div class="installment-edit-grid">'+
         '<label class="brand-field">Due amount (AED)<input type="number" id="ieDueAmount" min="0" step="0.01" value="'+safe(due)+'" /></label>'+
         '<label class="brand-field">Due date<input type="date" id="ieDueDate" value="'+safe(dueDate)+'" /></label>'+
@@ -234,11 +248,12 @@
       '</div>'+
       '<div class="installment-edit-meta"><span>Calculated schedule status</span><strong id="ieStatus">'+safe(status)+'</strong></div>'+
       '<div class="installment-edit-meta"><span>Matching transaction history</span><strong>'+safe(tx.count+' transaction'+(tx.count===1?'':'s')+' · '+money(tx.total))+'</strong></div>'+
-      (mismatch?'<div class="installment-edit-warning">The installment paid amount does not match the transaction history. You can use the transaction total below, or enter the correct schedule amount manually.</div>':'')+
+      (mismatch?'<div class="installment-edit-warning">The schedule paid amount differs from the matching transaction total. Verify the payment record before changing any amount. Editing here does not update transaction history.</div>':'')+
       '<button class="btn-paper" type="button" id="ieUseTx" style="width:100%;justify-content:center;margin-bottom:12px">Use transaction total ('+safe(money(tx.total))+')</button>'+
       (syncDate?'<p class="installment-edit-help"><b>DLD rule:</b> the DLD and 1st Installment due dates are linked. Changing either one updates the other to the same date.</p>':'')+
       '<label class="brand-field">Remarks<textarea id="ieRemarks" placeholder="Optional installment note">'+safe(remarks)+'</textarea></label>'+
       '<p class="installment-edit-help">Editing an installment changes the payment schedule only. It does not create, delete, or rewrite transaction-history entries.</p>'+
+      '</div>'+
       '<div class="installment-edit-actions"><button class="btn btn-gold" type="button" id="ieSave">Save installment</button><button class="btn-paper" type="button" id="ieCancel">Cancel</button></div>';
 
     var dueEl=document.getElementById('ieDueAmount'), paidEl=document.getElementById('iePaidAmount'), paidDateEl=document.getElementById('iePaidDate');
@@ -246,6 +261,7 @@
     dueEl.addEventListener('input',refreshStatus); paidEl.addEventListener('input',refreshStatus);
     document.getElementById('ieUseTx').addEventListener('click',function(){ paidEl.value=String(tx.total||0); paidDateEl.value=tx.total>0&&tx.lastDate?tx.lastDate:''; refreshStatus(); });
     document.getElementById('ieCancel').addEventListener('click',function(){ overlay.remove(); });
+    document.getElementById('ieBack').addEventListener('click',function(){ overlay.remove(); });
     document.getElementById('ieSave').addEventListener('click',function(){ saveEditor(c,stage,row,overlay); });
   }
 
