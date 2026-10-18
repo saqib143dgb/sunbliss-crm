@@ -116,6 +116,10 @@
       };
       var r = await sb.from('customers').update(payload).eq('id',c.customerId);
       if (r.error) throw r.error;
+      // Remove the mobile body-level editor after saving, before rerendering.
+      var savedEditor = document.getElementById('customerEditPanel');
+      if (savedEditor) savedEditor.remove();
+      document.body.classList.remove('crm-customer-editor-open');
       var unit = c.unit, sno = c.sno, from = state.detailFrom || 'list';
       await loadFromSupabase();
       goToDetail(unit,sno,from);
