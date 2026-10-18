@@ -10,6 +10,7 @@ function fixture(width=390){
   function node(tag,id='',classString=''){
     const el={tagName:tag.toUpperCase(),nodeType:1,id,children:[],parentNode:null,attrs:{},_html:'',events:{}};
     let cls=new Set(classString.split(/\s+/).filter(Boolean));
+    Object.defineProperty(el,'className',{get(){return Array.from(cls).join(' ')},set(v){cls=new Set(String(v).split(/\s+/).filter(Boolean))}});
     el.classList={add(v){cls.add(v)},remove(v){cls.delete(v)},contains(v){return cls.has(v)}};
     el.matches=(sel)=>sel==='label.brand-field'&&el.tagName==='LABEL'&&cls.has('brand-field');
     el.setAttribute=(k,v)=>{el.attrs[k]=v};
