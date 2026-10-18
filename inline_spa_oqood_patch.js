@@ -214,6 +214,11 @@
       var result=await sb.from('sales').update(payload).eq('unit_id',c.sno);
       if (result.error) throw result.error;
 
+      // Portaled mobile editor is outside .detail, so close it explicitly
+      // after a successful save, before rendering the refreshed customer.
+      var savedEditor=document.getElementById('inlineComplianceEditor');
+      if(savedEditor)savedEditor.remove();
+      document.body.classList.remove('sunbliss-inline-compliance-full-page');
       var unit=c.unit,sno=c.sno,from=state.detailFrom||'list';
       await loadFromSupabase();
       goToDetail(unit,sno,from);
