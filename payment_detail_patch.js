@@ -12,9 +12,10 @@
     });
   }
   function money(value){
-    return typeof window.fmtAED === 'function'
-      ? window.fmtAED(Number(value) || 0)
-      : 'AED ' + (Number(value) || 0).toLocaleString('en-US',{maximumFractionDigits:2});
+    // The schedule stores fils. Do not display AED 20,633.50 as AED 20,634.
+    var n=Number(value)||0;
+    var decimals=Math.abs(n-Math.round(n))>0.004?2:0;
+    return 'AED '+n.toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:2});
   }
   function formatDate(value){
     if (!value) return 'Date not set';
@@ -167,25 +168,36 @@
     var overlay=document.createElement('div');
     overlay.id='paymentDetailOverlay';
     overlay.innerHTML='<div id="paymentDetailDialog" role="dialog" aria-modal="true" aria-labelledby="paymentDetailTitle">'+
-      '<h3 id="paymentDetailTitle">Edit payment detail</h3>'+
-      '<p class="payment-detail-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+' · edit the existing schedule or add another installment.</p>'+
-      '<p class="brand-error" id="paymentDetailError" style="display:none"></p>'+
-      '<div class="payment-detail-list">'+stages.map(function(stage,index){return {stage:stage,index:index};}).filter(function(item){return !isUnusedStage(item.stage);}).map(function(item){return stageRowHtml(item.stage,item.index);}).join('')+'</div><details class="payment-detail-unused"><summary>Set up unused installment stages</summary><div class="payment-detail-list">'+stages.map(function(stage,index){return isUnusedStage(stage)?stageRowHtml(stage,index):'';}).join('')+'</div></details>'+
-      '<div class="payment-detail-add">'+
-        '<h4>Add additional installment</h4>'+
-        '<p>Use Set up above for unused existing stages. This additional stage is ' + safe(nextLabel) + '. It starts as Outstanding with AED 0 paid. You can edit payment status later from the installment editor.</p>'+
-        '<div class="payment-detail-add-grid">'+
-          '<label class="brand-field">Installment amount (AED)<input type="number" id="pdAddAmount" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 50000" /></label>'+
-          '<label class="brand-field">Due date<input type="date" id="pdAddDueDate" /></label>'+
-        '</div>'+
-        '<label class="brand-field">Remarks (optional)<input type="text" id="pdAddRemarks" placeholder="e.g. revised payment plan" /></label>'+
-        '<button class="btn btn-gold" type="button" id="pdAddSave" style="width:100%;justify-content:center;margin-top:4px">Add '+safe(nextLabel)+'</button>'+
+      '<div class="payment-plan-head">'+
+        '<button type="button" class="payment-plan-back" id="pdBack" aria-label="Back to customer">'+
+          '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'+
+        '</button>'+
+        '<div class="payment-plan-heading"><h3 id="paymentDetailTitle">Edit payment plan</h3>'+
+          '<p class="payment-detail-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+'</p></div>'+
+      '</div>'+
+      '<div class="payment-plan-scroll">'+
+        '<p class="brand-error" id="paymentDetailError" style="display:none" role="alert"></p>'+
+        '<div class="payment-detail-list">'+stages.map(function(stage,index){return {stage:stage,index:index};}).filter(function(item){return !isUnusedStage(item.stage);}).map(function(item){return stageRowHtml(item.stage,item.index);}).join('')+'</div>'+
+        '<details class="payment-detail-unused"><summary>Set up unused installment stages</summary>'+
+          '<div class="payment-detail-list">'+stages.map(function(stage,index){return isUnusedStage(stage)?stageRowHtml(stage,index):'';}).join('')+'</div></details>'+
+        '<details class="payment-detail-add"><summary>Add additional installment</summary>'+
+          '<div class="payment-plan-extra-body">'+
+            '<p>Use an unused existing stage where possible. A new '+safe(nextLabel)+' starts as Outstanding with AED 0 paid. Confirm the revised payment schedule is approved before adding it.</p>'+
+            '<div class="payment-detail-add-grid">'+
+              '<label class="brand-field">Installment amount (AED)<input type="number" id="pdAddAmount" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 50000" /></label>'+
+              '<label class="brand-field">Due date<input type="date" id="pdAddDueDate" /></label>'+
+            '</div>'+
+            '<label class="brand-field">Remarks (optional)<input type="text" id="pdAddRemarks" placeholder="e.g. revised payment plan" /></label>'+
+            '<button class="btn btn-gold" type="button" id="pdAddSave">Add '+safe(nextLabel)+'</button>'+
+          '</div>'+
+        '</details>'+
       '</div>'+
       '<div class="payment-detail-actions"><button class="btn-paper" type="button" id="pdClose">Close</button></div>'+
       '</div>';
     document.body.appendChild(overlay);
     overlay.addEventListener('click',function(ev){ if (ev.target===overlay) closePaymentDetail(); });
     document.getElementById('pdClose').onclick=closePaymentDetail;
+    document.getElementById('pdBack').onclick=closePaymentDetail;
     document.getElementById('pdAddSave').onclick=function(){ addInstallment(c,nextLabel); };
     overlay.querySelectorAll('.payment-detail-edit').forEach(function(button){
       button.addEventListener('click',function(){
