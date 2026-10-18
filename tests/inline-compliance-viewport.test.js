@@ -31,7 +31,7 @@ function fixture(width=390){
   vm.runInNewContext(source,context);
   function open(){
     const panel={
-      id:'inlineComplianceEditor',
+      id:'inlineComplianceEditor',nodeType:1,
       parentNode:{id:'customer-detail'},
       getAttribute(k){return attrs[k]||null},
       setAttribute(k,v){attrs[k]=v},
