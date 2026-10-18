@@ -10,7 +10,7 @@ function text(v){return v==null?'':String(v)}
 function safe(v){return typeof window.esc==='function'?window.esc(text(v)):text(v).replace(/[&<>"']/g,function(ch){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function num(v){var n=Number(v);return isFinite(n)?n:0}
 function round2(v){return Math.round(num(v)*100)/100}
-function money(v){return typeof window.fmtAED==='function'?window.fmtAED(num(v)):'AED '+num(v).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2})}
+function money(v){var n=round2(v);return 'AED '+n.toLocaleString('en-US',{minimumFractionDigits:Math.abs(n-Math.round(n))>.004?2:0,maximumFractionDigits:2})}
 function iso(v){var s=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
 function dateLabel(v){var s=iso(v);if(!s)return 'No date';var d=new Date(s+'T00:00:00');return isNaN(d.getTime())?s:d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
 function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -135,7 +135,7 @@ function installmentCard(r,index){
     '</div></div>'+
     '<div class="rpp-fields">'+
       '<label class="rpp-field">Revised due date<input type="date" data-rpp-date="'+r.id+'" value="'+safe(dueValue)+'"></label>'+
-      '<label class="rpp-field">Revised amount (AED)<input type="number" min="0.01" step="0.01" inputmode="decimal" data-rpp-amount="'+r.id+'" value="'+safe(amountValue)+'"></label>'+
+      '<label class="rpp-field">Revised amount (AED)<input type="number" min="0.01" step="0.01" inputmode="decimal" data-rpp-amount="'+r.id+'" value="'+safe(amountValue.toFixed(2))+'"></label>'+
     '</div>'+
   '</div>';
 }
@@ -165,11 +165,11 @@ function renderPanel(){
   var shell=p.querySelector('.rpp-shell');
   shell.innerHTML=
     '<div class="rpp-head"><div><div class="rpp-kicker">Payment Plan Revision</div><h2 class="rpp-title">Unit '+safe(c.unit)+'</h2><p class="rpp-sub">'+safe(c.name)+' · contractual dates and amounts remain preserved.</p></div><button type="button" class="btn-paper" id="rppClose">Close</button></div>'+
-    '<div class="rpp-warning"><b>Management approval required.</b> Use this for an approved change to the payment plan. For extra time only, use Payment Extension instead. If installment amounts change, adjust the other revised installment(s) so the total property payment schedule stays unchanged.</div>'+
+    '<div class="rpp-warning"><b>Approved revision only.</b> Use Payment Extension for a date extension. Any amount increase must be offset by another installment; the property payment total cannot change.</div>'+
     '<div class="rpp-mode"><button type="button" data-rpp-mode="single" class="'+(panelState.mode==='single'?'active':'')+'">Single Installment</button><button type="button" data-rpp-mode="multiple" class="'+(panelState.mode==='multiple'?'active':'')+'">Multiple Installments</button></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Installments to revise</p><div class="rpp-list">'+(rows.length?rows.map(installmentCard).join(''):'<div class="rpp-empty">No unpaid property installment is available for revision.</div>')+'</div></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Approval details</p><div class="rpp-approval">'+
-      '<div class="rpp-approval-grid"><label class="rpp-field">Approved on<input type="date" id="rppApprovedOn" value="'+today()+'"></label><label class="rpp-field">Approved by<input id="rppApprovedBy" value="Management" maxlength="120"></label></div>'+
+      '<div class="rpp-approval-grid"><label class="rpp-field">Approved on<input type="date" id="rppApprovedOn" value=""></label><label class="rpp-field">Approved by<input id="rppApprovedBy" value="" placeholder="Name of actual approver" maxlength="120"></label></div>'+
       '<label class="rpp-field">Approval reference<input id="rppReference" maxlength="250" placeholder="e.g. CRM email dated 18-Sep-2026"></label>'+
       '<label class="rpp-field">Reason / conditions<textarea id="rppReason" placeholder="Reason for the approved revision"></textarea></label>'+
       '<div class="rpp-error" id="rppError"></div>'+
@@ -242,7 +242,7 @@ async function saveRevision(){
   if(!approvedBy){showError('Enter who approved the revision.');return}
   if(!reference&&!reason){showError('Enter an approval reference or revision reason.');return}
 
-  var revisions=[],changed=false;
+  var revisions=[],changed=false,netAmountDelta=0;
   ids.forEach(function(idText){
     var id=Number(idText),row=panelState.data.rows.find(function(r){return Number(r.id)===id});
     if(!row)return;
@@ -252,9 +252,11 @@ async function saveRevision(){
     var targetAmount=amount===''?null:Number(amount);
     if(targetAmount!==null&&(!isFinite(targetAmount)||targetAmount<=0))return;
     var currentDate=iso(row.revised_due_date)||iso(row.due_date),currentAmount=effectiveAmount(row);
+    netAmountDelta+=round2((targetAmount===null?currentAmount:targetAmount)-currentAmount);
     if(revisedDate!==currentDate||(targetAmount!==null&&Math.abs(targetAmount-currentAmount)>.004))changed=true;
     revisions.push({schedule_id:id,revised_due_date:revisedDate,revised_due_amount:targetAmount});
   });
+  if(Math.abs(netAmountDelta)>.01){showError('The revised amounts do not balance. Choose Multiple Installments and offset the difference without changing the property payment total.');return}
   if(!revisions.length){showError('Enter a revised date or amount.');return}
   if(!changed){showError('The selected values are the same as the current payment plan.');return}
 
