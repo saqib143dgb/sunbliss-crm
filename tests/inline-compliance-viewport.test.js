@@ -27,7 +27,7 @@ function fixture(width=390){
     MutationObserver:class{constructor(fn){observe=fn}observe(){}},
     addEventListener(name,fn){callbacks['window:'+name]=fn}
   };
-  const context={window,document,requestAnimationFrame(fn){fn()},setTimeout(){}};
+  const context={window,document,MutationObserver:window.MutationObserver,requestAnimationFrame(fn){fn()},setTimeout(){}};
   vm.runInNewContext(source,context);
   function open(){
     const panel={
