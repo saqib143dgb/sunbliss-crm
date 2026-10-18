@@ -136,6 +136,7 @@
       if (!unit) throw new Error('Unit record not found.');
       if (!sale) throw new Error('No sale record is linked to this unit.');
 
+      panel.setAttribute('data-original-total',unit.total_price===null?'':String(unit.total_price));
       var furnishing = normalizeFurnishing(sale.furniture_status);
       var incentiveNote = '';
       var source = text(sale.source).trim().toLowerCase();
@@ -186,6 +187,13 @@
       if (status.toLowerCase() === 'cancelled') throw new Error('Use the Cancel Unit workflow to cancel a unit.');
       if (furnishing !== 'Fully Furnished' && furnishing !== 'Semi Furnished') throw new Error('Choose Fully Furnished or Semi Furnished.');
 
+      var editor=document.getElementById('unitEditPanel');
+      if(!editor)throw new Error('The unit editor is no longer open. Reopen it before saving.');
+      var originalValue=Number(editor.getAttribute('data-original-total'));
+      var enteredValue=numberOrNull('euTotalPrice','Total unit value');
+      if(Number.isFinite(originalValue) && (enteredValue===null || Math.abs(enteredValue-originalValue)>.005)){
+        throw new Error('The sold unit value cannot be changed in Edit Unit because the existing contractual payment plan would no longer reconcile. Use a separately approved sale-value revision workflow. No data has been changed.');
+      }
       var payload = {
         p_unit_id:Number(c.sno),
         p_unit_no:unitNo,
@@ -194,7 +202,7 @@
         p_floor:valueOf('euFloor') || null,
         p_area:numberOrNull('euArea','Area'),
         p_price_per_sqft:numberOrNull('euPpsf','Price per sq.ft'),
-        p_total_price:numberOrNull('euTotalPrice','Total unit value'),
+        p_total_price:enteredValue,
         p_status:status,
         p_furnishing_type:furnishing
       };

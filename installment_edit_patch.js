@@ -130,7 +130,7 @@
         var key=text(label.textContent).replace(/:\s*$/,'').trim().toLowerCase();
         if (key==='due') label.textContent='Due:';
         else if (key==='by') label.textContent='By:';
-        else if (key==='paid' || key==='cash') label.textContent='Cash:';
+        else if (key==='paid' || key==='cash') label.textContent='Paid:';
         else if (key==='on') label.textContent='On:';
       });
       if (card.querySelector('.installment-menu-btn')) return;
