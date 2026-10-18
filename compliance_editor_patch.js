@@ -229,6 +229,53 @@
     }
   }
 
+  /* Edit Sale UI is built where the sale renderer is already maintained.
+     Keep all original input nodes, values, dates and click handlers intact. */
+  function ensureSaleRootStyles(){
+    if(document.getElementById('crmSaleRootStyles'))return;
+    var el=document.createElement('style');el.id='crmSaleRootStyles';
+    el.textContent=[
+      '@media(max-width:1023px){',
+      'body.crm-sale-editor-open{overflow:hidden!important;overscroll-behavior:none!important}',
+      'body.crm-sale-editor-open #app>.topbar,body.crm-sale-editor-open>.tabs,body.crm-sale-editor-open #sunblissPersistentBackDock,body.crm-sale-editor-open #sunblissDockSearchPanel{visibility:hidden!important;pointer-events:none!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel,body.crm-sale-editor-open>#saleComplianceEditPanel.crm-full-page-inline{position:fixed!important;inset:auto!important;top:var(--crm-vtop,0px)!important;left:0!important;right:0!important;bottom:auto!important;z-index:30070!important;display:flex!important;flex-direction:column!important;width:100%!important;max-width:100%!important;height:var(--crm-vh,100dvh)!important;max-height:var(--crm-vh,100dvh)!important;min-height:0!important;margin:0!important;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel>.section-label,body.crm-sale-editor-open>#saleComplianceEditPanel>.stat-sub{display:none!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel>.crm-sale-head{display:flex!important;align-items:center!important;gap:15px!important;flex:0 0 auto!important;margin:0 0 22px!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel .crm-sale-back{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:42px!important;flex:none!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:var(--ink,#102333)!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel .crm-sale-title{margin:0!important;font:700 24px/1.25 CRMInter,Inter,Arial,sans-serif!important;letter-spacing:-.025em!important;color:var(--ink,#102333)!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel>.crm-sale-card{display:block!important;flex:1 1 auto!important;min-height:0!important;width:100%!important;margin:0!important;padding:18px 15px 21px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-bottom:0!important;border-radius:14px 14px 0 0!important;background:transparent!important;box-sizing:border-box!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel .crm-sale-card .brand-field{display:block!important;margin:0 0 18px!important;min-width:0!important;font:400 11.5px/1.4 CRMInter,Inter,Arial,sans-serif!important;color:var(--muted,#66635c)!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel .crm-sale-card .brand-field :is(input,textarea,select){display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:46px!important;margin:7px 0 0!important;padding:10px 12px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-radius:8px!important;background:var(--paper-dim,#efe9d9)!important;color:var(--ink,#102333)!important;font:500 16px/1.25 CRMInter,Inter,Arial,sans-serif!important;box-sizing:border-box!important;box-shadow:none!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel>.crm-sale-actions,body.crm-sale-editor-open>#saleComplianceEditPanel.crm-full-page-inline>.crm-sale-actions{position:relative!important;bottom:auto!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;gap:10px!important;flex:0 0 auto!important;margin:0 -16px calc(-14px - env(safe-area-inset-bottom))!important;padding:12px 16px calc(32px + env(safe-area-inset-bottom))!important;border-top:1px solid var(--paper-line,#ded7c8)!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;z-index:9!important}',
+      'body.crm-sale-editor-open>#saleComplianceEditPanel>.crm-sale-actions>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:1 1 0%!important;min-width:0!important;width:auto!important;min-height:48px!important;height:auto!important;margin:0!important;padding:10px 9px!important;border-radius:999px!important;font:600 15px/1.3 CRMInter,Inter,Arial,sans-serif!important;white-space:nowrap!important}',
+      '}'
+    ].join('\n');document.head.appendChild(el);
+  }
+  function saleRootLayout(panel){
+    if(!panel)return;
+    var mobile=window.matchMedia?window.matchMedia('(max-width:1023px)').matches:window.innerWidth<=1023;
+    if(!mobile){document.body.classList.remove('crm-sale-editor-open');return;}
+    var actions=panel.querySelector('.brand-editor-actions');
+    if(!actions)return;
+    if(panel.dataset.crmSaleLayout!=='1'){
+      var head=document.createElement('div');head.className='crm-sale-head';
+      head.innerHTML='<button type="button" class="crm-sale-back" aria-label="Back to customer"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><h2 class="crm-sale-title">Edit Sale</h2>';
+      head.querySelector('button').onclick=function(){panel.remove();document.body.classList.remove('crm-sale-editor-open');};
+      panel.insertBefore(head,panel.firstChild);
+      var card=document.createElement('div');card.className='crm-sale-card';
+      Array.from(panel.children).forEach(function(child){
+        if(child===head||child===actions||child.classList.contains('section-label')||child.classList.contains('stat-sub'))return;
+        card.appendChild(child);
+      });
+      panel.insertBefore(card,actions);
+      actions.classList.add('crm-sale-actions');
+      panel.dataset.crmSaleLayout='1';
+      panel.dataset.crmSaleUnit=window.state&&state.selectedUnit||'';
+    }
+    if(panel.parentNode!==document.body)document.body.appendChild(panel);
+    document.body.classList.add('crm-sale-editor-open');
+  }
+
   function cleanSaleEditor(){
     var panel = document.getElementById('saleComplianceEditPanel');
     if (!panel) return;
@@ -249,6 +296,8 @@
     var remarks = document.getElementById('scRemarks');
     if (remarks) setFieldLabel(remarks,'Special Note');
     ensureSaleNotesFields();
+    ensureSaleRootStyles();
+    saleRootLayout(panel);
   }
 
   function renameDetailActions(){
@@ -335,6 +384,9 @@
 
   function refresh(){
     renameDetailActions();
+    var active=document.getElementById('saleComplianceEditPanel');
+    if(active&&active.dataset.crmSaleUnit&&window.state&&state.selectedUnit!==active.dataset.crmSaleUnit){active.remove();active=null;}
+    if(!active)document.body.classList.remove('crm-sale-editor-open');
     cleanSaleEditor();
   }
 
