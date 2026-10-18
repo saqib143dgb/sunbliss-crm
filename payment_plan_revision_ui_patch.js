@@ -159,13 +159,22 @@ function historyHtml(){
   }).join('');
 }
 
+function revisionHeader(c){
+  return '<div class="rpp-head">'+
+    '<button type="button" class="rpp-back" id="rppBack" aria-label="Back to customer"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>'+
+    '<div class="rpp-heading"><div class="rpp-kicker">Payment Plan Revision</div>'+
+      '<h2 class="rpp-title"><span class="rpp-unit-title">Unit '+safe(c.unit)+'</span><span class="rpp-mobile-title">Payment Plan Revision</span></h2>'+
+      '<p class="rpp-sub"><span class="rpp-mobile-context">Unit '+safe(c.unit)+' · </span>'+safe(c.name)+' · contractual dates and amounts remain preserved.</p>'+
+    '</div><button type="button" class="btn-paper" id="rppClose">Close</button></div>';
+}
+
 function renderPanel(){
   var p=document.getElementById('paymentPlanRevisionPanel');if(!p||!panelState.data||!panelState.customer)return;
   var c=panelState.customer,rows=panelState.data.rows;
   var shell=p.querySelector('.rpp-shell');
   shell.innerHTML=
-    '<div class="rpp-head"><div><div class="rpp-kicker">Payment Plan Revision</div><h2 class="rpp-title">Unit '+safe(c.unit)+'</h2><p class="rpp-sub">'+safe(c.name)+' · contractual dates and amounts remain preserved.</p></div><button type="button" class="btn-paper" id="rppClose">Close</button></div>'+
-    '<div class="rpp-warning"><b>Management approval required.</b> Use this for an approved change to the payment plan. For extra time only, use Payment Extension instead. If installment amounts change, adjust the other revised installment(s) so the total property payment schedule stays unchanged.</div>'+
+    revisionHeader(c)+
+    '<div class="rpp-scroll"><div class="rpp-warning"><b>Management approval required.</b> Use this for an approved change to the payment plan. For extra time only, use Payment Extension instead. If installment amounts change, adjust the other revised installment(s) so the total property payment schedule stays unchanged.</div>'+
     '<div class="rpp-mode"><button type="button" data-rpp-mode="single" class="'+(panelState.mode==='single'?'active':'')+'">Single Installment</button><button type="button" data-rpp-mode="multiple" class="'+(panelState.mode==='multiple'?'active':'')+'">Multiple Installments</button></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Installments to revise</p><div class="rpp-list">'+(rows.length?rows.map(installmentCard).join(''):'<div class="rpp-empty">No unpaid property installment is available for revision.</div>')+'</div></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Approval details</p><div class="rpp-approval">'+
@@ -175,9 +184,10 @@ function renderPanel(){
       '<div class="rpp-error" id="rppError"></div>'+
     '</div></div>'+
     '<div class="rpp-section"><p class="rpp-section-title">Revision history</p><div class="rpp-history">'+historyHtml()+'</div></div>'+
-    '<div class="rpp-actions"><button type="button" class="btn btn-gold" id="rppSave" '+(!rows.length?'disabled':'')+'>Save Revision</button><button type="button" class="btn-paper" id="rppCancel">Cancel</button></div>';
+    '</div><div class="rpp-actions"><button type="button" class="btn btn-gold" id="rppSave" '+(!rows.length?'disabled':'')+'>Save Revision</button><button type="button" class="btn-paper" id="rppCancel">Cancel</button></div>';
 
   document.getElementById('rppClose').onclick=closePanel;
+  document.getElementById('rppBack').onclick=closePanel;
   document.getElementById('rppCancel').onclick=closePanel;
   shell.querySelectorAll('[data-rpp-mode]').forEach(function(b){b.onclick=function(){setMode(b.getAttribute('data-rpp-mode'))}});
   shell.querySelectorAll('[data-rpp-select]').forEach(function(inp){inp.onchange=function(){toggleSelection(Number(inp.getAttribute('data-rpp-select')),inp.checked)}});
@@ -214,16 +224,18 @@ async function openPanel(){
   closePanel();panelState.customer=c;panelState.data=null;panelState.selected={};panelState.mode='single';
   document.body.classList.add('rpp-open');
   var p=document.createElement('div');p.id='paymentPlanRevisionPanel';p.className='rpp-panel';
-  p.innerHTML='<div class="rpp-shell"><div class="rpp-head"><div><div class="rpp-kicker">Payment Plan Revision</div><h2 class="rpp-title">Unit '+safe(c.unit)+'</h2></div><button type="button" class="btn-paper" id="rppClose">Close</button></div><div class="rpp-empty">Loading payment schedule…</div></div>';
+  p.innerHTML='<div class="rpp-shell">'+revisionHeader(c)+'<div class="rpp-scroll"><div class="rpp-empty">Loading payment schedule…</div></div></div>';
   document.body.appendChild(p);
   document.getElementById('rppClose').onclick=closePanel;
+  document.getElementById('rppBack').onclick=closePanel;
   try{
     panelState.data=await loadData(c);
     if(panelState.data.rows[0])panelState.selected[panelState.data.rows[0].id]=true;
     renderPanel();
   }catch(e){
-    var sh=p.querySelector('.rpp-shell');if(sh)sh.innerHTML='<div class="rpp-head"><div><div class="rpp-kicker">Payment Plan Revision</div><h2 class="rpp-title">Unit '+safe(c.unit)+'</h2></div><button type="button" class="btn-paper" id="rppClose">Close</button></div><div class="rpp-empty">Could not load the revision workflow. '+safe(e&&e.message?e.message:'')+'</div>';
+    var sh=p.querySelector('.rpp-shell');if(sh)sh.innerHTML=revisionHeader(c)+'<div class="rpp-scroll"><div class="rpp-empty">Could not load the revision workflow. '+safe(e&&e.message?e.message:'')+'</div></div>';
     var close=document.getElementById('rppClose');if(close)close.onclick=closePanel;
+    var back=document.getElementById('rppBack');if(back)back.onclick=closePanel;
   }
 }
 
