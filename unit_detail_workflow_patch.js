@@ -50,6 +50,7 @@
     '#unitCancellationPanel textarea,#unitCancellationPanel select{display:block;width:100%;margin-top:5px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:8px;font-family:Inter,sans-serif;font-size:16px;color:var(--ink);background:var(--paper-dim);box-sizing:border-box;}' +
     '#unitCancellationPanel .cancel-danger{background:var(--rust)!important;border-color:var(--rust)!important;color:#fff!important;}' +
     '@media(max-width:480px){.detail-top-actions-sticky{margin-left:-10px;margin-right:-10px;border-radius:10px}.detail-top-actions-sticky #btnPrintStatement{padding-left:10px!important;padding-right:10px!important}#unitCancellationPanel .brand-editor-actions{flex-direction:column}#unitCancellationPanel .brand-editor-actions button{width:100%}}';
+  style.textContent += "@media(max-width:1023px){\nbody.crm-cancel-ui-open{overflow:hidden!important;overscroll-behavior:none!important}\nbody.crm-cancel-ui-open #app>.topbar,body.crm-cancel-ui-open>.tabs,body.crm-cancel-ui-open #sunblissPersistentBackDock,body.crm-cancel-ui-open #sunblissDockSearchPanel{visibility:hidden!important;pointer-events:none!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel,body.crm-cancel-ui-open>#unitCancellationPanel.crm-full-page-inline{position:fixed!important;inset:auto!important;top:var(--crm-vtop,0px)!important;left:0!important;right:0!important;bottom:auto!important;z-index:30100!important;display:flex!important;flex-direction:column!important;width:100%!important;max-width:100%!important;min-height:0!important;height:var(--crm-vh,100dvh)!important;max-height:var(--crm-vh,100dvh)!important;margin:0!important;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.section-label,body.crm-cancel-ui-open>#unitCancellationPanel>.stat-sub{display:none!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-head{display:flex!important;align-items:center!important;gap:15px!important;flex:0 0 auto!important;min-height:42px!important;margin:0 0 22px!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-back{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;width:30px!important;height:42px!important;border:0!important;margin:0!important;padding:0!important;background:transparent!important;color:var(--ink,#102333)!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-title{margin:0!important;font:700 24px/1.25 CRMInter,Inter,Arial,sans-serif!important;letter-spacing:-.025em!important;color:var(--ink,#102333)!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-scroll{display:block!important;flex:1 1 auto!important;min-height:0!important;width:100%!important;margin:0!important;padding:18px 15px 21px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-bottom:0!important;border-radius:14px 14px 0 0!important;background:transparent!important;box-sizing:border-box!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-scroll .brand-field{display:block!important;margin:0 0 18px!important;font:400 11.5px/1.4 CRMInter,Inter,Arial,sans-serif!important;color:var(--muted,#66635c)!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-scroll .brand-field :is(input,textarea,select){display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:46px!important;margin:7px 0 0!important;padding:10px 12px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-radius:8px!important;background:var(--paper-dim,#efe9d9)!important;color:var(--ink,#102333)!important;font:500 16px/1.3 CRMInter,Inter,Arial,sans-serif!important;box-sizing:border-box!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .cancel-summary{margin:0 0 16px!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .cancel-summary-value{font:650 15px/1.3 CRMInter,Inter,Arial,sans-serif!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-actions,body.crm-cancel-ui-open>#unitCancellationPanel.crm-full-page-inline>.crm-cancel-actions{position:relative!important;bottom:auto!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;gap:10px!important;flex:0 0 auto!important;margin:0 -16px calc(-14px - env(safe-area-inset-bottom))!important;padding:12px 16px calc(32px + env(safe-area-inset-bottom))!important;border-top:1px solid var(--paper-line,#ded7c8)!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;z-index:9!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-actions>button,body.crm-cancel-ui-open>#unitCancellationPanel.crm-full-page-inline>.crm-cancel-actions>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:1 1 0%!important;min-width:0!important;width:auto!important;min-height:48px!important;height:auto!important;margin:0!important;padding:10px 8px!important;border-radius:999px!important;font:600 13.5px/1.3 CRMInter,Inter,Arial,sans-serif!important;white-space:normal!important;box-shadow:none!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .cancel-danger{background:var(--rust,#ae3b2b)!important;border-color:var(--rust,#ae3b2b)!important;color:#fff!important}\n}";
   document.head.appendChild(style);
 
   function closeCustomerMenu(){
@@ -88,9 +89,33 @@
     }
   }
 
+  /* Visual grouping only; the original cancellation fields and date remain intact. */
+  function closeCancellationUi(panel){
+    if(panel)panel.remove();
+    document.body.classList.remove('crm-cancel-ui-open');
+  }
+  function cancellationRootUi(panel){
+    if(!panel||!(window.matchMedia?window.matchMedia('(max-width:1023px)').matches:window.innerWidth<=1023))return;
+    var actions=panel.querySelector('.brand-editor-actions'),label=panel.querySelector('.section-label');
+    if(!actions||!label)return;
+    var head=document.createElement('div');head.className='crm-cancel-head';
+    head.innerHTML='<button type="button" class="crm-cancel-back" aria-label="Back to customer"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><h2 class="crm-cancel-title">Cancel Unit</h2>';
+    head.querySelector('button').onclick=function(){closeCancellationUi(panel);};
+    panel.insertBefore(head,panel.firstChild);
+    var card=document.createElement('div');card.className='crm-cancel-scroll';
+    Array.from(panel.children).forEach(function(node){
+      if(node===head||node===actions||node===label||node.classList.contains('stat-sub'))return;
+      card.appendChild(node);
+    });
+    panel.insertBefore(card,actions);
+    actions.classList.add('crm-cancel-actions');
+    document.body.appendChild(panel);
+    document.body.classList.add('crm-cancel-ui-open');
+  }
+
   function showCancellationPanel(c){
     var existing = document.getElementById('unitCancellationPanel');
-    if (existing){ existing.remove(); return; }
+    if (existing){ closeCancellationUi(existing); return; }
 
     ['customerEditPanel','saleComplianceEditPanel','transactionEditPanel'].forEach(function(id){
       var p = document.getElementById(id); if (p) p.remove();
@@ -132,6 +157,7 @@
         '<button class="btn-paper" id="cuKeep" style="justify-content:center;margin-bottom:0">Keep unit active</button>' +
       '</div>';
     insertAfterBadges(panel);
+    cancellationRootUi(panel);
 
     var settlement = document.getElementById('cuSettlement');
     var refund = document.getElementById('cuRefundAmount');
@@ -140,9 +166,9 @@
     refund.oninput = function(){ refund.dataset.touched = '1'; };
     forfeit.oninput = function(){ forfeit.dataset.touched = '1'; };
     settlementFields(paid);
-    document.getElementById('cuKeep').onclick = function(){ panel.remove(); };
+    document.getElementById('cuKeep').onclick = function(){ closeCancellationUi(panel); };
     document.getElementById('cuConfirm').onclick = function(){ saveCancellation(c,panel,paid); };
-    setTimeout(function(){ var reason = document.getElementById('cuReason'); if (reason) reason.focus(); },0);
+    // Avoid automatically shifting the mobile viewport or opening the keyboard.
   }
 
   async function saveCancellation(c,panel,paid){
@@ -189,6 +215,7 @@
       if (result.error) throw result.error;
 
       await loadFromSupabase();
+      closeCancellationUi(panel);
       state.selectedUnit = null;
       state.detailFrom = 'list';
       state.view = 'list';
