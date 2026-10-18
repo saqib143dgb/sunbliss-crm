@@ -25,7 +25,7 @@ window.__sunblissEnhanceTaskOutcome=function(panel,config){
  const select=panel.querySelector('#'+config.selectId),save=panel.querySelector('#'+config.saveId);
  if(!select&&!String(config.task.auto_key||'').startsWith('booking_welcome|'))return;
  const box=document.createElement('div');box.className='task-next-preview';box.setAttribute('aria-live','polite');
- const actions=panel.querySelector('.brand-editor-actions');actions?.before(box);
+ const actions=panel.querySelector('.brand-editor-actions'),scroll=panel.querySelector('.crm-scheduled-scroll');if(scroll)scroll.appendChild(box);else actions?.before(box);
  panel.addEventListener('outcome-options-changed',update);
  function update(){const value=select?.value||'';box.innerHTML='<strong>Next step</strong><p>'+esc(preview(config.task,value,panel,config.pendingPaymentSteps))+'</p>';box.hidden=!!(select?.tagName==='SELECT'&&!value);if(save&&select?.tagName==='SELECT'&&save.textContent!=='Saving…')save.disabled=!value;if(save&&value==='payment_reported')save.textContent='Continue to payment';else if(save&&config.selectId==='saOutcome'&&value&&save.textContent!=='Saving…')save.textContent='Save Outcome';}
  panel.addEventListener('change',update);panel.addEventListener('input',update);update();
