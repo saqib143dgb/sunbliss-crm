@@ -138,10 +138,10 @@ test('customer Save logic and field names remain in original CRM code',()=>{
 
 test('header and footer remain stationary while only the customer fields scroll',()=>{
   const css=fixture().styles[0].textContent;
-  const root=css.match(/body\.crm-customer-editor-open>#customerEditPanel\{([^']+)\}/);
-  const head=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-head\{([^']+)\}/);
-  const card=css.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^']+)\}/);
-  const footer=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-actions\{([^']+)\}/);
+  const root=css.match(/body\.crm-customer-editor-open>#customerEditPanel\{([^}]+)\}/);
+  const head=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-head\{([^}]+)\}/);
+  const card=css.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^}]+)\}/);
+  const footer=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-actions\{([^}]+)\}/);
   assert.ok(root&&head&&card&&footer);
   assert.match(root[1],/display:flex!important;flex-direction:column!important/);
   assert.match(root[1],/overflow:hidden!important/);
@@ -157,8 +157,8 @@ test('header and footer remain stationary while only the customer fields scroll'
 
 test('customer form border extends to footer divider without a blank gap',()=>{
   const css=fixture().styles[0].textContent;
-  const card=css.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^']+)\}/);
-  const footer=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-actions\{([^']+)\}/);
+  const card=css.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^}]+)\}/);
+  const footer=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-actions\{([^}]+)\}/);
   assert.ok(card&&footer);
   assert.match(card[1],/margin:0!important/);
   assert.match(card[1],/border-bottom:0!important/);
