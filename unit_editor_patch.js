@@ -208,6 +208,11 @@
 
       var from = state.detailFrom || 'list';
       await loadFromSupabase();
+      // Presentation cleanup only: the mobile editor is portaled to <body>,
+      // so close it after the original successful reload, before navigation.
+      var savedUnitEditor=document.getElementById('unitEditPanel');
+      if(savedUnitEditor)savedUnitEditor.remove();
+      document.body.classList.remove('crm-unit-editor-open');
       if (typeof window.goToDetail === 'function'){
         window.goToDetail(unitNo,Number(c.sno),from);
       }else{
