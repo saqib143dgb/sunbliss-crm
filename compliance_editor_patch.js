@@ -214,6 +214,10 @@
 
       var unit = c.unit, sno = c.sno, from = state.detailFrom || 'list';
       await loadFromSupabase();
+      // UI cleanup for the full-screen mobile Sale form after the original save.
+      var completedSaleEditor=document.getElementById('saleComplianceEditPanel');
+      if(completedSaleEditor)completedSaleEditor.remove();
+      document.body.classList.remove('crm-sale-editor-open');
       goToDetail(unit,sno,from);
     }catch(ex){
       if (err){
@@ -254,7 +258,18 @@
   function saleRootLayout(panel){
     if(!panel)return;
     var mobile=window.matchMedia?window.matchMedia('(max-width:1023px)').matches:window.innerWidth<=1023;
-    if(!mobile){document.body.classList.remove('crm-sale-editor-open');return;}
+    if(!mobile){
+      if(panel.dataset.crmSaleLayout==='1'){
+        var card=panel.querySelector('.crm-sale-card'),actions=panel.querySelector('.crm-sale-actions');
+        if(card&&actions){while(card.firstChild)panel.insertBefore(card.firstChild,actions);card.remove();}
+        var head=panel.querySelector('.crm-sale-head');if(head)head.remove();
+        if(actions)actions.classList.remove('crm-sale-actions');
+        delete panel.dataset.crmSaleLayout;
+        var detail=document.querySelector('.detail');
+        if(detail&&panel.parentNode===document.body)detail.appendChild(panel);
+      }
+      document.body.classList.remove('crm-sale-editor-open');return;
+    }
     var actions=panel.querySelector('.brand-editor-actions');
     if(!actions)return;
     if(panel.dataset.crmSaleLayout!=='1'){
