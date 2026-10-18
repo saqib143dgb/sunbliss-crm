@@ -104,7 +104,7 @@ test('no silent sale repricing; payment stage controls stay explicit',()=>{
   const build=read('build.js');
   assert.match(unit,/data-original-total/);
   assert.match(unit,/Math\.abs\(enteredValue-originalValue\)>\.005/);
-  assert.match(payment,/payment-detail-add><summary>Add additional installment \(advanced\)/);
+  assert.match(payment,/payment-detail-add\"><summary>Add additional installment \(advanced\)/);
   assert.match(installment,/label\.textContent='Paid:'/);
   assert.ok(build.indexOf("'mobile_workflow_hardening_patch.js'")>build.indexOf("'inventory_layout_refinement_patch.js'"));
   assert.doesNotMatch(source,/\bsb\.from\(|\bsb\.rpc\(/);
