@@ -134,3 +134,46 @@ test('customer Save logic and field names remain in original CRM code',()=>{
   const build=fs.readFileSync('build.js','utf8');
   assert.ok(build.indexOf("'customer_editor_mobile_reference_patch.js'")>build.indexOf("'inventory_layout_refinement_patch.js'"));
 });
+
+
+test('header and footer remain stationary while only the customer fields scroll',()=>{
+  const css=fixture().styles[0].textContent;
+  const root=css.match(/body\.crm-customer-editor-open>#customerEditPanel\{([^}]+)\}/);
+  const head=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-head\{([^}]+)\}/);
+  const card=css.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^}]+)\}/);
+  const footer=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-actions\{([^}]+)\}/);
+  assert.ok(root&&head&&card&&footer);
+  assert.match(root[1],/display:flex!important;flex-direction:column!important/);
+  assert.match(root[1],/overflow:hidden!important/);
+  assert.doesNotMatch(root[1],/overflow-y:auto!important/);
+  assert.match(head[1],/flex:0 0 auto!important/);
+  assert.match(card[1],/flex:1 1 auto!important;min-height:0!important/);
+  assert.match(card[1],/overflow-y:auto!important/);
+  assert.match(footer[1],/position:relative!important/);
+  assert.match(footer[1],/bottom:auto!important/);
+  assert.match(footer[1],/flex-shrink:0!important/);
+  assert.doesNotMatch(footer[1],/margin:auto/);
+});
+
+test('customer form border extends to footer divider without a blank gap',()=>{
+  const css=fixture().styles[0].textContent;
+  const card=css.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^}]+)\}/);
+  const footer=css.match(/body\.crm-customer-editor-open>#customerEditPanel>\.crm-customer-editor-actions\{([^}]+)\}/);
+  assert.ok(card&&footer);
+  assert.match(card[1],/margin:0!important/);
+  assert.match(card[1],/border-bottom:0!important/);
+  assert.match(card[1],/border-radius:14px 14px 0 0!important/);
+  assert.match(footer[1],/margin:0 -16px calc\(-14px - env\(safe-area-inset-bottom\)\)!important/);
+  assert.match(footer[1],/border-top:1px solid var\(--paper-line,#ded7c8\)!important/);
+  assert.match(footer[1],/padding:12px 16px calc\(32px \+ env\(safe-area-inset-bottom\)\)!important/);
+});
+
+test('desktop editor, fields, typography, and save remain unchanged by scroll fix',()=>{
+  const ui=fs.readFileSync('customer_editor_mobile_reference_patch.js','utf8');
+  const crm=fs.readFileSync('feature_patch.js','utf8');
+  assert.match(ui,/@media\(max-width:1023px\)/);
+  assert.match(ui,/@media\(min-width:1024px\)\{#customerEditPanel \.crm-customer-editor-head\{display:none!important/);
+  assert.match(ui,/font-family:CRMInter,Inter,Arial,sans-serif!important/);
+  assert.match(crm,/sb\.from\('customers'\)\.update\(payload\)\.eq\('id',c\.customerId\)/);
+  assert.doesNotMatch(ui,/sb\.from\(|sb\.rpc\(/);
+});
