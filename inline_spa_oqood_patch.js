@@ -167,25 +167,49 @@
     var status=isSpa?displayStatus('spa',c.spa):displayStatus('oqood',c.oqood);
     var currentDate=isSpa?(c.info&&c.info.spaDate):(c.info&&c.info.oqoodDate);
     var options=isSpa?['Pending','Signed']:['Pending','Completed'];
-    var dateLabel=isSpa?'SPA signed date (optional)':'OQOOD completed date (optional)';
+    var dateLabel=isSpa?'SPA signed date':'OQOOD completed date';
 
     var panel=document.createElement('div');
     panel.id='inlineComplianceEditor';
     panel.className='brand-editor';
     panel.setAttribute('data-kind',kind);
     panel.innerHTML=
-      '<p class="section-label">Update '+safe(title)+'</p>'+
-      '<p class="inline-compliance-hint">Change '+safe(title)+' here. The three-dot menu no longer contains compliance controls.</p>'+
-      '<p class="brand-error" id="inlineComplianceError" style="display:none"></p>'+
-      '<label class="brand-field">Status<select id="inlineComplianceStatus">'+selectOptions(options,status)+'</select></label>'+
-      '<label class="brand-field">'+safe(dateLabel)+'<input type="date" id="inlineComplianceDate" value="'+safe(dateToIso(currentDate))+'" /></label>'+
-      '<div class="brand-editor-actions">'+
-        '<button class="btn btn-gold" type="button" id="inlineComplianceSave" style="justify-content:center">Save '+safe(title)+'</button>'+
-        '<button class="btn-paper" type="button" id="inlineComplianceCancel" style="justify-content:center;margin-bottom:0">Cancel</button>'+
+      '<div class="crm-compliance-editor-head">'+
+        '<button type="button" id="inlineComplianceBack" class="crm-compliance-back" aria-label="Back to customer">'+
+          '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>'+
+        '</button>'+
+        '<h2 class="crm-compliance-editor-title">Update '+safe(title)+'</h2>'+
+      '</div>'+
+      '<p class="brand-error" id="inlineComplianceError" style="display:none" role="alert"></p>'+
+      '<div class="crm-compliance-editor-card">'+
+        '<label class="brand-field"><span class="crm-compliance-field-label">Status</span>'+
+          '<span class="crm-compliance-select-wrap"><select id="inlineComplianceStatus">'+selectOptions(options,status)+'</select>'+
+            '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'+
+          '</span></label>'+
+        '<label class="brand-field"><span class="crm-compliance-field-label">'+safe(dateLabel)+' <span class="crm-compliance-optional">(optional)</span></span>'+
+          '<span class="crm-compliance-date-wrap"><input type="date" id="inlineComplianceDate" aria-label="'+safe(dateLabel)+'" value="'+safe(dateToIso(currentDate))+'" />'+
+            '<span class="crm-compliance-date-placeholder" aria-hidden="true">Select date</span>'+
+            '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.2" y="5" width="17.6" height="16" rx="1.7"/><path d="M7.5 2.6v4.7M16.5 2.6v4.7M3.2 10.5h17.6"/></svg>'+
+          '</span></label>'+
+      '</div>'+
+      '<div class="brand-editor-actions crm-compliance-editor-actions">'+
+        '<button class="btn btn-gold" type="button" id="inlineComplianceSave">Save '+safe(title)+'</button>'+
+        '<button class="btn-paper" type="button" id="inlineComplianceCancel">Cancel</button>'+
       '</div>';
 
     strip.parentNode.insertBefore(panel,strip.nextSibling);
     document.getElementById('inlineComplianceCancel').onclick=function(){ panel.remove(); };
+    document.getElementById('inlineComplianceBack').onclick=function(){ panel.remove(); };
+    var dateInput=document.getElementById('inlineComplianceDate');
+    var dateWrap=panel.querySelector('.crm-compliance-date-wrap');
+    function updateDatePlaceholder(){
+      if(dateWrap&&dateInput)dateWrap.classList.toggle('crm-compliance-date-empty',!dateInput.value);
+    }
+    if(dateInput){
+      dateInput.addEventListener('input',updateDatePlaceholder);
+      dateInput.addEventListener('change',updateDatePlaceholder);
+      updateDatePlaceholder();
+    }
     document.getElementById('inlineComplianceSave').onclick=function(){ saveStatus(kind); };
   }
 
