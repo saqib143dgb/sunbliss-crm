@@ -145,3 +145,35 @@ test('mobile-only styling does not alter dashboards, desktop layouts or other ed
   const build=fs.readFileSync('build.js','utf8');
   assert.ok(build.indexOf("'payment_plan_mobile_reference_patch.js'")>build.indexOf("'customer_editor_mobile_reference_patch.js'"));
 });
+
+
+test('payment plan header and form frame follow Edit Customer geometry',()=>{
+  const css=layoutCss();
+  const customer=fs.readFileSync('customer_editor_mobile_reference_patch.js','utf8');
+  const header=css.match(/#paymentDetailDialog \.payment-plan-head\{([^}]+)\}/);
+  const title=css.match(/#paymentDetailDialog #paymentDetailTitle\{([^}]+)\}/);
+  const panel=css.match(/#paymentDetailDialog \.payment-plan-scroll\{([^}]+)\}/);
+  const customerCard=customer.match(/body\.crm-customer-editor-open>#customerEditPanel \.crm-customer-editor-card\{([^}]+)\}/);
+  assert.ok(header&&title&&panel&&customerCard);
+  assert.match(header[1],/margin:0 0 22px!important/);
+  assert.match(title[1],/font-size:24px!important;line-height:1\.25!important;font-weight:700!important/);
+  assert.match(panel[1],/flex:1 1 auto!important;min-height:0!important/);
+  assert.match(panel[1],/margin:0!important;padding:18px 15px 21px!important/);
+  assert.match(panel[1],/border:1px solid var\(--paper-line,#ded7c8\)!important/);
+  assert.match(panel[1],/border-bottom:0!important/);
+  assert.match(panel[1],/border-radius:14px 14px 0 0!important/);
+  for(const prop of ['padding:18px 15px 21px!important','border-bottom:0!important','border-radius:14px 14px 0 0!important','scroll-padding-bottom:28px!important']){
+    assert.ok(customerCard[1].includes(prop),'approved Edit Customer form has '+prop);
+    assert.ok(panel[1].includes(prop),'Payment Plan must share '+prop);
+  }
+});
+test('payment form border ends at fixed footer divider with no spacer',()=>{
+  const css=layoutCss();
+  const panel=css.match(/#paymentDetailDialog \.payment-plan-scroll\{([^}]+)\}/);
+  const footer=css.match(/#paymentDetailDialog \.payment-detail-actions\{([^}]+)\}/);
+  assert.ok(panel&&footer);
+  assert.match(panel[1],/border-bottom:0!important/);
+  assert.match(footer[1],/margin:0 -16px calc\(-14px - env\(safe-area-inset-bottom\)\)!important/);
+  assert.match(footer[1],/border-top:1px solid var\(--paper-line,#ded7c8\)!important/);
+  assert.match(footer[1],/padding:12px 16px calc\(32px \+ env\(safe-area-inset-bottom\)\)!important/);
+});
