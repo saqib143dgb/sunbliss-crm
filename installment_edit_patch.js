@@ -182,17 +182,9 @@
   }
 
   async function transactionSummary(c,stage){
-    var result=await sb.from('payment_transactions').select('payment_date,payment_type,amount,payment_schedule_id').eq('unit_id',c.sno);
+    var result=await sb.from('payment_transactions').select('payment_date,payment_type,amount').eq('unit_id',c.sno);
     if (result.error) throw result.error;
-    // The database schedule ID is authoritative. A "Booking Amount" transaction
-    // may correctly belong to Down Payment even though their labels differ.
-    // Keep a label fallback only for legacy, unlinked transactions.
-    var scheduleId=Number(stage&&stage.id);
-    var matches=(result.data||[]).filter(function(row){
-      var linkedId=row.payment_schedule_id;
-      if(linkedId!==null && linkedId!==undefined) return scheduleId>0 && Number(linkedId)===scheduleId;
-      return stageMatchesTransaction(stage,row.payment_type);
-    });
+    var matches=(result.data||[]).filter(function(row){ return stageMatchesTransaction(stage,row.payment_type); });
     var total=matches.reduce(function(sum,row){ return sum+(Number(row.amount)||0); },0);
     matches.sort(function(a,b){ return text(a.payment_date).localeCompare(text(b.payment_date)); });
     return {total:Math.round(total*100)/100,count:matches.length,lastDate:matches.length?matches[matches.length-1].payment_date:null};
