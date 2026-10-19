@@ -133,8 +133,7 @@ begin
     'unit_status', 'Cancelled'
   );
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.crm_edit_cancelled_unit(p_cancelled_unit_id bigint, p_cancellation_date date, p_cancellation_type text, p_cancellation_reason text, p_amount_paid numeric, p_settlement_type text, p_refund_amount numeric, p_forfeited_amount numeric, p_retained_amount numeric, p_cancelled_sale_value numeric, p_remarks text, p_change_reason text)
  RETURNS jsonb
@@ -248,4 +247,4 @@ begin
     'adjustment_id', v_adjustment_id
   );
 end;
-$function$
+$function$;
