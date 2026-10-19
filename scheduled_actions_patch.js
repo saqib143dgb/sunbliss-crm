@@ -496,7 +496,7 @@
     try{var now=new Date().toISOString(),r=await sb.from('scheduled_actions').update({status:'cancelled',cancelled_at:now,updated_at:now}).eq('id',task.id).select().single();if(r.error)throw r.error;removePanel();await refreshAfterChange();}catch(e){if(err){err.textContent=e&&e.message?e.message:'Could not cancel this action.';err.style.display='block';}if(btn){btn.disabled=false;btn.textContent='Cancel Scheduled Action';}}
   }
 
-  async function refreshAfterChange(){await loadTasks(true);renderScheduledViews();}
+  async function refreshAfterChange(){await loadTasks(true);renderScheduledViews();window.dispatchEvent(new Event("sunbliss:scheduled-actions-updated"));}
   function renderScheduledViews(){ensureStyles();ensureMenuItem();renderDetailTasks();renderOverviewTasks();}
 
   function ensureMenuItem(){
@@ -509,6 +509,14 @@
   function install(){
     if(!window.state||!window.sb||typeof window.renderDetail!=='function'||typeof window.renderOverview!=='function'){setTimeout(install,60);return;}
     ensureStyles();
+    // Reuse the existing outcome screen, scoped to the customer currently open.
+    window.__sunblissOpenScheduledAction=function(id){
+      if(!canUse())return false;
+      var c=currentCustomer(),task=taskById(id);
+      if(!c||!task||task.status!=='pending'||!visibleTask(task)||task.auto_kind==='extension_active'||Number(task.unit_id)!==Number(c.sno))return false;
+      openComplete(task);
+      return true;
+    };
     window.__sunblissRefreshScheduledActions=function(){return loadTasks(true);};
   window.__sunblissScheduledActionRows=function(){return cache.loaded?cache.rows.filter(visibleTask):null;};
   window.__sunblissEnsureScheduledActions=async function(){await loadTasks(false);renderScheduledViews();};
