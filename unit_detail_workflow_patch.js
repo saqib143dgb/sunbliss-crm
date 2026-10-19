@@ -51,6 +51,7 @@
     '#unitCancellationPanel .cancel-danger{background:var(--rust)!important;border-color:var(--rust)!important;color:#fff!important;}' +
     '@media(max-width:480px){.detail-top-actions-sticky{margin-left:-10px;margin-right:-10px;border-radius:10px}.detail-top-actions-sticky #btnPrintStatement{padding-left:10px!important;padding-right:10px!important}#unitCancellationPanel .brand-editor-actions{flex-direction:column}#unitCancellationPanel .brand-editor-actions button{width:100%}}';
   style.textContent += "@media(max-width:1023px){\nbody.crm-cancel-ui-open{overflow:hidden!important;overscroll-behavior:none!important}\nbody.crm-cancel-ui-open #app>.topbar,body.crm-cancel-ui-open>.tabs,body.crm-cancel-ui-open #sunblissPersistentBackDock,body.crm-cancel-ui-open #sunblissDockSearchPanel{visibility:hidden!important;pointer-events:none!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel,body.crm-cancel-ui-open>#unitCancellationPanel.crm-full-page-inline{position:fixed!important;inset:auto!important;top:var(--crm-vtop,0px)!important;left:0!important;right:0!important;bottom:auto!important;z-index:30100!important;display:flex!important;flex-direction:column!important;width:100%!important;max-width:100%!important;min-height:0!important;height:var(--crm-vh,100dvh)!important;max-height:var(--crm-vh,100dvh)!important;margin:0!important;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.section-label,body.crm-cancel-ui-open>#unitCancellationPanel>.stat-sub{display:none!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-head{display:flex!important;align-items:center!important;gap:15px!important;flex:0 0 auto!important;min-height:42px!important;margin:0 0 22px!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-back{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;width:30px!important;height:42px!important;border:0!important;margin:0!important;padding:0!important;background:transparent!important;color:var(--ink,#102333)!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-title{margin:0!important;font:700 24px/1.25 CRMInter,Inter,Arial,sans-serif!important;letter-spacing:-.025em!important;color:var(--ink,#102333)!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-scroll{display:block!important;flex:1 1 auto!important;min-height:0!important;width:100%!important;margin:0!important;padding:18px 15px 21px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-bottom:0!important;border-radius:14px 14px 0 0!important;background:transparent!important;box-sizing:border-box!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-scroll .brand-field{display:block!important;margin:0 0 18px!important;font:400 11.5px/1.4 CRMInter,Inter,Arial,sans-serif!important;color:var(--muted,#66635c)!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .crm-cancel-scroll .brand-field :is(input,textarea,select){display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:46px!important;margin:7px 0 0!important;padding:10px 12px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-radius:8px!important;background:var(--paper-dim,#efe9d9)!important;color:var(--ink,#102333)!important;font:500 16px/1.3 CRMInter,Inter,Arial,sans-serif!important;box-sizing:border-box!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .cancel-summary{margin:0 0 16px!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .cancel-summary-value{font:650 15px/1.3 CRMInter,Inter,Arial,sans-serif!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-actions,body.crm-cancel-ui-open>#unitCancellationPanel.crm-full-page-inline>.crm-cancel-actions{position:relative!important;bottom:auto!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;gap:10px!important;flex:0 0 auto!important;margin:0 -16px calc(-14px - env(safe-area-inset-bottom))!important;padding:12px 16px calc(32px + env(safe-area-inset-bottom))!important;border-top:1px solid var(--paper-line,#ded7c8)!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;z-index:9!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel>.crm-cancel-actions>button,body.crm-cancel-ui-open>#unitCancellationPanel.crm-full-page-inline>.crm-cancel-actions>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:1 1 0%!important;min-width:0!important;width:auto!important;min-height:48px!important;height:auto!important;margin:0!important;padding:10px 8px!important;border-radius:999px!important;font:600 13.5px/1.3 CRMInter,Inter,Arial,sans-serif!important;white-space:normal!important;box-shadow:none!important}\nbody.crm-cancel-ui-open>#unitCancellationPanel .cancel-danger{background:var(--rust,#ae3b2b)!important;border-color:var(--rust,#ae3b2b)!important;color:#fff!important}\n}";
+  style.textContent += "#unitCancellationPanel .sunbliss-forfeit-rule{margin:12px 0 14px;padding:12px 13px;border:1px solid rgba(174,59,43,.24);border-radius:11px;background:linear-gradient(180deg,rgba(174,59,43,.07),rgba(174,59,43,.025));}\n#unitCancellationPanel .sunbliss-forfeit-rule-title{margin:0 0 8px;font:600 11.5px/1.4 CRMInter,Inter,Arial,sans-serif;color:var(--rust,#ae3b2b);text-transform:uppercase;letter-spacing:.06em}\n#unitCancellationPanel .sunbliss-forfeit-rule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n#unitCancellationPanel .sunbliss-forfeit-rule-cell{padding:9px 10px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper)}\n#unitCancellationPanel .sunbliss-forfeit-rule-label{margin:0 0 4px;font:400 10px/1.4 CRMInter,Inter,Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}\n#unitCancellationPanel .sunbliss-forfeit-rule-value{margin:0;font:650 15px/1.3 CRMInter,Inter,Arial,sans-serif;color:var(--ink,#102333)}\n#unitCancellationPanel .sunbliss-forfeit-rule-value.is-forfeited{color:var(--rust,#ae3b2b)}\n#unitCancellationPanel .sunbliss-forfeit-rule-note{margin:10px 0 0;font:400 11.5px/1.5 CRMInter,Inter,Arial,sans-serif;color:var(--muted)}";
   document.head.appendChild(style);
 
   function closeCustomerMenu(){
@@ -74,18 +75,36 @@
     var forfeit = document.getElementById('cuForfeitedAmount');
     if (!refund || !forfeit) return;
     if (settlement === 'Refunded'){
-      refund.disabled = false; forfeit.disabled = true;
-      if (!refund.dataset.touched) refund.value = paid.toFixed(2);
+      refund.disabled = true; forfeit.disabled = true;
+      refund.value = paid.toFixed(2);
       forfeit.value = '0.00';
     }else if (settlement === 'Forfeited'){
-      refund.disabled = true; forfeit.disabled = false;
+      refund.disabled = true; forfeit.disabled = true;
       refund.value = '0.00';
-      if (!forfeit.dataset.touched) forfeit.value = paid.toFixed(2);
+      forfeit.value = paid.toFixed(2);
     }else if (settlement === 'Split'){
       refund.disabled = false; forfeit.disabled = false;
-    }else{
+    }else if (settlement === 'No settlement'){
       refund.disabled = true; forfeit.disabled = true;
       refund.value = '0.00'; forfeit.value = '0.00';
+    }
+    updateCancellationSettlementSummary();
+  }
+  function updateCancellationSettlementSummary(){
+    var refund = Number(valueOf('cuRefundAmount')) || 0;
+    var forfeited = Number(valueOf('cuForfeitedAmount')) || 0;
+    var settlement = valueOf('cuSettlement');
+    var refundedAmount = document.getElementById('cuSummaryRefund');
+    var forfeitedAmount = document.getElementById('cuSummaryForfeit');
+    var note = document.getElementById('cuSummaryNote');
+    if (refundedAmount) refundedAmount.textContent = formatMoney(refund);
+    if (forfeitedAmount) forfeitedAmount.textContent = formatMoney(forfeited);
+    if (note){
+      note.textContent = settlement === 'Split'
+        ? 'Enter how much will be refunded and forfeited. The amounts must equal the total paid.'
+        : settlement === 'Refunded' ? 'The full paid amount is marked for refund.'
+        : settlement === 'No settlement' ? 'No refund or forfeiture is recorded at cancellation.'
+        : 'The full paid amount is marked as forfeited.';
     }
   }
 
@@ -143,13 +162,21 @@
       '<label class="brand-field">Detailed reason<textarea id="cuReason" rows="3" placeholder="Explain why the customer is cancelling or why the unit is being cancelled." required></textarea></label>' +
       '<label class="brand-field">Treatment of money paid<select id="cuSettlement">' +
         '<option value="Refunded">Refunded</option>' +
-        '<option value="Forfeited">Forfeited</option>' +
+        '<option value="Forfeited" selected>Forfeited</option>' +
         '<option value="Split">Part refunded / part forfeited</option>' +
         '<option value="No settlement">No refund or forfeiture recorded yet</option>' +
       '</select></label>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
         '<label class="brand-field">Refunded amount (AED)<input type="number" id="cuRefundAmount" min="0" step="0.01" value="' + paid.toFixed(2) + '" /></label>' +
         '<label class="brand-field">Forfeited amount (AED)<input type="number" id="cuForfeitedAmount" min="0" step="0.01" value="0.00" /></label>' +
+      '</div>' +
+      '<div class="sunbliss-forfeit-rule" aria-live="polite">' +
+        '<p class="sunbliss-forfeit-rule-title">Cancellation settlement</p>' +
+        '<div class="sunbliss-forfeit-rule-grid">' +
+          '<div class="sunbliss-forfeit-rule-cell"><p class="sunbliss-forfeit-rule-label">Refunded</p><p class="sunbliss-forfeit-rule-value" id="cuSummaryRefund"></p></div>' +
+          '<div class="sunbliss-forfeit-rule-cell"><p class="sunbliss-forfeit-rule-label">Forfeited</p><p class="sunbliss-forfeit-rule-value is-forfeited" id="cuSummaryForfeit"></p></div>' +
+        '</div>' +
+        '<p class="sunbliss-forfeit-rule-note" id="cuSummaryNote"></p>' +
       '</div>' +
       '<label class="brand-field">Remarks / follow-up notes<textarea id="cuRemarks" rows="3" placeholder="Optional internal notes, refund reference, notice history, etc."></textarea></label>' +
       '<div class="brand-editor-actions">' +
@@ -163,8 +190,8 @@
     var refund = document.getElementById('cuRefundAmount');
     var forfeit = document.getElementById('cuForfeitedAmount');
     settlement.onchange = function(){ settlementFields(paid); };
-    refund.oninput = function(){ refund.dataset.touched = '1'; };
-    forfeit.oninput = function(){ forfeit.dataset.touched = '1'; };
+    refund.oninput = function(){ refund.dataset.touched = '1'; updateCancellationSettlementSummary(); };
+    forfeit.oninput = function(){ forfeit.dataset.touched = '1'; updateCancellationSettlementSummary(); };
     settlementFields(paid);
     document.getElementById('cuKeep').onclick = function(){ closeCancellationUi(panel); };
     document.getElementById('cuConfirm').onclick = function(){ saveCancellation(c,panel,paid); };
@@ -186,6 +213,7 @@
       if (!date) throw new Error('Select a cancellation date.');
       if (!reason || reason.length < 5) throw new Error('Enter a clear cancellation reason.');
       if (refund + forfeited > paid + 0.01) throw new Error('Refunded plus forfeited amount cannot exceed the amount paid to date.');
+      if (settlement === 'Split' && Math.abs(refund + forfeited - paid) > 0.01) throw new Error('For a split settlement, refunded and forfeited amounts must equal the amount paid to date.');
       if (settlement === 'Refunded' && forfeited > 0) throw new Error('A refunded cancellation cannot also include a forfeited amount. Choose the split option instead.');
       if (settlement === 'Forfeited' && refund > 0) throw new Error('A forfeited cancellation cannot also include a refund. Choose the split option instead.');
       if (settlement === 'No settlement' && (refund > 0 || forfeited > 0)) throw new Error('No settlement should have zero refunded and forfeited amounts.');
