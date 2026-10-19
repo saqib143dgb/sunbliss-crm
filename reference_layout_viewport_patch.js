@@ -31,7 +31,7 @@ style.textContent=`
  #unitMetaInline>span:not(.unit-meta-sep){min-width:0;overflow-wrap:anywhere}
  #unitMetaInline .unit-meta-number{font-weight:700!important}
  #unitMetaInline .unit-meta-sep{display:block!important;width:1px!important;height:22px!important;background:var(--paper-line)!important;color:transparent!important;font-size:0!important;margin:0 18px!important;opacity:1!important}
- #actionRequiredCard{margin:0 14px 32px!important;width:calc(100% - 28px)!important;border-radius:10px!important;border-left-width:7px!important;background:color-mix(in srgb,var(--paper) 94%,var(--rust) 6%)!important;box-shadow:none!important}
+ #actionRequiredCard{margin:0 14px 32px!important;width:calc(100% - 28px)!important;border-radius:10px!important;border-left-width:7px!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important}
  #actionRequiredCard .action-required-head{padding:18px 20px 6px!important;gap:10px!important}
  #actionRequiredCard .action-required-title{font-size:14px!important;letter-spacing:.055em!important;font-weight:700!important;white-space:normal!important}
  #actionRequiredCard[data-tone=danger] .action-required-title{color:var(--rust)!important}
@@ -43,7 +43,7 @@ style.textContent=`
  #actionRequiredCard .action-required-meta-label{font-size:14px!important;white-space:normal!important}
  #actionRequiredCard .action-required-meta-value{font-size:14px!important;font-weight:650!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
  #actionRequiredCard .action-required-meta-block:before{height:26px!important}
- #actionRequiredCard[data-tone=good]{background:color-mix(in srgb,var(--paper) 95%,var(--sage) 5%)!important}
+ #actionRequiredCard[data-tone=good]{background:var(--paper,#faf7ef)!important}
  /* Fixed layers use the visual viewport, including the on-screen keyboard. */
  body>[id$="Overlay"],body>.cancelled-edit-modal,.crm-full-page-overlay{
   top:var(--crm-vtop,0px)!important;bottom:auto!important;height:var(--crm-vh,100dvh)!important;max-height:var(--crm-vh,100dvh)!important;width:100%!important;max-width:100%!important;min-height:0!important;box-sizing:border-box!important;overscroll-behavior:contain!important
