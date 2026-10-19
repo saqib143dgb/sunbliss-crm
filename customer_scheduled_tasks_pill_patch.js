@@ -53,6 +53,7 @@
       '#crmCustomerTasksPill .crm-task-count{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 3px;border-radius:999px;background:rgba(69,86,107,.12);font:650 10px/1 CRMInter,Inter,Arial,sans-serif;box-sizing:border-box}',
       '#crmCustomerTasksPill .crm-task-icon{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
       '#crmCustomerTasksPill .crm-task-count[hidden]{display:none!important}',
+      '#crmCustomerTasksPill[hidden]{display:none!important}',
       '.detail .d-name #crmCustomerTasksPill{margin:0!important;min-width:0;max-width:100%;font-size:11px!important;letter-spacing:0!important}',
       '.detail .d-name .crm-customer-task-title{min-width:0;overflow-wrap:anywhere}',
       '#crmCustomerTasksPopover{position:fixed;z-index:30300;box-sizing:border-box;width:min(350px,calc(100vw - 20px));max-height:min(65dvh,500px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--paper-line,#ded7c8);border-radius:13px;background:var(--paper,#faf7ef);color:var(--ink,#102333);box-shadow:0 15px 45px rgba(15,26,38,.20);font-family:CRMInter,Inter,Arial,sans-serif;}',
@@ -79,8 +80,20 @@
     if(!button||!c)return;
     var tasks=activeTasks(c),count=button.querySelector('.crm-task-count');
     if(!count)return;
-    if(tasks===null){count.hidden=true;count.textContent='';button.setAttribute('aria-label','Customer scheduled tasks');}
-    else{count.hidden=false;count.textContent=String(tasks.length);button.setAttribute('aria-label',tasks.length+' scheduled tasks for '+str(c.unit));}
+    // Only actionable, pending tasks warrant a customer header control.
+    // Keep the pill hidden until the current task list has loaded.
+    if(tasks===null){
+      button.hidden=true;
+      count.hidden=true;
+      count.textContent='';
+      button.setAttribute('aria-label','Customer scheduled tasks');
+    }else{
+      button.hidden=tasks.length===0;
+      count.hidden=tasks.length===0;
+      count.textContent=String(tasks.length);
+      button.setAttribute('aria-label',tasks.length+' scheduled tasks for '+str(c.unit));
+      if(!tasks.length&&popover)close();
+    }
   }
   function close(){
     if(popover){popover.remove();popover=null;}
@@ -144,6 +157,7 @@
       button=document.createElement('button');
       button.type='button';
       button.id='crmCustomerTasksPill';
+      button.hidden=true;
       button.setAttribute('aria-haspopup','dialog');
       button.setAttribute('aria-expanded','false');
       button.innerHTML='<svg class="crm-task-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-13 5 2 2 4-4"/></svg><span>Tasks</span><span class="crm-task-count" hidden></span>';
