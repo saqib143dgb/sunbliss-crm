@@ -59,14 +59,21 @@
   }
 
   function renderRuleCard(panel, paid){
+    // The Cancel Unit mobile form has a fixed footer and a separate scroll
+    // container. Its settlement card must be inside that container; inserting
+    // into the root panel pushes the fixed footer into the middle of the page.
+    // Move the existing visual node without replacing it or touching values.
+    var host = panel.querySelector('.crm-cancel-scroll') || panel;
+    var remarks = panel.querySelector('#cuRemarks');
+    var remarksLabel = remarks && remarks.closest ? remarks.closest('label.brand-field') : null;
     var card = panel.querySelector('.sunbliss-forfeit-rule');
     if (!card){
       card = document.createElement('div');
       card.className = 'sunbliss-forfeit-rule';
-      var remarks = document.getElementById('cuRemarks');
-      var remarksLabel = remarks && remarks.closest ? remarks.closest('label.brand-field') : null;
-      if (remarksLabel && remarksLabel.parentNode === panel) panel.insertBefore(card,remarksLabel);
-      else panel.appendChild(card);
+    }
+    if (card.parentNode !== host){
+      if (remarksLabel && remarksLabel.parentNode === host) host.insertBefore(card,remarksLabel);
+      else host.appendChild(card);
     }
 
     var renderKey = (Number(paid) || 0).toFixed(2);
