@@ -52,8 +52,9 @@
       '#crmCustomerTasksPill:focus-visible,.crm-customer-tasks-item:focus-visible{outline:2px solid var(--gold-deep,#a17c36);outline-offset:2px}',
       '#crmCustomerTasksPill .crm-task-count{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 3px;border-radius:999px;background:rgba(69,86,107,.12);font:650 10px/1 CRMInter,Inter,Arial,sans-serif;box-sizing:border-box}',
       '#crmCustomerTasksPill .crm-task-icon{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
-      '#app .detail-top-actions-sticky #crmCustomerTasksPill{margin:0 8px 0 auto!important}',
-      '#app .detail-top-actions-sticky #btnPrintStatement{margin-left:0!important}',
+      '#crmCustomerTasksPill .crm-task-count[hidden]{display:none!important}',
+      '.detail .d-name #crmCustomerTasksPill{margin:0!important;min-width:0;max-width:100%;font-size:11px!important;letter-spacing:0!important}',
+      '.detail .d-name .crm-customer-task-title{min-width:0;overflow-wrap:anywhere}',
       '#crmCustomerTasksPopover{position:fixed;z-index:30300;box-sizing:border-box;width:min(350px,calc(100vw - 20px));max-height:min(65dvh,500px);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--paper-line,#ded7c8);border-radius:13px;background:var(--paper,#faf7ef);color:var(--ink,#102333);box-shadow:0 15px 45px rgba(15,26,38,.20);font-family:CRMInter,Inter,Arial,sans-serif;}',
       '#crmCustomerTasksPopover .crm-customer-tasks-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none;padding:13px 14px;border-bottom:1px solid var(--paper-line,#ded7c8)}',
       '#crmCustomerTasksPopover .crm-customer-tasks-title{font-size:13px;font-weight:650}',
@@ -69,7 +70,7 @@
       '#crmCustomerTasksPopover .crm-customer-tasks-due.today{color:var(--amber,#9c5a12)}',
       '#crmCustomerTasksPopover .crm-customer-tasks-note{margin-top:4px;font-size:10.5px;line-height:1.4;color:var(--muted,#66635c);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
       '#crmCustomerTasksPopover .crm-customer-tasks-empty{padding:18px 14px;font-size:11.5px;color:var(--muted,#66635c)}',
-      '@media(max-width:520px){#crmCustomerTasksPill{min-height:32px;padding:6px 9px;font-size:11px}#app .detail-top-actions-sticky #crmCustomerTasksPill{margin-right:6px!important}}'
+      '@media(max-width:520px){#crmCustomerTasksPill{min-height:32px;padding:6px 9px;font-size:11px}.detail .d-name #crmCustomerTasksPill{font-size:10.5px!important}.detail .d-name #crmCustomerTasksPill .crm-task-icon{width:13px;height:13px}}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -137,8 +138,8 @@
     var c=currentCustomer(),detail=document.querySelector('.detail');
     if(!c||!detail){close();return;}
     var button=document.getElementById('crmCustomerTasksPill');
-    var print=detail.querySelector('#btnPrintStatement');
-    if(!print||!print.parentNode)return;
+    var heading=detail.querySelector('.d-name');
+    if(!heading)return;
     if(!button){
       button=document.createElement('button');
       button.type='button';
@@ -148,7 +149,24 @@
       button.innerHTML='<svg class="crm-task-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-13 5 2 2 4-4"/></svg><span>Tasks</span><span class="crm-task-count" hidden></span>';
       button.addEventListener('click',function(e){e.stopPropagation();open();});
     }
-    if(button.parentNode!==print.parentNode||button.nextElementSibling!==print)print.parentNode.insertBefore(button,print);
+    var actionButton=heading.querySelector('#customerActionMenuButton');
+    if(actionButton&&actionButton.parentNode){
+      var actionWrap=actionButton.parentNode;
+      actionWrap.style.gap='7px';
+      if(button.parentNode!==actionWrap||button.nextElementSibling!==actionButton)actionWrap.insertBefore(button,actionButton);
+    }else{
+      if(!heading.querySelector('.crm-customer-task-title')){
+        var title=document.createElement('span');
+        title.className='crm-customer-task-title';
+        while(heading.firstChild)title.appendChild(heading.firstChild);
+        heading.appendChild(title);
+        heading.style.display='flex';
+        heading.style.alignItems='center';
+        heading.style.justifyContent='space-between';
+        heading.style.gap='9px';
+      }
+      if(button.parentNode!==heading)heading.appendChild(button);
+    }
     updateCount();
     if(typeof window.__sunblissEnsureScheduledActions==='function'){
       Promise.resolve(window.__sunblissEnsureScheduledActions()).then(function(){
