@@ -95,13 +95,6 @@
   }
   function retained(record){ return num(record && record.cancel && record.cancel.retained_amount); }
 
-  function updateInitialCancellationCopy(){
-    var note = document.querySelector('#unitCancellationPanel .sunbliss-forfeit-rule-note');
-    if (note){
-      note.textContent = 'New cancellations start as 100% forfeited with no refund. If management later approves a refund, customer retention or a split settlement, edit the cancelled unit from Insights.';
-    }
-  }
-
   function ensureFinance(record,page){
     var finance = page.querySelector('.cancelled-archive-finance');
     if (!finance) return;
@@ -127,7 +120,6 @@
   }
 
   function decorateDetail(){
-    updateInitialCancellationCopy();
     if (!window.state || !state.__cancelledArchiveDetailOpen) return;
     var record = currentRecord();
     var page = document.querySelector('.cancelled-archive-page');
@@ -390,7 +382,6 @@
   }
 
   function scan(){
-    updateInitialCancellationCopy();
     decorateDetail();
   }
 
