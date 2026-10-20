@@ -9,6 +9,9 @@ create table if not exists public.spa_contract_price_sync_audit(
  revision_id bigint not null unique references public.spa_price_revisions(id) on delete restrict,
  previous_contract_total numeric(14,2) not null,
  executed_spa_contract_total numeric(14,2) not null,
+ original_price_per_sqft numeric(14,2) not null,
+ executed_price_per_sqft numeric(14,2) not null,
+ area_snapshot numeric not null,
  revision_increase numeric(14,2) not null,
  signed_on date not null,
  customer_page_note text not null,
@@ -28,18 +31,19 @@ create or replace function crm_private.guard_executed_spa_contract_price()
 returns trigger language plpgsql security definer set search_path='' as $fn$
 declare v_price numeric;
 begin
- if new.id=467 and new.total_price is distinct from old.total_price then
+ if new.id=467 and (new.total_price is distinct from old.total_price or new.price_per_sqft is distinct from old.price_per_sqft) then
   select r.spa_price into v_price from public.spa_price_revisions r
    where r.unit_id=467 and r.is_current=true and r.status='executed';
-  if v_price is null or new.total_price is distinct from v_price then
-   raise exception 'B2-703 contract price must equal the current executed SPA price.';
+  if v_price is null or new.total_price is distinct from v_price or
+    new.price_per_sqft is distinct from round(v_price/nullif(new.area,0),2) then
+   raise exception 'B2-703 contract price and effective price per sqft must match the executed SPA.';
   end if;
  end if;
  return new;
 end $fn$;
 drop trigger if exists guard_executed_spa_contract_price on public.units;
 create trigger guard_executed_spa_contract_price
-before update of total_price on public.units for each row
+before update of total_price,price_per_sqft on public.units for each row
 execute function crm_private.guard_executed_spa_contract_price();
 do $sync$
 declare v_unit public.units%rowtype;
@@ -51,7 +55,7 @@ declare v_unit public.units%rowtype;
  v_old_cn numeric;
 begin
  select * into v_unit from public.units where id=467 and unit_no='B2-703' for update;
- if not found or v_unit.customer_id<>47 or v_unit.total_price<>1943000 then
+ if not found or v_unit.customer_id<>47 or v_unit.total_price<>1943000 or v_unit.area<>1340 or v_unit.price_per_sqft<>1450 then
   raise exception 'Original B2-703 unit price or customer has changed; abort.';
  end if;
  select * into v_rev from public.spa_price_revisions
@@ -77,17 +81,21 @@ begin
  end if;
  insert into public.spa_contract_price_sync_audit(
   unit_id,revision_id,previous_contract_total,executed_spa_contract_total,
+  original_price_per_sqft,executed_price_per_sqft,area_snapshot,
   revision_increase,signed_on,customer_page_note,approved_credit_snapshot
  ) values (
   467,v_rev.id,v_unit.total_price,v_rev.spa_price,
+  v_unit.price_per_sqft,round(v_rev.spa_price/v_unit.area,2),v_unit.area,
   v_rev.spa_price-v_unit.total_price,v_rev.signed_on,
   'Contractual purchase price revised in accordance with the executed SPA. AED 59,000 in management-approved supplementary credits is handled stage-wise, with issued credit notes recorded separately from pending approvals. Actual customer cash obligations remain as agreed.',
   v_supplementary
  );
- update public.units set total_price=v_rev.spa_price,updated_at=now()
+ update public.units set total_price=v_rev.spa_price,
+  price_per_sqft=round(v_rev.spa_price/v_unit.area,2),updated_at=now()
  where id=467 and total_price=v_unit.total_price;
  if not found then raise exception 'Unit contractual price update failed.'; end if;
- if (select total_price from public.units where id=467)<>v_rev.spa_price then
+ if exists(select 1 from public.units where id=467 and
+    (total_price<>v_rev.spa_price or price_per_sqft<>round(v_rev.spa_price/v_unit.area,2))) then
   raise exception 'Canonical unit price failed signed SPA verification.';
  end if;
 end $sync$;
