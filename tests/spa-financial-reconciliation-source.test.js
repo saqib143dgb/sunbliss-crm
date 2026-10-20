@@ -15,15 +15,15 @@ const fixture={
   [1201,'Final Installment (Handover)',1165800,0],[1198,'DLD + Admin Fees (SPA)',82820,80140]
  ].map(([id,stage_name,due_amount,paid_amount])=>({id,unit_id:467,stage_name,due_amount,revised_due_amount:null,paid_amount})),
  credit_notes:[
-  {id:37,payment_schedule_id:1200,amount:6700},
-  {id:38,payment_schedule_id:1199,amount:118590},
-  {id:39,payment_schedule_id:1198,amount:2680}
+  {id:37,unit_id:467,payment_schedule_id:1200,amount:6700},
+  {id:38,unit_id:467,payment_schedule_id:1199,amount:118590},
+  {id:39,unit_id:467,payment_schedule_id:1198,amount:2680}
  ],
  payment_transactions:[
-  {id:217,payment_schedule_id:1200,amount:187600,accounts_confirmation_status:'confirmed'},
-  {id:480,payment_schedule_id:1199,amount:75710,accounts_confirmation_status:'confirmed'},
-  {id:481,payment_schedule_id:1198,amount:80140,accounts_confirmation_status:'confirmed'},
-  {id:910,payment_schedule_id:1205,amount:97150,accounts_confirmation_status:'pending'}
+  {id:217,unit_id:467,payment_schedule_id:1200,amount:187600,accounts_confirmation_status:'confirmed'},
+  {id:480,unit_id:467,payment_schedule_id:1199,amount:75710,accounts_confirmation_status:'confirmed'},
+  {id:481,unit_id:467,payment_schedule_id:1198,amount:80140,accounts_confirmation_status:'confirmed'},
+  {id:910,unit_id:467,payment_schedule_id:1205,amount:97150,accounts_confirmation_status:'pending'}
  ]
 };
 function fakeDb(values){
