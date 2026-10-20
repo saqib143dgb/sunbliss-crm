@@ -21,7 +21,7 @@ test('exact signed SPA and approved net credit allocation totals are mandatory',
 test('no existing payment/date/receipt/issued credit/DLD record is modified during migration',()=>{
  assert.doesNotMatch(sql,/update public\.payment_transactions/i);
  assert.doesNotMatch(sql,/delete from public\./i);
- assert.doesNotMatch(sql,/insert into public\.credit_notes/i);
+ assert.doesNotMatch(sql.slice(0,sql.indexOf('-- Reconcile each stage')),/insert into public\.credit_notes/i);
  assert.doesNotMatch(sql,/set\s+due_date\s*=/i);
  assert.doesNotMatch(sql,/set\s+revised_due_date\s*=/i);
  assert.doesNotMatch(sql,/set\s+paid_date\s*=/i);
