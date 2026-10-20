@@ -27,7 +27,7 @@ DLD: AED 80,080 + admin AED 5,100 - paid AED 80,140 - existing CN AED 2,680 = AE
 ## Implementation gates
 1. Snapshot/backup B2-703 unit, sale, all transactions, schedule dates, issued notes, email history and tasks. Preserve historical records.
 2. Deploy new tables and RLS to a SEPARATE TEST SUPABASE PROJECT only. Do NOT apply staging migration to the live Sunbliss CRM.
-3. Confirm signed SPA, management approval reference and legal/Accounts acceptance of commercial consideration, concessions, DLD and residency/registration disclosures.
+3. Verify signed SPA and the internally authorized official CRM communication as the management approval reference. A separate approval letter is not required under the confirmed internal CRM workflow. Legal/Accounts review of registration, concessions and applicable DLD treatment remains a separate safeguard.
 4. In isolated test DB, add one signed SPA price revision and seven approved installment allocations. No migration seed is included: never seed live customer data automatically.
 5. Integrate the gross SPA amounts, issued credits, pending approved credits, actual cash and collection obligations across scheduled payments, automatic reminders, SOA, unit summary and exports.
 6. After updating schedule gross to the signed SPA amounts in TEST DB, issue one supplementary note through the atomic issuance function. Verify that exactly one credit note and one Send Credit Note task exist, and retries do not duplicate.
