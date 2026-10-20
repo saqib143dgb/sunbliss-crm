@@ -105,9 +105,9 @@ function showAccountsPendingInInstallmentLedger(source){
 
   // Show the signed SPA gross as Due, but keep stage collection status tied
   // to the net amount protected while its supplementary note is unissued.
-  const sourceStage='var d=stageStatus(n.due,n.paid,n.dueDate,s)';
+  const sourceStage=':stageStatus(n.due,n.paid,n.revisedDueDate||n.dueDate,s)';
   if(!source.includes(sourceStage))throw Error('SPA stage-status calculation anchor changed');
-  source=source.replace(sourceStage,'var d=stageStatus(n.spaCollectionDue||n.due,n.paid,n.dueDate,s)');
+  source=source.replace(sourceStage,':stageStatus(n.spaCollectionDue||n.due,n.paid,n.revisedDueDate||n.dueDate,s)');
   const oldDueRow="fmtAED(n.due)+'</span></div><div class=\"stage-row\"><span>By";
   const newDueRow="fmtAED(n.due)+'</span></div>'+(n.spaPendingCN>0?'<div class=\"stage-row\"><span>Approved CN (Pending)</span><span>'+fmtAED(n.spaPendingCN)+'</span></div>':'')+'<div class=\"stage-row\"><span>By";
   if(!source.includes(oldDueRow))throw Error('SPA gross-installment display anchor changed');
