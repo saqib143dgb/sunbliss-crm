@@ -34,6 +34,12 @@ function style(){
  '#spaPricePreview th:first-child,#spaPricePreview td:first-child{text-align:left}',
  '#spaPricePreview .spr-table{overflow-x:auto}',
  '#spaPricePreview .spr-warning{font-size:11px;line-height:1.5;color:var(--muted,#627080)}',
+ '#spaPricePreview .spr-issuance summary{font:700 13px/1.4 CRMInter,Inter,Arial,sans-serif;cursor:pointer;list-style:none}',
+ '#spaPricePreview .spr-issuance summary::-webkit-details-marker{display:none}',
+ '#spaPricePreview .spr-issuance-row{display:grid;grid-template-columns:minmax(0,1.4fr) 110px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--paper-line,#ddd5c9);align-items:center;font:500 11px/1.35 CRMInter,Inter,Arial,sans-serif}',
+ '#spaPricePreview .spr-issuance-row:last-child{border-bottom:0}',
+ '#spaPricePreview .spr-issuance-row strong{text-align:right;font-weight:650}',
+ '@media(max-width:540px){#spaPricePreview .spr-issuance-row{grid-template-columns:minmax(0,1fr) 100px}.spr-issuance-row span:last-child{grid-column:1/-1;color:var(--muted,#627080)}}',
  '#spaPricePreview .spr-footer{flex:none;display:flex;gap:8px;justify-content:center;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--paper-line,#ddd5c9);background:var(--paper,#f6f1e4)}',
  '@media(max-width:560px){#spaPricePreview .spr-grid{grid-template-columns:1fr 1fr}#spaPricePreview .spr-value{font-size:14px}#spaPricePreview h2{font-size:18px}}'
  ].join('');document.head.appendChild(s);
@@ -66,7 +72,20 @@ function exportReconciliation(x,doc,pendingAccounts,clearance){
  a.download='B2-703-SPA-Settlement-Reconciliation.csv';
  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
 }
-function render(x,c,doc,clearance,pendingAccounts){
+function creditReadinessDetails(items){
+ items=Array.isArray(items)?items:[];
+ var issued=items.filter(function(item){return item.state==='issued'}).length;
+ var stages=items.map(function(item){
+   var status=item.state==='issued'?'Issued':
+     item.state==='awaiting_accounts'?'Awaiting Accounts':
+     item.state==='ledger_preparation'?'Ledger Preparation':'Ready for Individual Issuance';
+   return '<div class="spr-issuance-row"><span>'+esc(item.stage)+'</span><strong>'+esc(money(item.approvedAmount))+'</strong><span>'+esc(status)+'</span></div>';
+ }).join('');
+ return '<details class="spr-card spr-issuance"><summary>Supplementary Credit Notes · '+issued+' of '+items.length+' issued</summary>'+
+  '<div class="spr-warning" style="margin:9px 0">Approval does not mean issuance. Each note requires the correct SPA installment amount and applicable Accounts clearance. No credit note will be created automatically.</div>'+
+  stages+'</details>';
+}
+function render(x,c,doc,clearance,pendingAccounts,issuanceReadiness){
  var rows=x.stages.map(function(r){return '<tr><td>'+esc(r.label)+'</td><td>'+esc(money(r.gross))+
  '</td><td>'+esc(money(r.existingIssuedCredit))+'</td><td>'+esc(money(r.approvedNewCredit))+
  '</td><td>'+esc(money(r.customerCashObligation))+'</td><td>'+esc(money(r.expectedCashOutstanding))+'</td></tr>';}).join('');
@@ -74,6 +93,7 @@ function render(x,c,doc,clearance,pendingAccounts){
  var exportBtn=panel.querySelector('#sprExport');if(exportBtn){exportBtn.disabled=false;exportBtn.onclick=function(){exportReconciliation(x,doc,pendingAccounts,clearance)}}
  panel.querySelector('.spr-scroll').innerHTML='<div class="spr-shell">'+
  '<section class="spr-card"><div class="spr-section">Credit-note issuance status</div><div class="spr-warning"><strong>'+esc(money(x.pendingNewCredit))+'</strong> in supplementary credits is Approved — Pending Issuance. Issued credit notes: '+esc(money(x.additionalIssuedCredit))+'. Nothing is marked sent automatically.</div><div style="margin-top:10px;font-size:12px;font-weight:650">2nd installment: '+(clearance?'Accounts confirmed.':'Payment recorded; awaiting Accounts clearance.')+'</div><div class="spr-warning">Down Payment and 1st-installment supplementary notes must not be issued until the 2nd installment is confirmed by Accounts.</div></section>'+
+ creditReadinessDetails(issuanceReadiness)+
  '<div class="spr-grid">'+card('Latest signed SPA',x.spaPrice)+card('Approved commercial price',x.commercialPrice)+
  card('Additional credit approved',x.additionalApprovedCredit)+card('Additional credit pending issuance',x.pendingNewCredit)+
  card('Net property cash obligation',x.totalCashObligation)+card('Remaining after recorded cash',x.expectedCashOutstanding)+
@@ -90,7 +110,7 @@ async function load(c){
    if(!window.sb||!window.SunblissSpaReconciliation)throw Error('CRM financial data connection is unavailable');
    const record=await window.SunblissSpaReconciliation.loadForUnit(sb,Number(c.sno));
    if(!record)throw Error('Signed SPA reconciliation not found for this unit.');
-   if(panel&&panel.isConnected)render(record.model,c,record.dld,record.contingentCreditsClearanceConfirmed,record.pendingAccounts);
+   if(panel&&panel.isConnected)render(record.model,c,record.dld,record.contingentCreditsClearanceConfirmed,record.pendingAccounts,record.issuanceReadiness);
  }catch(error){
    if(panel&&panel.isConnected)panel.querySelector('.spr-scroll').innerHTML=
     '<div class="spr-shell"><div class="spr-card">Reconciliation unavailable: '+esc(error&&error.message||error)+'</div></div>';
