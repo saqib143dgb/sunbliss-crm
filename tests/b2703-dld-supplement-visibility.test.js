@@ -70,7 +70,7 @@ test('supplement is not shown for another customer, absent SPA, or unsigned SPA'
  assert.equal(d.stages[0].dldSupplement,null);
 });
 test('never mask a historical unpaid DLD stage as a separately paid account',async()=>{
- const flow=testFixture({...originalDld,paid_amount:78000});await flow.fetchTruth();
+ const flow=testFixture({...originalDld,paid_amount:78000,status:'Outstanding'});await flow.fetchTruth();
  const c={unit:'B2-703',stages:[{code:'DLD',label:'DLD + Admin Fees'}]};
  flow.applyCustomer(c);
  assert.equal(c.stages[0].dldSupplement,null);
