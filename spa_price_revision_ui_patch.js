@@ -58,7 +58,7 @@ function render(x,c,doc,clearance){
  '<div class="spr-table"><table><thead><tr><th>Installment</th><th>SPA Gross</th><th>Existing CN</th><th>Approved New CN</th><th>Cash Obligation</th><th>Cash Remaining</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>'+
  '<section class="spr-card"><h3 class="spr-section">DLD & Administrative Fees</h3>'+
  '<div class="spr-grid">'+card('DLD on revised SPA',doc.dldAmount)+card('Admin fees',doc.adminFees)+card('Recorded DLD cash',doc.cashPaid)+card('Existing DLD credit note',doc.existingIssuedCredit)+'</div></section>'+
- '<div class="spr-warning">Read-only staging preview. Approved but unissued credits affect expected collections, not issued-credit or settled-accounting totals. Signed SPA and approval documents require verification before production activation.</div></div>';
+ '<div class="spr-warning">Read-only reconciliation record. Approved but unissued credits affect expected cash, not the issued-credit ledger. The existing payment schedule and receipts remain unchanged until the final financial integration is completed.</div></div>';
 }
 async function load(c){
  var panel=document.getElementById('spaPricePreview');
