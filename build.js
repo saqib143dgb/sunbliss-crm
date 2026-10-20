@@ -158,7 +158,7 @@ function refineSoaDocumentVisuals(source){
     ],
     [
       "text(value,sx+21,471,i>1?24:20,i>1?'bold':'regular'",
-      "text(value,sx+21,471,i>1?26:20,i>1?'bold':'regular'"
+      "text(value,sx+21,471,20,i>1?'bold':'regular'"
     ],
     [
       "function table(y,widths,heads,rows,{height,headerHeight=64,total=null,dark=false,defaultSize=17,layouts=null}={})",
