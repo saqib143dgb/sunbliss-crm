@@ -15,8 +15,8 @@ const allocations=raw.map(([payment_schedule_id,stage,due,spa_gross_amount,appro
  id:i+1,revision_id:1,unit_id:467,payment_schedule_id,approved_amount,
  spa_gross_amount,clearance_schedule_id,status:'approved_pending_issue',credit_note_id:null
 }));
-const schedules=raw.map(([id,stage_name,due_amount,spa,credit,gate,paid_amount])=>({
- id,unit_id:467,stage_name,due_amount,revised_due_amount:null,paid_amount
+const schedules=raw.map(([id,stage_name,legacy_due,spa_gross,credit,gate,paid_amount])=>({
+ id,unit_id:467,stage_name,due_amount:spa_gross,revised_due_amount:legacy_due,paid_amount
 }));
 const notes=[
  {id:37,payment_schedule_id:1200,amount:6700},
@@ -58,7 +58,7 @@ test('gross ledger mismatch cannot issue; no double-credit for issued allocation
  assert.equal(inspect(allocations,altered,payments('confirmed'))[2].state,'ledger_preparation');
  const issued=allocations.map(a=>({...a}));
  issued[0]={...issued[0],status:'issued',credit_note_id:51};
- const ledger=schedules.map(s=>s.id===1200?{...s,due_amount:200200}:s);
+ const ledger=schedules.map(s=>s.id===1200?{...s,revised_due_amount:null}:s);
  const posted=notes.concat([{id:51,payment_schedule_id:1200,amount:5900}]);
  const rows=inspect(issued,ledger,payments('confirmed'),posted);
  assert.equal(rows[0].state,'issued');

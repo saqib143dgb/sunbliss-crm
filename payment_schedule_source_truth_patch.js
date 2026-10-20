@@ -74,7 +74,9 @@ async function fetchTruth(){
   var stages={};
   rows.forEach(function(row){
    var credit=creditBySchedule[String(row.id)]||0,due=effectiveAmount(row),cash=num(row.paid_amount),remaining=round2(due-cash-credit),paid=norm(row.status)==='paid'||remaining<=TOLERANCE;
-   stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:due,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim(),accountsConfirmationPending:norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)==='2ND'&&!!pendingAccountsBySchedule[String(row.id)]};
+   var spaBridge=norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)!=='DLD'&&row.revised_due_amount!=null&&num(row.due_amount)>num(row.revised_due_amount);
+   var grossDue=spaBridge?num(row.due_amount):due;
+   stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:grossDue,spaCollectionDue:due,spaPendingCN:spaBridge?round2(grossDue-due):0,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim(),accountsConfirmationPending:norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)==='2ND'&&!!pendingAccountsBySchedule[String(row.id)]};
   });
   var open=rows.filter(function(row){
    if(effectiveAmount(row)<=0||/\bbooking\b/i.test(text(row.stage_name)))return false;
@@ -95,7 +97,7 @@ function applyCustomer(c){
  var t=truthByUnit[norm(c.unit)];if(!t)return;
  c.dbUnitId=t.unitId;
  var stageMap={};(c.stages||[]).forEach(function(s){if(s&&s.code)stageMap[s.code]=s});
- Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.accountsConfirmationPending=src.accountsConfirmationPending;dst.label=cleanStageLabel(dst.label||src.label)});
+ Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.accountsConfirmationPending=src.accountsConfirmationPending;dst.spaCollectionDue=src.spaCollectionDue;dst.spaPendingCN=src.spaPendingCN;dst.label=cleanStageLabel(dst.label||src.label)});
  c.upStage=t.next?cleanStageLabel(t.next.label):'';
  c.upAmt=t.next?t.next.amount:null;
  c.upDate=t.next?t.next.date:null;
