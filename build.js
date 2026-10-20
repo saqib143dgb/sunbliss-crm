@@ -166,11 +166,11 @@ function refineSoaDocumentVisuals(source){
     ],
     [
       "let rowTop=y+headerHeight;\n  bodyRows.forEach",
-      "let tableFont=Math.min(defaultSize,rowH*.65);\n  if(!layouts){while(tableFont>12.5&&bodyRows.some(row=>Math.max(...row.map((t,j)=>wrap(t,widths[j]-22,tableFont).length))*tableFont*1.07>rowH-7))tableFont=Math.max(12.5,Math.round((tableFont-.5)*10)/10)}\n  let rowTop=y+headerHeight;\n  bodyRows.forEach"
+      "let tableFont=Math.min(defaultSize,rowH*.65);\n  if(!layouts){while(tableFont>12.5&&bodyRows.some(row=>Math.max(...row.map((t,j)=>wrap(t,widths[j]-22,tableFont,(!dark&&j===7)?'bold':'regular').length))*tableFont*1.07>rowH-7))tableFont=Math.max(12.5,Math.round((tableFont-.5)*10)/10)}\n  let rowTop=y+headerHeight;\n  bodyRows.forEach"
     ],
     [
       "let fs=layouts?defaultSize:Math.min(defaultSize,rowH*.65);let wrapped=layouts?layouts[i].lines:row.map((t,j)=>wrap(t,widths[j]-22,fs));let maxLines=Math.max(...wrapped.map(a=>a.length));while(!layouts&&maxLines*fs*1.17>rowH-7&&fs>1){fs*=.92;wrapped=row.map((t,j)=>wrap(t,widths[j]-22,fs));maxLines=Math.max(...wrapped.map(a=>a.length))}",
-      "let fs=layouts?defaultSize:tableFont;let wrapped=layouts?layouts[i].lines:row.map((t,j)=>wrap(t,widths[j]-22,fs))"
+      "let fs=layouts?defaultSize:tableFont;let wrapped=layouts?layouts[i].lines:row.map((t,j)=>wrap(t,widths[j]-22,fs,(!dark&&j===7)?'bold':'regular'))"
     ]
   ];
   for(const [before,after] of changes){
