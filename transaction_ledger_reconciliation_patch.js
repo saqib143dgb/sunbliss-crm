@@ -96,7 +96,7 @@
     var next=null;
     (c.stages||[]).forEach(function(stage){
       if(stage.due===null||stage.due===undefined)return;
-      var remaining=round2((Number(stage.due)||0)-(Number(stage.settledAmount!==undefined?stage.settledAmount:stage.paid)||0));
+      var remaining=round2((Number(stage.spaCollectionDue!==undefined&&stage.spaCollectionDue!==null?stage.spaCollectionDue:stage.due)||0)-(Number(stage.settledAmount!==undefined?stage.settledAmount:stage.paid)||0));
       if(remaining<=1)return;
       var stamp=stage.dueDate?new Date(stage.dueDate).getTime():Infinity;
       if(!next||stamp<next.stamp)next={stage:stage,remaining:remaining,stamp:stamp};
@@ -148,7 +148,7 @@
         if(Math.abs(remaining)<0.005)return;
         var last=index===candidates.length-1;
         var rawTarget=Math.max(0,round2((Number(stage.__scheduleRecordedCash)||0)-(Number(stage.__txCash)||0)));
-        var dueTarget=Math.max(0,round2((Number(stage.due)||0)-(Number(stage.__txCash)||0)));
+        var dueTarget=Math.max(0,round2((Number(stage.spaCollectionDue!==undefined&&stage.spaCollectionDue!==null?stage.spaCollectionDue:stage.due)||0)-(Number(stage.__txCash)||0)));
         var target=rawTarget>0?rawTarget:dueTarget;
         var take=last?remaining:Math.min(Math.max(remaining,0),target);
         if(remaining<0)take=last?remaining:Math.max(remaining,-target);
@@ -165,9 +165,9 @@
       stage.cashPaid=cash;
       stage.transactionCash=cash;
       stage.transactionCount=(stage.__txIds||[]).length;
-      stage.settledAmount=round2(cash+(isDldStage(stage)?0:credit)+carryApplied);
+      stage.settledAmount=round2(cash+credit+carryApplied);
       stage.paid=stage.settledAmount;
-      stage.outAmt=stage.due===null||stage.due===undefined?null:round2((Number(stage.due)||0)-stage.settledAmount);
+      stage.outAmt=stage.due===null||stage.due===undefined?null:round2((Number(stage.spaCollectionDue!==undefined&&stage.spaCollectionDue!==null?stage.spaCollectionDue:stage.due)||0)-stage.settledAmount);
       setPaidDate(stage,stage.__txLatestDate||'');
     });
 
@@ -198,7 +198,12 @@
     c.cashReceived=saleCash;
     c.received=saleCash;
     c.settledReceived=round2(saleCash+saleCredit);
-    if(c.total!==null&&c.total!==undefined&&isFinite(Number(c.total)))c.outstanding=round2(c.settledReceived-Number(c.total));
+    if(c.total!==null&&c.total!==undefined&&isFinite(Number(c.total))){
+      c.outstanding=round2(c.settledReceived-Number(c.total));
+      c.contractualPropertyOutstanding=round2(Math.max(0,-c.outstanding));
+      var pendingSpaApproved=c.spaContractRevision?Number(c.spaContractRevision.pendingApprovedCredits)||0:0;
+      c.expectedPropertyCashOutstanding=round2(Math.max(0,c.contractualPropertyOutstanding-pendingSpaApproved));
+    }
     c.transactionLedgerReconciled=true;
     c.dldAdminSeparated=true;
     recomputeNextDue(c);
