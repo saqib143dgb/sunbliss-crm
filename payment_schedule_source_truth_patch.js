@@ -46,17 +46,18 @@ function installLabelObserver(){
 async function fetchTruth(){
  if(!window.sb)return false;
  var q=await Promise.all([
-  sb.from('units').select('id,unit_no'),
+  sb.from('units').select('id,unit_no,status,availability_status'),
   sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,paid_date,status'),
   sb.from('credit_notes').select('payment_schedule_id,amount'),
   // Presentation-only check for unit B2-703. Never mutate payment ledger status.
   sb.from('payment_transactions').select('unit_id,payment_schedule_id,amount,accounts_confirmation_status,payment_workflow_status').eq('unit_id',467),
   sb.from('spa_price_revisions').select('id,unit_id,status,is_current,spa_price,signed_on,dld_rate_percent,dld_admin_fees').eq('unit_id',467).eq('is_current',true),
-  sb.from('spa_contract_price_sync_audit').select('unit_id,revision_id,previous_contract_total,executed_spa_contract_total,revision_increase,signed_on,customer_page_note').eq('unit_id',467)
+  sb.from('spa_contract_price_sync_audit').select('unit_id,revision_id,previous_contract_total,executed_spa_contract_total,revision_increase,signed_on,customer_page_note').eq('unit_id',467),
+  sb.from('spa_credit_allocations').select('unit_id,revision_id,approved_amount,status').eq('unit_id',467)
  ]);
  q.forEach(function(x){if(x.error)throw x.error});
- var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null,contractRevision=null;
- (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim()});
+ var unitNoById={},unitDetailsById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null,contractRevision=null;
+ (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim();unitDetailsById[String(u.id)]=u});
  (q[2].data||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var k=String(c.payment_schedule_id);creditBySchedule[k]=round2((creditBySchedule[k]||0)+num(c.amount))});
  // Only an explicitly pending, awaiting_accounts transaction counts.
  // A confirmed Accounts payment removes this badge on the next refresh.
@@ -82,7 +83,12 @@ async function fetchTruth(){
        previousPrice:round2(num(audit.previous_contract_total)),
        increase:round2(num(audit.revision_increase)),
        signedOn:text(revision.signed_on||audit.signed_on),
-       note:text(audit.customer_page_note)
+       note:text(audit.customer_page_note),
+       unitRecordStatus:text(unitDetailsById['467']&&unitDetailsById['467'].status),
+       availabilityStatus:text(unitDetailsById['467']&&unitDetailsById['467'].availability_status),
+       pendingApprovedCredits:round2((q[6].data||[]).filter(function(a){
+         return num(a.unit_id)===467&&num(a.revision_id)===num(revision.id)&&norm(a.status)==='approved_pending_issue';
+       }).reduce(function(sum,a){return sum+num(a.approved_amount)},0))
      };
    }
    // Reconciliation only: do not replace the settled historical DLD stage or

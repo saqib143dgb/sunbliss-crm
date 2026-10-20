@@ -25,7 +25,8 @@ function mockTruth(t,prepared=false){
    credit_notes:[],
    payment_transactions:[t],
    spa_price_revisions:[],
-   spa_contract_price_sync_audit:[]
+   spa_contract_price_sync_audit:[],
+   spa_credit_allocations:[]
  };
  const sb={
   from(table){
