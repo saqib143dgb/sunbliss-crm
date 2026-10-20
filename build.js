@@ -124,7 +124,14 @@ function showAccountsPendingInInstallmentLedger(source){
   source=source.replace(oldLate,'!n.accountsConfirmationPending&&'+oldLate);
   return source;
 }
-function transformCore(source,file){if(file==='chunk_10.js')source=removeLegacyDetailNote(source);source=applyDldPaidTolerance(source,file);if(file==='chunk_08.js')source=removeInsightsOverdueAging(simplifyDldTracker(source));if(file==='chunk_03.js')source=supportBackgroundRefresh(makeCustomerPortfolioSourceTruth(source));if(file==='chunk_07.js')source=addOverviewKpiRenderHook(source);if(file==='chunk_10.js')source=showAccountsPendingInInstallmentLedger(fixReviewedDetailPresentation(fixInstallmentLedgerRender(source)));if(file==='chunk_11.js')source=makeAuthBootImmediate(source);return source;}
+function renderExecutedSpaContractRevisionNote(source){
+ // Root-level customer renderer, original financial cards and SOA unchanged.
+ const before="h(\"Outstanding\",fmtAED(t.outstanding),_?\"owed\":\"credit\")+\"</div>\";var E=";
+ const after="h(\"Outstanding\",fmtAED(t.outstanding),_?\"owed\":\"credit\")+\"</div>\";t.spaContractRevision&&(e+='<details class=\"spa-contract-note\" style=\"margin:8px 0 0;padding:9px 12px;border:1px solid var(--paper-line);border-radius:10px;font-size:12px;line-height:1.45\"><summary style=\"cursor:pointer;font-weight:600\">Contract price revised per signed SPA</summary><p style=\"margin:8px 0 4px\">Contractual price: <strong>'+fmtAED(t.spaContractRevision.spaPrice)+'</strong> · Previous recorded price: '+fmtAED(t.spaContractRevision.previousPrice)+' · Increase: '+fmtAED(t.spaContractRevision.increase)+'.</p><p style=\"margin:0\">'+esc(t.spaContractRevision.note)+'</p></details>');var E=";
+ if(!source.includes(before))throw Error('Customer contractual total markup anchor changed');
+ return source.replace(before,after);
+}
+function transformCore(source,file){if(file==='chunk_10.js')source=removeLegacyDetailNote(source);source=applyDldPaidTolerance(source,file);if(file==='chunk_08.js')source=removeInsightsOverdueAging(simplifyDldTracker(source));if(file==='chunk_03.js')source=supportBackgroundRefresh(makeCustomerPortfolioSourceTruth(source));if(file==='chunk_07.js')source=addOverviewKpiRenderHook(source);if(file==='chunk_10.js')source=renderExecutedSpaContractRevisionNote(showAccountsPendingInInstallmentLedger(fixReviewedDetailPresentation(fixInstallmentLedgerRender(source))));if(file==='chunk_11.js')source=makeAuthBootImmediate(source);return source;}
 function writeBundle(fileName,files,transform){const parts=files.map(function(file){const full=path.join(OUT,file);requireFile(full,`Bundle source ${file}`);let source=fs.readFileSync(full,'utf8');if(transform)source=transform(source,file);return `/* ${file} */\n${source}`;});fs.writeFileSync(path.join(OUT,fileName),parts.join('\n;\n'));}
 function buildBundles(){const coreFiles=TEXT_FILES.slice(1);writeBundle(CORE_BUNDLE_FILE,coreFiles,transformCore);writeBundle(UI_BUNDLE_FILE,RUNTIME_PATCH_FILES);fs.appendFileSync(path.join(OUT,UI_BUNDLE_FILE),"\nwindow.__sunblissUiReady=true;\n");return {coreFiles,uiFiles:RUNTIME_PATCH_FILES};}
 function refineSoaDocumentVisuals(source){

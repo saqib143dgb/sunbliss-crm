@@ -24,7 +24,8 @@ function mockTruth(t,prepared=false){
    payment_schedule:[prepared?{...schedule,due_amount:100100,revised_due_amount:97150}:schedule,{...schedule,id:1206,unit_id:468}],
    credit_notes:[],
    payment_transactions:[t],
-   spa_price_revisions:[]
+   spa_price_revisions:[],
+   spa_contract_price_sync_audit:[]
  };
  const sb={
   from(table){

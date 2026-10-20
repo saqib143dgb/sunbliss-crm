@@ -51,10 +51,11 @@ async function fetchTruth(){
   sb.from('credit_notes').select('payment_schedule_id,amount'),
   // Presentation-only check for unit B2-703. Never mutate payment ledger status.
   sb.from('payment_transactions').select('unit_id,payment_schedule_id,amount,accounts_confirmation_status,payment_workflow_status').eq('unit_id',467),
-  sb.from('spa_price_revisions').select('id,unit_id,status,is_current,spa_price,dld_rate_percent,dld_admin_fees').eq('unit_id',467).eq('is_current',true)
+  sb.from('spa_price_revisions').select('id,unit_id,status,is_current,spa_price,signed_on,dld_rate_percent,dld_admin_fees').eq('unit_id',467).eq('is_current',true),
+  sb.from('spa_contract_price_sync_audit').select('unit_id,revision_id,previous_contract_total,executed_spa_contract_total,revision_increase,signed_on,customer_page_note').eq('unit_id',467)
  ]);
  q.forEach(function(x){if(x.error)throw x.error});
- var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null;
+ var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null,contractRevision=null;
  (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim()});
  (q[2].data||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var k=String(c.payment_schedule_id);creditBySchedule[k]=round2((creditBySchedule[k]||0)+num(c.amount))});
  // Only an explicitly pending, awaiting_accounts transaction counts.
@@ -70,6 +71,20 @@ async function fetchTruth(){
  var signedSpa=(q[4].data||[]).filter(function(r){return num(r.unit_id)===467&&norm(r.status)==='executed'&&r.is_current===true;});
  if(signedSpa.length===1&&norm(unitNoById['467'])==='b2-703'){
    var revision=signedSpa[0];
+   var contractAudit=(q[5].data||[]).filter(function(a){
+     return num(a.unit_id)===467&&num(a.revision_id)===num(revision.id)
+       &&round2(num(a.executed_spa_contract_total))===round2(num(revision.spa_price));
+   });
+   if(contractAudit.length===1){
+     var audit=contractAudit[0];
+     contractRevision={
+       spaPrice:round2(num(revision.spa_price)),
+       previousPrice:round2(num(audit.previous_contract_total)),
+       increase:round2(num(audit.revision_increase)),
+       signedOn:text(revision.signed_on||audit.signed_on),
+       note:text(audit.customer_page_note)
+     };
+   }
    // Reconciliation only: do not replace the settled historical DLD stage or
    // assign a new due date. This is the supplemental liability under the SPA.
    if(num(revision.spa_price)===2002000&&num(revision.dld_rate_percent)===4&&num(revision.dld_admin_fees)===5100)
@@ -103,7 +118,7 @@ async function fetchTruth(){
    return norm(row.status)!=='paid'&&remaining>TOLERANCE;
   }).sort(compareRows);
   var next=open[0]||null;
-  nextTruth[norm(unitNo)]={unitId:Number(unitId),stages:stages,next:next?{label:cleanStageLabel(next.stage_name).trim(),amount:round2(effectiveAmount(next)-num(next.paid_amount)-(creditBySchedule[String(next.id)]||0)),date:effectiveDate(next),scheduleId:next.id}:null};
+  nextTruth[norm(unitNo)]={unitId:Number(unitId),stages:stages,contractRevision:(norm(unitNo)==='b2-703'?contractRevision:null),next:next?{label:cleanStageLabel(next.stage_name).trim(),amount:round2(effectiveAmount(next)-num(next.paid_amount)-(creditBySchedule[String(next.id)]||0)),date:effectiveDate(next),scheduleId:next.id}:null};
  });
  truthByUnit=nextTruth;
  return true;
@@ -115,6 +130,8 @@ function applyCustomer(c){
  c.upStage=cleanStageLabel(c.upStage);
  var t=truthByUnit[norm(c.unit)];if(!t)return;
  c.dbUnitId=t.unitId;
+ c.spaContractRevision=t.contractRevision||null;
+ if(t.contractRevision)c.total=t.contractRevision.spaPrice;
  var stageMap={};(c.stages||[]).forEach(function(s){if(s&&s.code)stageMap[s.code]=s});
  Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.accountsConfirmationPending=src.accountsConfirmationPending;dst.spaCollectionDue=src.spaCollectionDue;dst.spaPendingCN=src.spaPendingCN;dst.dldSupplement=src.dldSupplement;dst.label=cleanStageLabel(dst.label||src.label)});
  c.upStage=t.next?cleanStageLabel(t.next.label):'';

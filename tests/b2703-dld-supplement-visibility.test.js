@@ -19,7 +19,8 @@ function testFixture(dld=originalDld,revision=signedSpa){
    payment_schedule:[dld,{...originalDld,id:1222,unit_id:468}],
    credit_notes:[{id:39,payment_schedule_id:1198,amount:2680}],
    payment_transactions:[],
-   spa_price_revisions:revision?[revision]:[]
+   spa_price_revisions:revision?[revision]:[],
+   spa_contract_price_sync_audit:[]
  };
  const sb={from(table){
    const filters=[];
