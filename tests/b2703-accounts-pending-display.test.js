@@ -18,10 +18,10 @@ const transaction={
  accounts_confirmation_status:'pending',payment_workflow_status:'awaiting_accounts'
 };
 
-function mockTruth(t){
+function mockTruth(t,prepared=false){
  const datasets={
    units:[{id:467,unit_no:'B2-703'},{id:468,unit_no:'B2-704'}],
-   payment_schedule:[schedule,{...schedule,id:1206,unit_id:468}],
+   payment_schedule:[prepared?{...schedule,due_amount:100100,revised_due_amount:97150}:schedule,{...schedule,id:1206,unit_id:468}],
    credit_notes:[],
    payment_transactions:[t]
  };
@@ -95,4 +95,22 @@ test('only the customer installment badge displays the clarification',()=>{
  assert.equal((after.match(/stage-payment-confirmation-pending/g)||[]).length,1);
  assert.match(build,/reviseSoaFiguresUsingSignedSpa\(refineSoaDocumentVisuals\(/);
  assert.doesNotMatch(after,/soaProjection\.total/); // customer-page rendering only
+});
+
+test('signed SPA installment shown as gross while outstanding and Accounts state stay net and unchanged',async()=>{
+ const impl=mockTruth({...transaction},true);
+ assert.equal(await impl.fetchTruth(),true);
+ const c=customer('B2-703');
+ impl.applyCustomer(c);
+ assert.equal(c.stages[0].due,100100);
+ assert.equal(c.stages[0].spaCollectionDue,97150);
+ assert.equal(c.stages[0].spaPendingCN,2950);
+ assert.equal(c.stages[0].paid,97150);
+ assert.equal(c.stages[0].outAmt,0);
+ assert.equal(c.stages[0].status,'Paid');
+ assert.equal(c.stages[0].accountsConfirmationPending,true);
+ const other=customer('B2-704');
+ impl.applyCustomer(other);
+ assert.equal(other.stages[0].due,97150);
+ assert.equal(other.stages[0].spaPendingCN,0);
 });
