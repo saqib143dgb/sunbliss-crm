@@ -26,7 +26,7 @@ test('SOA typography does not change columns, headings, coordinates, or financia
  const scene='async function soaFonts(pdf)';
  assert.equal(source.slice(source.indexOf(scene)),baseline.slice(baseline.indexOf(scene)));
  assert.match(source,/table\(819,\[42,184,190,76,190,163,173,154\]/);
- assert.match(source,/soaProjection\.total/);
+ assert.match(source,/spaProjection\.total/);
  assert.doesNotMatch(source,/SIGNED SPA RECONCILIATION|Approved CN Pending|Net Cash Due/);
  for(const section of source.split('</script>')){
   const a=section.lastIndexOf('<script');
