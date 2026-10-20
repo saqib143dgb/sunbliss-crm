@@ -81,7 +81,7 @@ begin
  ) values (
   467,v_rev.id,v_unit.total_price,v_rev.spa_price,
   v_rev.spa_price-v_unit.total_price,v_rev.signed_on,
-  'Contractual purchase price revised in accordance with the executed SPA. The AED 59,000 management-approved supplementary installment credits remain pending issue until the applicable Accounts and installment conditions are satisfied; the agreed customer cash collection obligations have not changed.',
+  'Contractual purchase price revised in accordance with the executed SPA. AED 59,000 in management-approved supplementary credits is handled stage-wise, with issued credit notes recorded separately from pending approvals. Actual customer cash obligations remain as agreed.',
   v_supplementary
  );
  update public.units set total_price=v_rev.spa_price,updated_at=now()
