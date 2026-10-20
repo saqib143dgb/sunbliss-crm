@@ -46,7 +46,7 @@ function installLabelObserver(){
 async function fetchTruth(){
  if(!window.sb)return false;
  var q=await Promise.all([
-  sb.from('units').select('id,unit_no'),
+  sb.from('units').select('id,unit_no,status,availability_status'),
   sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,paid_date,status'),
   sb.from('credit_notes').select('payment_schedule_id,amount'),
   // Presentation-only check for unit B2-703. Never mutate payment ledger status.
@@ -56,8 +56,8 @@ async function fetchTruth(){
   sb.from('spa_credit_allocations').select('unit_id,revision_id,approved_amount,status').eq('unit_id',467)
  ]);
  q.forEach(function(x){if(x.error)throw x.error});
- var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null,contractRevision=null;
- (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim()});
+ var unitNoById={},unitDetailsById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null,contractRevision=null;
+ (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim();unitDetailsById[String(u.id)]=u});
  (q[2].data||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var k=String(c.payment_schedule_id);creditBySchedule[k]=round2((creditBySchedule[k]||0)+num(c.amount))});
  // Only an explicitly pending, awaiting_accounts transaction counts.
  // A confirmed Accounts payment removes this badge on the next refresh.
@@ -84,6 +84,8 @@ async function fetchTruth(){
        increase:round2(num(audit.revision_increase)),
        signedOn:text(revision.signed_on||audit.signed_on),
        note:text(audit.customer_page_note),
+       unitRecordStatus:text(unitDetailsById['467']&&unitDetailsById['467'].status),
+       availabilityStatus:text(unitDetailsById['467']&&unitDetailsById['467'].availability_status),
        pendingApprovedCredits:round2((q[6].data||[]).filter(function(a){
          return num(a.unit_id)===467&&num(a.revision_id)===num(revision.id)&&norm(a.status)==='approved_pending_issue';
        }).reduce(function(sum,a){return sum+num(a.approved_amount)},0))
