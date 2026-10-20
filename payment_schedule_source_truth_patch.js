@@ -48,12 +48,24 @@ async function fetchTruth(){
  var q=await Promise.all([
   sb.from('units').select('id,unit_no'),
   sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,paid_date,status'),
-  sb.from('credit_notes').select('payment_schedule_id,amount')
+  sb.from('credit_notes').select('payment_schedule_id,amount'),
+  // Presentation-only check for unit B2-703. Never mutate payment ledger status.
+  sb.from('payment_transactions').select('unit_id,payment_schedule_id,amount,accounts_confirmation_status,payment_workflow_status').eq('unit_id',467)
  ]);
  q.forEach(function(x){if(x.error)throw x.error});
- var unitNoById={},creditBySchedule={},rowsByUnit={};
+ var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={};
  (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim()});
  (q[2].data||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var k=String(c.payment_schedule_id);creditBySchedule[k]=round2((creditBySchedule[k]||0)+num(c.amount))});
+ // Only an explicitly pending, awaiting_accounts transaction counts.
+ // A confirmed Accounts payment removes this badge on the next refresh.
+ if(norm(unitNoById['467'])==='b2-703'){
+  (q[3].data||[]).forEach(function(t){
+   if(num(t.unit_id)!==467||num(t.amount)<=0||
+    norm(t.accounts_confirmation_status)!=='pending'||
+    norm(t.payment_workflow_status)!=='awaiting_accounts')return;
+   if(t.payment_schedule_id!=null)pendingAccountsBySchedule[String(t.payment_schedule_id)]=true;
+  });
+ }
  (q[1].data||[]).forEach(function(row){row.stage_name=cleanStageLabel(row.stage_name);var k=String(row.unit_id);if(!rowsByUnit[k])rowsByUnit[k]=[];rowsByUnit[k].push(row)});
  var nextTruth={};
  Object.keys(rowsByUnit).forEach(function(unitId){
@@ -62,7 +74,7 @@ async function fetchTruth(){
   var stages={};
   rows.forEach(function(row){
    var credit=creditBySchedule[String(row.id)]||0,due=effectiveAmount(row),cash=num(row.paid_amount),remaining=round2(due-cash-credit),paid=norm(row.status)==='paid'||remaining<=TOLERANCE;
-   stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:due,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim()};
+   stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:due,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim(),accountsConfirmationPending:norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)==='2ND'&&!!pendingAccountsBySchedule[String(row.id)]};
   });
   var open=rows.filter(function(row){
    if(effectiveAmount(row)<=0||/\bbooking\b/i.test(text(row.stage_name)))return false;
@@ -83,7 +95,7 @@ function applyCustomer(c){
  var t=truthByUnit[norm(c.unit)];if(!t)return;
  c.dbUnitId=t.unitId;
  var stageMap={};(c.stages||[]).forEach(function(s){if(s&&s.code)stageMap[s.code]=s});
- Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.label=cleanStageLabel(dst.label||src.label)});
+ Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.accountsConfirmationPending=src.accountsConfirmationPending;dst.label=cleanStageLabel(dst.label||src.label)});
  c.upStage=t.next?cleanStageLabel(t.next.label):'';
  c.upAmt=t.next?t.next.amount:null;
  c.upDate=t.next?t.next.date:null;
