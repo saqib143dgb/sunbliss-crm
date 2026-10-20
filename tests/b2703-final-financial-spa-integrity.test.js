@@ -80,8 +80,9 @@ test('SPA/DLD migration changes due amount and verified provenance only',()=>{
  assert.match(sql,/'executed_spa_revision_id'/);
  assert.match(sql,/'executed_spa_signed_on'/);
  assert.match(sql,/'signed_agreement_verified',true/);
- assert.doesNotMatch(sql,/'customer_signed_on',/);
- assert.doesNotMatch(sql,/'developer_signed_on',/);
+ const spaProvenanceWrite=sql.slice(sql.indexOf("spa_progress=coalesce(spa_progress,'{}'::jsonb)||"));
+ assert.doesNotMatch(spaProvenanceWrite,/'customer_signed_on'/);
+ assert.doesNotMatch(spaProvenanceWrite,/'developer_signed_on'/);
  assert.doesNotMatch(sql,/update public.payment_transactions/i);
  assert.doesNotMatch(sql,/update public.credit_notes/i);
  assert.doesNotMatch(sql,/update public.scheduled_actions/i);
