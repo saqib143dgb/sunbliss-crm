@@ -93,6 +93,6 @@ test('only the customer installment badge displays the clarification',()=>{
  assert.match(after,/!n\.accountsConfirmationPending&&d==="paid"/);
  assert.match(after,/stage-row"><span>Paid/); // money columns still unchanged
  assert.equal((after.match(/stage-payment-confirmation-pending/g)||[]).length,1);
- assert.equal(build.slice(build.indexOf('function refineSoaDocumentVisuals(')), 
-   fs.readFileSync(path.join(root,'build.js'),'utf8').slice(build.indexOf('function refineSoaDocumentVisuals(')));
+ assert.match(build,/reviseSoaFiguresUsingSignedSpa\(refineSoaDocumentVisuals\(/);
+ assert.doesNotMatch(after,/soaProjection\.total/); // customer-page rendering only
 });
