@@ -1,6 +1,6 @@
 # B2-703 SPA price revision - staging rollout
 
-Status: NOT DEPLOYED. Separate signed production approval required.
+Status: Live phase 1: read-only price-revision metadata, approved-pending installment allocations, and Accounts-clearance visibility. No supplementary credit notes issued. Subsequent collection-engine integration remains gated.
 
 ## Verified baseline
 - Sale ID 47, unit ID 467, unit B2-703.
@@ -26,15 +26,15 @@ DLD: AED 80,080 + admin AED 5,100 - paid AED 80,140 - existing CN AED 2,680 = AE
 
 ## Implementation gates
 1. Snapshot/backup B2-703 unit, sale, all transactions, schedule dates, issued notes, email history and tasks. Preserve historical records.
-2. Deploy new tables and RLS to a SEPARATE TEST SUPABASE PROJECT only. Do NOT apply staging migration to the live Sunbliss CRM.
+2. Live phase 1: apply additive, read-only tables with RLS to Supabase after verifying current schema and existing records. No existing records altered.
 3. Verify signed SPA and the internally authorized official CRM communication as the management approval reference. A separate approval letter is not required under the confirmed internal CRM workflow. Legal/Accounts review of registration, concessions and applicable DLD treatment remains a separate safeguard.
-4. In isolated test DB, add one signed SPA price revision and seven approved installment allocations. No migration seed is included: never seed live customer data automatically.
+4. Live phase 1: record the signed SPA and seven approved-pending credit allocations. Verify the second installment remains Awaiting Accounts Clearance and no notes are issued.
 5. Integrate the gross SPA amounts, issued credits, pending approved credits, actual cash and collection obligations across scheduled payments, automatic reminders, SOA, unit summary and exports.
 6. After updating schedule gross to the signed SPA amounts in TEST DB, issue one supplementary note through the atomic issuance function. Verify that exactly one credit note and one Send Credit Note task exist, and retries do not duplicate.
-7. Review gated UI in a test build by setting window.__sunblissEnablePriceRevisionStaging=true before UI bundle startup. This screen remains read-only.
+7. Deploy B2-703-only read-only Price Revision & Settlement view in the customer action menu. Keep all credit-note issuance disabled.
 8. Verify payment receipts and due/revised dates unchanged; test already-settled and future installments. Email History must only record verified sent/received correspondence.
 9. Validate DLD AED 2,360, non-duplicated referral credit, management visibility, cash/credit ledger discrepancies, responsive layout and rollback.
-10. Obtain production go/no-go separately; only then plan the migration and CRM production deployment.
+10. Before phase 2, complete financial-engine integration and separate authorization for any actual issued credit note or existing payment-ledger amendment.
 
 ## Current delivery
 - GitHub staging branch contains RLS-protected DB migration, atomic credit-note RPC, deterministic financial engine, tests, gated read-only UI preview and build integration.
