@@ -5,7 +5,7 @@ const path=require('node:path');
 const sql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20261020_b2703_atomic_spa_credit_issuance.sql'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'..','spa_price_revision_ui_patch.js'),'utf8');
 test('secure issuance is opt-in and restricted to authenticated CRM officers',()=>{
- assert.match(sql,/if v_user is null then raise exception 'Authentication required'/i);
+ assert.match(sql,/if v_user is null then raise exception 'Authentication required\./i);
  assert.match(sql,/if v_role is distinct from 'crm_officer'/i);
  assert.match(sql,/revoke all on function public\.crm_issue_b2703_spa_credit\(bigint\) from public,anon/i);
  assert.match(sql,/grant execute on function public\.crm_issue_b2703_spa_credit\(bigint\) to authenticated/i);
