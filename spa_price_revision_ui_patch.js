@@ -87,43 +87,14 @@ function render(x,c,doc,clearance,pendingAccounts){
 async function load(c){
  var panel=document.getElementById('spaPricePreview');
  try{
-  if(!window.sb)throw Error('CRM connection unavailable');
-  var q=await Promise.all([
-   sb.from('spa_price_revisions').select('*').eq('unit_id',Number(c.sno)).eq('is_current',true).limit(1),
-   sb.from('payment_schedule').select('id,unit_id,stage_name,paid_amount,due_amount').eq('unit_id',Number(c.sno)),
-   sb.from('credit_notes').select('id,payment_schedule_id,amount').eq('unit_id',Number(c.sno)),
-   sb.from('payment_transactions').select('id,payment_schedule_id,amount,accounts_confirmation_status').eq('unit_id',Number(c.sno))
-  ]);
-  for(var i=0;i<q.length;i++)if(q[i].error)throw q[i].error;
-  var rev=(q[0].data||[])[0];if(!rev)throw Error('No signed price-revision record exists for this unit.');
-  var aq=await sb.from('spa_credit_allocations').select('*').eq('revision_id',rev.id);
-  if(aq.error)throw aq.error;
-  var allocations=(aq.data||[]).filter(function(a){return a.status!=='cancelled';});
-  if(!allocations.length)throw Error('Approved installment-credit allocations are not configured.');
-  var allSchedules=q[1].data||[],credits=q[2].data||[];
-  var linked=new Set(allocations.filter(function(a){return a.credit_note_id!=null;}).map(function(a){return Number(a.credit_note_id);}));
-  var stages=allocations.map(function(a){
-   var schedule=allSchedules.find(function(s){return Number(s.id)===Number(a.payment_schedule_id);});
-   if(!schedule)throw Error('Orphaned installment allocation '+a.id);
-   return {id:schedule.id,label:schedule.stage_name,grossAmount:Number(a.spa_gross_amount),
-    cashPaid:Number(schedule.paid_amount)||0,
-    existingIssuedCredit:credits.filter(function(n){return Number(n.payment_schedule_id)===Number(schedule.id)&&!linked.has(Number(n.id));})
-      .reduce(function(n,r){return n+Number(r.amount||0);},0),
-    approvedNewCredit:Number(a.approved_amount),newIssuedCredit:a.status==='issued'?Number(a.approved_amount):0};
-  }).sort(function(a,b){
-   function rank(s){var n=s.label.toLowerCase();if(n.indexOf('down')>=0)return 0;if(n.indexOf('final')>=0||n.indexOf('handover')>=0)return 99;var m=n.match(/(\d+)(st|nd|rd|th)/);return m?Number(m[1]):90;}
-   return rank(a)-rank(b);
-  });
-  var model=MODEL.summarize({spaPrice:Number(rev.spa_price),commercialPrice:Number(rev.commercial_price_snapshot),stages:stages});
-  var dldSchedule=allSchedules.find(function(s){return /dld|admin fees/i.test(str(s.stage_name));});
-  var dldCredit=dldSchedule?credits.filter(function(n){return Number(n.payment_schedule_id)===Number(dldSchedule.id);}).reduce(function(n,r){return n+Number(r.amount||0);},0):0;
-  var dld=MODEL.dld({spaPrice:Number(rev.spa_price),ratePercent:Number(rev.dld_rate_percent),adminFees:Number(rev.dld_admin_fees),cashPaid:dldSchedule?Number(dldSchedule.paid_amount)||0:0,existingIssuedCredit:dldCredit});
-  var second=allSchedules.find(function(row){return /\b2nd\b|second installment/i.test(str(row.stage_name));});
-  var confirmTotal=second?(q[3].data||[]).filter(function(t){return Number(t.payment_schedule_id)===Number(second.id)&&str(t.accounts_confirmation_status).toLowerCase()==='confirmed';}).reduce(function(sum,t){return sum+Number(t.amount||0);},0):0;
-  var clearance=!!(second&&confirmTotal>0&&Math.round(confirmTotal*100)>=Math.round(Number(second.due_amount||0)*100));
-  var pendingAccounts=(q[3].data||[]).filter(function(t){return (t.accounts_confirmation_status||'').toLowerCase()!=='confirmed'&&stages.some(function(s){return String(s.id)===String(t.payment_schedule_id)})}).reduce(function(sum,t){return sum+Number(t.amount||0)},0);
-  render(model,c,dld,clearance,pendingAccounts);
- }catch(e){if(panel)panel.querySelector('.spr-scroll').innerHTML='<div class="spr-shell"><div class="spr-card">Preview unavailable: '+esc(e&&e.message||e)+'</div></div>';}
+   if(!window.sb||!window.SunblissSpaReconciliation)throw Error('CRM financial data connection is unavailable');
+   const record=await window.SunblissSpaReconciliation.loadForUnit(sb,Number(c.sno));
+   if(!record)throw Error('Signed SPA reconciliation not found for this unit.');
+   if(panel&&panel.isConnected)render(record.model,c,record.dld,record.contingentCreditsClearanceConfirmed,record.pendingAccounts);
+ }catch(error){
+   if(panel&&panel.isConnected)panel.querySelector('.spr-scroll').innerHTML=
+    '<div class="spr-shell"><div class="spr-card">Reconciliation unavailable: '+esc(error&&error.message||error)+'</div></div>';
+ }
 }
 function open(){
  if(opened)return;var c=customer();if(!c)return;opened=true;style();
