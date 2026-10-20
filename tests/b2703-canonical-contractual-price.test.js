@@ -31,7 +31,8 @@ function loadAuditedCustomer(auditRecord=audit){
   credit_notes:[{payment_schedule_id:1200,amount:6700},{payment_schedule_id:1199,amount:118590}],
   payment_transactions:[{unit_id:467,payment_schedule_id:1205,amount:97150,accounts_confirmation_status:'pending',payment_workflow_status:'awaiting_accounts'}],
   spa_price_revisions:[latest],
-  spa_contract_price_sync_audit:auditRecord?[auditRecord]:[]
+  spa_contract_price_sync_audit:auditRecord?[auditRecord]:[],
+  spa_credit_allocations:[{unit_id:467,revision_id:1,approved_amount:59000,status:'approved_pending_issue'}]
  };
  const sb={from(table){
   assert.ok(table in db,'Unmocked DB table '+table);
