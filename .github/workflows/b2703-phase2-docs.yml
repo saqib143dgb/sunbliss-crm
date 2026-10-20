@@ -1,0 +1,29 @@
+name: B2-703 Phase 2 Financial Document Checks
+on:
+  pull_request:
+    paths:
+      - "lib/spa_financial_reconciliation_source.js"
+      - "spa_price_revision_ui_patch.js"
+      - "welcome_documents_patch.js"
+      - "build.js"
+      - "tests/spa-financial-reconciliation-source.test.js"
+      - ".github/workflows/b2703-phase2-docs.yml"
+  workflow_dispatch:
+jobs:
+  reconciliation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --ignore-scripts
+      - name: Verify pending Accounts settlement and approved credits
+        run: node --test tests/price-revision-core.test.js tests/spa-financial-reconciliation-source.test.js
+      - name: Verify scripts parse
+        run: node --check build.js && node --check welcome_documents_patch.js && node --check spa_price_revision_ui_patch.js && node --check lib/spa_financial_reconciliation_source.js
+      - name: Build full CRM and SOA annex
+        run: npm run build
