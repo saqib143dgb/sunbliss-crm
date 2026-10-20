@@ -1,0 +1,24 @@
+name: B2-703 Price Revision Staging Checks
+on:
+  pull_request:
+    paths:
+      - "lib/price_revision_core.js"
+      - "tests/price-revision-core.test.js"
+      - "spa_price_revision_ui_patch.js"
+      - "supabase/migrations/20261020_b2703_spa_price_revision_staging.sql"
+      - ".github/workflows/price-revision-staging.yml"
+  workflow_dispatch:
+jobs:
+  financial-logic:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate B2-703 reconciliation tests
+        run: node --test tests/price-revision-core.test.js
+      - name: Verify staging syntax
+        run: node --check lib/price_revision_core.js && node --check spa_price_revision_ui_patch.js && node --check build.js
