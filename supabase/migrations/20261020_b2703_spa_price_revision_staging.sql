@@ -30,6 +30,8 @@ create table if not exists public.spa_credit_allocations (
   unit_id bigint not null,
   payment_schedule_id bigint not null references public.payment_schedule(id) on delete restrict,
   approved_amount numeric(14,2) not null check (approved_amount > 0),
+  spa_gross_amount numeric(14,2) not null check (spa_gross_amount > 0),
+  constraint credit_does_not_exceed_gross check (approved_amount <= spa_gross_amount),
   approval_reference text not null check (length(trim(approval_reference)) > 0),
   status text not null default 'approved_pending_issue'
     check (status in ('approved_pending_issue','issued','cancelled')),
@@ -127,6 +129,9 @@ begin
       and s.unit_id=a.unit_id and s.customer_id=v_schedule.customer_id
   ) then raise exception 'Sale/customer mismatch'; end if;
   -- Prevent an issued supplementary note from over-settling an installment.
+  if v_schedule.due_amount <> a.spa_gross_amount then
+    raise exception 'Installment gross amount must match signed SPA allocation before issuance';
+  end if;
   if (
     select coalesce(sum(n.amount),0)
     from public.credit_notes n
