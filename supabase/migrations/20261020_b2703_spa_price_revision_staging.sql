@@ -9,6 +9,8 @@ create table if not exists public.spa_price_revisions (
   unit_id bigint not null references public.units(id) on delete restrict,
   spa_price numeric(14,2) not null check (spa_price > 0),
   commercial_price_snapshot numeric(14,2) not null check (commercial_price_snapshot >= 0),
+  dld_rate_percent numeric(6,3) not null default 4 check (dld_rate_percent between 0 and 100),
+  dld_admin_fees numeric(14,2) not null default 0 check (dld_admin_fees >= 0),
   approval_reference text not null check (length(trim(approval_reference)) > 0),
   document_reference text,
   signed_on date,
