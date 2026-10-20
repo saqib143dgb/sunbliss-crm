@@ -43,11 +43,35 @@ function close(){
  opened=false;
 }
 function card(label,value){return '<div class="spr-card"><div class="spr-label">'+esc(label)+'</div><div class="spr-value">'+esc(money(value))+'</div></div>';}
-function render(x,c,doc,clearance){
+function exportReconciliation(x,doc,pendingAccounts,clearance){
+ var table=[['Stage','SPA Gross AED','Existing Issued Credit AED','Additional Approved Credit AED',
+   'Additional Issued Credit AED','Customer Cash Payable AED','Cash Recorded AED',
+   'Remaining after Recorded Cash AED','Accounting Outstanding AED']];
+ x.stages.forEach(function(r){table.push([r.label,r.gross,r.existingIssuedCredit,
+   r.approvedNewCredit,r.newIssuedCredit,r.customerCashObligation,r.cashPaid,
+   r.expectedCashOutstanding,r.accountingOutstanding]);});
+ table.push(['TOTAL',x.spaPrice,x.existingIssuedCredit,x.additionalApprovedCredit,
+   x.additionalIssuedCredit,x.totalCashObligation,x.cashPaid,x.expectedCashOutstanding,
+   x.accountingOutstanding]);
+ table.push([]);
+ table.push(['Status','Approved additional credits awaiting issuance AED',x.pendingNewCredit]);
+ table.push(['Status','Second installment Accounts cleared',clearance?'Yes':'No']);
+ table.push(['Status','Recorded property cash awaiting Accounts clearance AED',pendingAccounts]);
+ table.push(['DLD','Additional cash payable AED',doc.additionalCashDue]);
+ table.push(['Important','Approved but unissued credits are not completed settlements.']);
+ function cell(v){var t=str(v);if(/^[=+@-]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"';}
+ var csv='\uFEFF'+table.map(function(row){return row.map(cell).join(',');}).join('\r\n');
+ var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+ var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+ a.download='B2-703-SPA-Settlement-Reconciliation.csv';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
+}
+function render(x,c,doc,clearance,pendingAccounts){
  var rows=x.stages.map(function(r){return '<tr><td>'+esc(r.label)+'</td><td>'+esc(money(r.gross))+
  '</td><td>'+esc(money(r.existingIssuedCredit))+'</td><td>'+esc(money(r.approvedNewCredit))+
  '</td><td>'+esc(money(r.customerCashObligation))+'</td><td>'+esc(money(r.expectedCashOutstanding))+'</td></tr>';}).join('');
  var panel=document.getElementById('spaPricePreview');if(!panel)return;
+ var exportBtn=panel.querySelector('#sprExport');if(exportBtn){exportBtn.disabled=false;exportBtn.onclick=function(){exportReconciliation(x,doc,pendingAccounts,clearance)}}
  panel.querySelector('.spr-scroll').innerHTML='<div class="spr-shell">'+
  '<section class="spr-card"><div class="spr-section">Credit-note issuance status</div><div class="spr-warning"><strong>'+esc(money(x.pendingNewCredit))+'</strong> in supplementary credits is Approved — Pending Issuance. Issued credit notes: '+esc(money(x.additionalIssuedCredit))+'. Nothing is marked sent automatically.</div><div style="margin-top:10px;font-size:12px;font-weight:650">2nd installment: '+(clearance?'Accounts confirmed.':'Payment recorded; awaiting Accounts clearance.')+'</div><div class="spr-warning">Down Payment and 1st-installment supplementary notes must not be issued until the 2nd installment is confirmed by Accounts.</div></section>'+
  '<div class="spr-grid">'+card('Latest signed SPA',x.spaPrice)+card('Approved commercial price',x.commercialPrice)+
@@ -63,47 +87,19 @@ function render(x,c,doc,clearance){
 async function load(c){
  var panel=document.getElementById('spaPricePreview');
  try{
-  if(!window.sb)throw Error('CRM connection unavailable');
-  var q=await Promise.all([
-   sb.from('spa_price_revisions').select('*').eq('unit_id',Number(c.sno)).eq('is_current',true).limit(1),
-   sb.from('payment_schedule').select('id,unit_id,stage_name,paid_amount,due_amount').eq('unit_id',Number(c.sno)),
-   sb.from('credit_notes').select('id,payment_schedule_id,amount').eq('unit_id',Number(c.sno)),
-   sb.from('payment_transactions').select('id,payment_schedule_id,amount,accounts_confirmation_status').eq('unit_id',Number(c.sno))
-  ]);
-  for(var i=0;i<q.length;i++)if(q[i].error)throw q[i].error;
-  var rev=(q[0].data||[])[0];if(!rev)throw Error('No signed price-revision record exists for this unit.');
-  var aq=await sb.from('spa_credit_allocations').select('*').eq('revision_id',rev.id);
-  if(aq.error)throw aq.error;
-  var allocations=(aq.data||[]).filter(function(a){return a.status!=='cancelled';});
-  if(!allocations.length)throw Error('Approved installment-credit allocations are not configured.');
-  var allSchedules=q[1].data||[],credits=q[2].data||[];
-  var linked=new Set(allocations.filter(function(a){return a.credit_note_id!=null;}).map(function(a){return Number(a.credit_note_id);}));
-  var stages=allocations.map(function(a){
-   var schedule=allSchedules.find(function(s){return Number(s.id)===Number(a.payment_schedule_id);});
-   if(!schedule)throw Error('Orphaned installment allocation '+a.id);
-   return {id:schedule.id,label:schedule.stage_name,grossAmount:Number(a.spa_gross_amount),
-    cashPaid:Number(schedule.paid_amount)||0,
-    existingIssuedCredit:credits.filter(function(n){return Number(n.payment_schedule_id)===Number(schedule.id)&&!linked.has(Number(n.id));})
-      .reduce(function(n,r){return n+Number(r.amount||0);},0),
-    approvedNewCredit:Number(a.approved_amount),newIssuedCredit:a.status==='issued'?Number(a.approved_amount):0};
-  }).sort(function(a,b){
-   function rank(s){var n=s.label.toLowerCase();if(n.indexOf('down')>=0)return 0;if(n.indexOf('final')>=0||n.indexOf('handover')>=0)return 99;var m=n.match(/(\d+)(st|nd|rd|th)/);return m?Number(m[1]):90;}
-   return rank(a)-rank(b);
-  });
-  var model=MODEL.summarize({spaPrice:Number(rev.spa_price),commercialPrice:Number(rev.commercial_price_snapshot),stages:stages});
-  var dldSchedule=allSchedules.find(function(s){return /dld|admin fees/i.test(str(s.stage_name));});
-  var dldCredit=dldSchedule?credits.filter(function(n){return Number(n.payment_schedule_id)===Number(dldSchedule.id);}).reduce(function(n,r){return n+Number(r.amount||0);},0):0;
-  var dld=MODEL.dld({spaPrice:Number(rev.spa_price),ratePercent:Number(rev.dld_rate_percent),adminFees:Number(rev.dld_admin_fees),cashPaid:dldSchedule?Number(dldSchedule.paid_amount)||0:0,existingIssuedCredit:dldCredit});
-  var second=allSchedules.find(function(row){return /\b2nd\b|second installment/i.test(str(row.stage_name));});
-  var confirmTotal=second?(q[3].data||[]).filter(function(t){return Number(t.payment_schedule_id)===Number(second.id)&&str(t.accounts_confirmation_status).toLowerCase()==='confirmed';}).reduce(function(sum,t){return sum+Number(t.amount||0);},0):0;
-  var clearance=!!(second&&confirmTotal>0&&Math.round(confirmTotal*100)>=Math.round(Number(second.due_amount||0)*100));
-  render(model,c,dld,clearance);
- }catch(e){if(panel)panel.querySelector('.spr-scroll').innerHTML='<div class="spr-shell"><div class="spr-card">Preview unavailable: '+esc(e&&e.message||e)+'</div></div>';}
+   if(!window.sb||!window.SunblissSpaReconciliation)throw Error('CRM financial data connection is unavailable');
+   const record=await window.SunblissSpaReconciliation.loadForUnit(sb,Number(c.sno));
+   if(!record)throw Error('Signed SPA reconciliation not found for this unit.');
+   if(panel&&panel.isConnected)render(record.model,c,record.dld,record.contingentCreditsClearanceConfirmed,record.pendingAccounts);
+ }catch(error){
+   if(panel&&panel.isConnected)panel.querySelector('.spr-scroll').innerHTML=
+    '<div class="spr-shell"><div class="spr-card">Reconciliation unavailable: '+esc(error&&error.message||error)+'</div></div>';
+ }
 }
 function open(){
  if(opened)return;var c=customer();if(!c)return;opened=true;style();
  var p=document.createElement('div');p.id='spaPricePreview';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');
- p.innerHTML='<div class="spr-head"><button type="button" id="sprBack" aria-label="Back to customer">‹ Back</button><div><h2>Price Revision & Settlement</h2><div class="spr-context">Unit '+esc(c.unit)+' · '+esc(c.name)+'</div></div></div><div class="spr-scroll"><div class="spr-card">Loading approved price revision…</div></div><div class="spr-footer"><button type="button" id="sprClose">Close</button></div>';
+ p.innerHTML='<div class="spr-head"><button type="button" id="sprBack" aria-label="Back to customer">‹ Back</button><div><h2>Price Revision & Settlement</h2><div class="spr-context">Unit '+esc(c.unit)+' · '+esc(c.name)+'</div></div></div><div class="spr-scroll"><div class="spr-card">Loading approved price revision…</div></div><div class="spr-footer"><button type="button" id="sprExport" disabled>Export Reconciliation</button><button type="button" id="sprClose">Close</button></div>';
  document.body.appendChild(p);
  p.querySelector('#sprBack').onclick=close;p.querySelector('#sprClose').onclick=close;
  load(c);
