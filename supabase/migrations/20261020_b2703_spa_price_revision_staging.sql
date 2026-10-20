@@ -1,6 +1,6 @@
--- Staging-only migration. Never run on production until UI, reminder, SOA and exports
--- use the same price-revision calculations and B2-703 backup has been verified.
--- NO CUSTOMER DATA IS INSERTED OR MODIFIED BY THIS MIGRATION.
+-- Live-safe, additive metadata migration. No existing payments, schedules or credit notes are modified.
+-- Credit issuance and ledger amendment are deliberately NOT enabled until Accounts clearance and tested integration.
+-- No customer data is seeded by this migration.
 begin;
 
 create table if not exists public.spa_price_revisions (
@@ -16,7 +16,7 @@ create table if not exists public.spa_price_revisions (
   signed_on date,
   status text not null default 'draft' check (status in ('draft','executed','superseded')),
   is_current boolean not null default false,
-  created_by uuid not null default auth.uid(),
+  created_by uuid default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint price_revision_current_executed check (not is_current or status = 'executed'),
@@ -32,6 +32,7 @@ create table if not exists public.spa_credit_allocations (
   unit_id bigint not null,
   payment_schedule_id bigint not null references public.payment_schedule(id) on delete restrict,
   approved_amount numeric(14,2) not null check (approved_amount > 0),
+  clearance_schedule_id bigint references public.payment_schedule(id) on delete restrict,
   spa_gross_amount numeric(14,2) not null check (spa_gross_amount > 0),
   constraint credit_does_not_exceed_gross check (approved_amount <= spa_gross_amount),
   approval_reference text not null check (length(trim(approval_reference)) > 0),
@@ -39,7 +40,7 @@ create table if not exists public.spa_credit_allocations (
     check (status in ('approved_pending_issue','issued','cancelled')),
   credit_note_id bigint unique references public.credit_notes(id) on delete restrict,
   issued_at timestamptz,
-  created_by uuid not null default auth.uid(),
+  created_by uuid default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   foreign key (revision_id, unit_id)
@@ -56,120 +57,18 @@ create index if not exists spa_credit_allocations_unit_status
 alter table public.spa_price_revisions enable row level security;
 alter table public.spa_credit_allocations enable row level security;
 
-grant select,insert,update on public.spa_price_revisions to authenticated;
-grant select,insert,update on public.spa_credit_allocations to authenticated;
-grant usage, select on sequence public.spa_price_revisions_id_seq to authenticated;
-grant usage, select on sequence public.spa_credit_allocations_id_seq to authenticated;
+grant select on public.spa_price_revisions to authenticated;
+grant select on public.spa_credit_allocations to authenticated;
 
 create policy "approved users read spa price revisions"
  on public.spa_price_revisions for select to authenticated
  using (exists (select 1 from public.profiles p
   where p.id=(select auth.uid()) and p.role::text in ('crm_officer','manager')));
-create policy "crm inserts spa price revisions"
- on public.spa_price_revisions for insert to authenticated
- with check (exists (select 1 from public.profiles p
-  where p.id=(select auth.uid()) and p.role::text='crm_officer'));
-create policy "crm updates spa price revisions"
- on public.spa_price_revisions for update to authenticated
- using (exists (select 1 from public.profiles p
-  where p.id=(select auth.uid()) and p.role::text='crm_officer'))
- with check (exists (select 1 from public.profiles p
-  where p.id=(select auth.uid()) and p.role::text='crm_officer'));
 
 create policy "approved users read spa credit allocations"
  on public.spa_credit_allocations for select to authenticated
  using (exists (select 1 from public.profiles p
   where p.id=(select auth.uid()) and p.role::text in ('crm_officer','manager')));
-create policy "crm inserts spa credit allocations"
- on public.spa_credit_allocations for insert to authenticated
- with check (exists (select 1 from public.profiles p
-  where p.id=(select auth.uid()) and p.role::text='crm_officer'));
-create policy "crm updates spa credit allocations"
- on public.spa_credit_allocations for update to authenticated
- using (exists (select 1 from public.profiles p
-  where p.id=(select auth.uid()) and p.role::text='crm_officer'))
- with check (exists (select 1 from public.profiles p
-  where p.id=(select auth.uid()) and p.role::text='crm_officer'));
 
--- Atomic issuance: a supplemental note is issued only once for an approved
--- allocation. An issued note and its "Send Credit Note" task share one transaction.
-create or replace function public.issue_spa_credit_allocation(
-  p_allocation_id bigint,
-  p_issue_date date,
-  p_reference_number text default null
-) returns bigint
-language plpgsql security invoker set search_path = public, pg_temp
-as $function$
-declare
-  a public.spa_credit_allocations%rowtype;
-  v_sale public.spa_price_revisions%rowtype;
-  v_schedule public.payment_schedule%rowtype;
-  v_note_id bigint;
-  v_actor uuid := auth.uid();
-begin
-  if v_actor is null or not exists (
-    select 1 from public.profiles p
-    where p.id=v_actor and p.role::text='crm_officer'
-  ) then
-    raise exception 'CRM Officer permission required';
-  end if;
-  if p_issue_date is null then raise exception 'Issue date required'; end if;
-  select * into a from public.spa_credit_allocations
-   where id=p_allocation_id for update;
-  if not found then raise exception 'Credit allocation does not exist'; end if;
-  if a.status <> 'approved_pending_issue' then
-    raise exception 'Allocation already issued or cancelled';
-  end if;
-  select * into v_sale from public.spa_price_revisions
-   where id=a.revision_id and unit_id=a.unit_id and is_current and status='executed';
-  if not found then raise exception 'Current signed SPA revision required'; end if;
-  select * into v_schedule from public.payment_schedule
-   where id=a.payment_schedule_id and unit_id=a.unit_id;
-  if not found then raise exception 'Installment mismatch'; end if;
-  if not exists (
-     select 1 from public.sales s where s.id=v_sale.sale_id
-      and s.unit_id=a.unit_id and s.customer_id=v_schedule.customer_id
-  ) then raise exception 'Sale/customer mismatch'; end if;
-  -- Prevent an issued supplementary note from over-settling an installment.
-  if v_schedule.due_amount <> a.spa_gross_amount then
-    raise exception 'Installment gross amount must match signed SPA allocation before issuance';
-  end if;
-  if (
-    select coalesce(sum(n.amount),0)
-    from public.credit_notes n
-    where n.payment_schedule_id=a.payment_schedule_id
-  ) + a.approved_amount > v_schedule.due_amount - coalesce(v_schedule.paid_amount,0) + 0.01 then
-    raise exception 'Installment gross amount must be revised before credit issuance';
-  end if;
-  insert into public.credit_notes (
-    customer_id, unit_id, payment_schedule_id, issue_date, amount,
-    reason, reference_number, created_by
-  ) values (
-    v_schedule.customer_id, a.unit_id, a.payment_schedule_id,
-    p_issue_date, a.approved_amount,
-    'Supplementary SPA price revision; allocation #' || a.id::text ||
-    '; approved reference: ' || a.approval_reference,
-    nullif(trim(p_reference_number),''),
-    v_actor
-  ) returning id into v_note_id;
-  update public.spa_credit_allocations
-   set status='issued', credit_note_id=v_note_id, issued_at=now(), updated_at=now()
-   where id=a.id;
-  insert into public.scheduled_actions (
-    unit_id,action_label,due_date,priority,note,status,owner_id,
-    source,auto_kind,auto_key,schedule_id
-  ) values (
-    a.unit_id, 'Send Credit Note',current_date,'Medium',
-    'Supplementary SPA credit note #'||v_note_id::text||
-    ' for '||v_schedule.stage_name||'. Confirm actual email before adding Email History.',
-    'pending',v_actor,'automatic','send_spa_credit_note',
-    'spa_credit_note|'||v_note_id::text,a.payment_schedule_id
-  );
-  return v_note_id;
-end;
-$function$;
-revoke all on function public.issue_spa_credit_allocation(bigint,date,text) from public;
-revoke all on function public.issue_spa_credit_allocation(bigint,date,text) from anon;
-grant execute on function public.issue_spa_credit_allocation(bigint,date,text) to authenticated;
-
+-- No credit-note issuance RPC is installed here; the existing CRM trigger already creates sending tasks.
 commit;
