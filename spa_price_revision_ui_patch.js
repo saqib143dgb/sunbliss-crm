@@ -43,11 +43,35 @@ function close(){
  opened=false;
 }
 function card(label,value){return '<div class="spr-card"><div class="spr-label">'+esc(label)+'</div><div class="spr-value">'+esc(money(value))+'</div></div>';}
-function render(x,c,doc,clearance){
+function exportReconciliation(x,doc,pendingAccounts,clearance){
+ var table=[['Stage','SPA Gross AED','Existing Issued Credit AED','Additional Approved Credit AED',
+   'Additional Issued Credit AED','Customer Cash Payable AED','Cash Recorded AED',
+   'Remaining after Recorded Cash AED','Accounting Outstanding AED']];
+ x.stages.forEach(function(r){table.push([r.label,r.gross,r.existingIssuedCredit,
+   r.approvedNewCredit,r.newIssuedCredit,r.customerCashObligation,r.cashPaid,
+   r.expectedCashOutstanding,r.accountingOutstanding]);});
+ table.push(['TOTAL',x.spaPrice,x.existingIssuedCredit,x.additionalApprovedCredit,
+   x.additionalIssuedCredit,x.totalCashObligation,x.cashPaid,x.expectedCashOutstanding,
+   x.accountingOutstanding]);
+ table.push([]);
+ table.push(['Status','Approved additional credits awaiting issuance AED',x.pendingNewCredit]);
+ table.push(['Status','Second installment Accounts cleared',clearance?'Yes':'No']);
+ table.push(['Status','Recorded property cash awaiting Accounts clearance AED',pendingAccounts]);
+ table.push(['DLD','Additional cash payable AED',doc.additionalCashDue]);
+ table.push(['Important','Approved but unissued credits are not completed settlements.']);
+ function cell(v){var t=str(v);if(/^[=+@-]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"';}
+ var csv='\uFEFF'+table.map(function(row){return row.map(cell).join(',');}).join('\r\n');
+ var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+ var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+ a.download='B2-703-SPA-Settlement-Reconciliation.csv';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
+}
+function render(x,c,doc,clearance,pendingAccounts){
  var rows=x.stages.map(function(r){return '<tr><td>'+esc(r.label)+'</td><td>'+esc(money(r.gross))+
  '</td><td>'+esc(money(r.existingIssuedCredit))+'</td><td>'+esc(money(r.approvedNewCredit))+
  '</td><td>'+esc(money(r.customerCashObligation))+'</td><td>'+esc(money(r.expectedCashOutstanding))+'</td></tr>';}).join('');
  var panel=document.getElementById('spaPricePreview');if(!panel)return;
+ var exportBtn=panel.querySelector('#sprExport');if(exportBtn){exportBtn.disabled=false;exportBtn.onclick=function(){exportReconciliation(x,doc,pendingAccounts,clearance)}}
  panel.querySelector('.spr-scroll').innerHTML='<div class="spr-shell">'+
  '<section class="spr-card"><div class="spr-section">Credit-note issuance status</div><div class="spr-warning"><strong>'+esc(money(x.pendingNewCredit))+'</strong> in supplementary credits is Approved — Pending Issuance. Issued credit notes: '+esc(money(x.additionalIssuedCredit))+'. Nothing is marked sent automatically.</div><div style="margin-top:10px;font-size:12px;font-weight:650">2nd installment: '+(clearance?'Accounts confirmed.':'Payment recorded; awaiting Accounts clearance.')+'</div><div class="spr-warning">Down Payment and 1st-installment supplementary notes must not be issued until the 2nd installment is confirmed by Accounts.</div></section>'+
  '<div class="spr-grid">'+card('Latest signed SPA',x.spaPrice)+card('Approved commercial price',x.commercialPrice)+
@@ -97,13 +121,14 @@ async function load(c){
   var second=allSchedules.find(function(row){return /\b2nd\b|second installment/i.test(str(row.stage_name));});
   var confirmTotal=second?(q[3].data||[]).filter(function(t){return Number(t.payment_schedule_id)===Number(second.id)&&str(t.accounts_confirmation_status).toLowerCase()==='confirmed';}).reduce(function(sum,t){return sum+Number(t.amount||0);},0):0;
   var clearance=!!(second&&confirmTotal>0&&Math.round(confirmTotal*100)>=Math.round(Number(second.due_amount||0)*100));
-  render(model,c,dld,clearance);
+  var pendingAccounts=(q[3].data||[]).filter(function(t){return (t.accounts_confirmation_status||'').toLowerCase()!=='confirmed'&&stages.some(function(s){return String(s.id)===String(t.payment_schedule_id)})}).reduce(function(sum,t){return sum+Number(t.amount||0)},0);
+  render(model,c,dld,clearance,pendingAccounts);
  }catch(e){if(panel)panel.querySelector('.spr-scroll').innerHTML='<div class="spr-shell"><div class="spr-card">Preview unavailable: '+esc(e&&e.message||e)+'</div></div>';}
 }
 function open(){
  if(opened)return;var c=customer();if(!c)return;opened=true;style();
  var p=document.createElement('div');p.id='spaPricePreview';p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');
- p.innerHTML='<div class="spr-head"><button type="button" id="sprBack" aria-label="Back to customer">‹ Back</button><div><h2>Price Revision & Settlement</h2><div class="spr-context">Unit '+esc(c.unit)+' · '+esc(c.name)+'</div></div></div><div class="spr-scroll"><div class="spr-card">Loading approved price revision…</div></div><div class="spr-footer"><button type="button" id="sprClose">Close</button></div>';
+ p.innerHTML='<div class="spr-head"><button type="button" id="sprBack" aria-label="Back to customer">‹ Back</button><div><h2>Price Revision & Settlement</h2><div class="spr-context">Unit '+esc(c.unit)+' · '+esc(c.name)+'</div></div></div><div class="spr-scroll"><div class="spr-card">Loading approved price revision…</div></div><div class="spr-footer"><button type="button" id="sprExport" disabled>Export Reconciliation</button><button type="button" id="sprClose">Close</button></div>';
  document.body.appendChild(p);
  p.querySelector('#sprBack').onclick=close;p.querySelector('#sprClose').onclick=close;
  load(c);
