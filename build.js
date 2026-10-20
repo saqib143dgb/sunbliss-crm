@@ -140,6 +140,44 @@ function refineSoaDocumentVisuals(source){
   if(!source.includes(feeHistoryBefore))throw new Error('SOA DLD/Admin transaction-history marker not found in welcome-letter.html');
   source=source.replace(feeHistoryBefore,feeHistoryAfter);
 
+
+  // Consistent SOA typography tiers. This changes font sizes only; it does
+  // not alter the page scene, positions, columns, payment logic or amounts.
+  const changes=[
+    [
+      "const historyWidths=[42,128,171,140,120,132,139,140,160],historySize=17,historyTop=580",
+      "const historyWidths=[42,128,171,140,120,132,139,140,160],historySize=16,historyTop=580"
+    ],
+    [
+      "function note(y,title,lines,compact=false){rect(74,y,1172,compact?120:141,{fill:'#ffffff',opacity:.05});text(title,95,y+41,25,'bold',C.navy,'left',1130);lines.forEach((t,i)=>text(t,95,y+(compact?76:85)+i*(compact?27:34),17,'regular',C.text,'left',1130))}",
+      "function note(y,title,lines,compact=false){rect(74,y,1172,compact?120:141,{fill:'#ffffff',opacity:.05});text(title,95,y+41,25,'bold',C.navy,'left',1130);lines.forEach((t,i)=>text(t,95,y+(compact?76:85)+i*(compact?27:34),16,'regular',C.text,'left',1130))}"
+    ],
+    [
+      "text(label,x+20,630,17,'bold',C.muted,'left',340);text('AED '+soaAmount(value),x+20,679,29,'bold',color,'left',340)",
+      "text(label,x+20,630,16,'bold',C.muted,'left',340);text('AED '+soaAmount(value),x+20,679,26,'bold',color,'left',340)"
+    ],
+    [
+      "text(value,sx+21,471,i>1?24:20,i>1?'bold':'regular'",
+      "text(value,sx+21,471,20,i>1?'bold':'regular'"
+    ],
+    [
+      "function table(y,widths,heads,rows,{height,headerHeight=64,total=null,dark=false,defaultSize=17,layouts=null}={})",
+      "function table(y,widths,heads,rows,{height,headerHeight=64,total=null,dark=false,defaultSize=16,layouts=null}={})"
+    ],
+    [
+      "let rowTop=y+headerHeight;\n  bodyRows.forEach",
+      "let tableFont=Math.min(defaultSize,rowH*.65);\n  if(!layouts){while(tableFont>12.5&&bodyRows.some(row=>Math.max(...row.map((t,j)=>wrap(t,widths[j]-22,tableFont,(!dark&&j===7)?'bold':'regular').length))*tableFont*1.07>rowH-7))tableFont=Math.max(12.5,Math.round((tableFont-.5)*10)/10)}\n  let rowTop=y+headerHeight;\n  bodyRows.forEach"
+    ],
+    [
+      "let fs=layouts?defaultSize:Math.min(defaultSize,rowH*.65);let wrapped=layouts?layouts[i].lines:row.map((t,j)=>wrap(t,widths[j]-22,fs));let maxLines=Math.max(...wrapped.map(a=>a.length));while(!layouts&&maxLines*fs*1.17>rowH-7&&fs>1){fs*=.92;wrapped=row.map((t,j)=>wrap(t,widths[j]-22,fs));maxLines=Math.max(...wrapped.map(a=>a.length))}",
+      "let fs=layouts?defaultSize:tableFont;let wrapped=layouts?layouts[i].lines:row.map((t,j)=>wrap(t,widths[j]-22,fs,(!dark&&j===7)?'bold':'regular'))"
+    ]
+  ];
+  for(const [before,after] of changes){
+    if(!source.includes(before))throw new Error('SOA typography anchor changed: '+before.slice(0,65));
+    source=source.replace(before,after);
+  }
+
   return source;
 }
 
