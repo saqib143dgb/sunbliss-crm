@@ -91,7 +91,24 @@ function removeLegacyDetailNote(source){
   if(start<0||end<0)throw Error('Legacy detail notice markers not found');
   return source.slice(0,start)+'void 0'+source.slice(end);
 }
-function transformCore(source,file){if(file==='chunk_10.js')source=removeLegacyDetailNote(source);source=applyDldPaidTolerance(source,file);if(file==='chunk_08.js')source=removeInsightsOverdueAging(simplifyDldTracker(source));if(file==='chunk_03.js')source=supportBackgroundRefresh(makeCustomerPortfolioSourceTruth(source));if(file==='chunk_07.js')source=addOverviewKpiRenderHook(source);if(file==='chunk_10.js')source=fixReviewedDetailPresentation(fixInstallmentLedgerRender(source));if(file==='chunk_11.js')source=makeAuthBootImmediate(source);return source;}
+function showAccountsPendingInInstallmentLedger(source){
+  // Presentation only. Underlying "paid" state is retained for cash accounting.
+  const oldStatus='g={paid:"Paid",partial:"Partial",overdue:"Overdue",upcoming:"Upcoming",pending:"Pending",na:"N/A"}[d];e+=';
+  const newStatus='g=n.accountsConfirmationPending?"Payment Recorded":{paid:"Paid",partial:"Partial",overdue:"Overdue",upcoming:"Upcoming",pending:"Pending",na:"N/A"}[d],displayD=n.accountsConfirmationPending?"pending":d;e+=';
+  if(!source.includes(oldStatus))throw Error('Installment status badge anchor changed');
+  source=source.replace(oldStatus,newStatus);
+
+  const oldBadge=String.raw`<span class="stamp is-'+d+'" style="--tilt:'+b+'">'+g+'</span><div class="stage-row">`;
+  const newBadge=String.raw`<span class="stamp is-'+displayD+'" style="--tilt:'+b+'"'+(n.accountsConfirmationPending?' title="Payment Recorded — Accounts Confirmation Pending"':'')+'>'+g+'</span>'+(n.accountsConfirmationPending?'<p class="stage-payment-confirmation-pending" style="font-size:10px;line-height:1.35;color:var(--slate);margin:0 0 8px">Accounts confirmation pending</p>':'')+'<div class="stage-row">`;
+  if(!source.includes(oldBadge))throw Error('Installment badge markup anchor changed');
+  source=source.replace(oldBadge,newBadge);
+
+  const oldLate='d==="paid"&&(n.revisedDueDate||n.dueDate)&&n.paidDate&&n.paidDate.getTime()>(n.revisedDueDate||n.dueDate).getTime()+864e5';
+  if(!source.includes(oldLate))throw Error('Late-paid presentation anchor changed');
+  source=source.replace(oldLate,'!n.accountsConfirmationPending&&'+oldLate);
+  return source;
+}
+function transformCore(source,file){if(file==='chunk_10.js')source=removeLegacyDetailNote(source);source=applyDldPaidTolerance(source,file);if(file==='chunk_08.js')source=removeInsightsOverdueAging(simplifyDldTracker(source));if(file==='chunk_03.js')source=supportBackgroundRefresh(makeCustomerPortfolioSourceTruth(source));if(file==='chunk_07.js')source=addOverviewKpiRenderHook(source);if(file==='chunk_10.js')source=showAccountsPendingInInstallmentLedger(fixReviewedDetailPresentation(fixInstallmentLedgerRender(source)));if(file==='chunk_11.js')source=makeAuthBootImmediate(source);return source;}
 function writeBundle(fileName,files,transform){const parts=files.map(function(file){const full=path.join(OUT,file);requireFile(full,`Bundle source ${file}`);let source=fs.readFileSync(full,'utf8');if(transform)source=transform(source,file);return `/* ${file} */\n${source}`;});fs.writeFileSync(path.join(OUT,fileName),parts.join('\n;\n'));}
 function buildBundles(){const coreFiles=TEXT_FILES.slice(1);writeBundle(CORE_BUNDLE_FILE,coreFiles,transformCore);writeBundle(UI_BUNDLE_FILE,RUNTIME_PATCH_FILES);fs.appendFileSync(path.join(OUT,UI_BUNDLE_FILE),"\nwindow.__sunblissUiReady=true;\n");return {coreFiles,uiFiles:RUNTIME_PATCH_FILES};}
 function refineSoaDocumentVisuals(source){
