@@ -150,7 +150,7 @@ function reviseSoaFiguresUsingSignedSpa(source){
   const projection=fs.readFileSync(path.join(ROOT,'lib/soa_spa_projection_core.js'),'utf8');
   const dataStart='function soaData(ctx,date){';
   const scheduleStart='const schedule=stages.filter(';
-  const legacyTotals='const total=round(c.total),balance=round(total-received-credits),overdue=round(schedule.filter(s=>soaDate(s.revisedDueDate||s.dueDate)&&soaDate(s.revisedDueDate||s.dueDate)<cut).reduce((n,s)=>n+s.balance,0));let running=total;';
+  const legacyTotals='const total=round(c.total),balance=round(total-received-credits),overdue=round(schedule.filter(s=>s.balance>500&&soaDate(s.revisedDueDate||s.dueDate)&&soaDate(s.revisedDueDate||s.dueDate)<cut).reduce((n,s)=>n+s.balance,0));let running=total;';
   const originalReturn='schedule,history,date,round};';
   if(!source.includes(dataStart)||!source.includes(scheduleStart)||!source.includes(legacyTotals)||!source.includes(originalReturn))
     throw new Error('Original SOA calculation anchors changed; refusing to alter the format');
