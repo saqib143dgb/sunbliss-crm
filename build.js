@@ -112,6 +112,13 @@ function showAccountsPendingInInstallmentLedger(source){
   const newDueRow="fmtAED(n.due)+'</span></div>'+(n.spaPendingCN>0?'<div class=\"stage-row\"><span>Approved CN (Pending)</span><span>'+fmtAED(n.spaPendingCN)+'</span></div>':'')+'<div class=\"stage-row\"><span>By";
   if(!source.includes(oldDueRow))throw Error('SPA gross-installment display anchor changed');
   source=source.replace(oldDueRow,newDueRow);
+  // Historical DLD entry stays Paid; only the signed SPA supplementary amount
+  // is disclosed separately. Do not backdate or issue a second DLD receipt.
+  const dldCellOld="fmtAED(n.due)+'</span></div>'+(n.spaPendingCN>0?";
+  const dldCellNew="fmtAED(n.due)+'</span></div>'+(n.dldSupplement&&n.dldSupplement.balance>0?'<div class=\"stage-row\"><span>Additional DLD (SPA) · Pending</span><span>'+fmtAED(n.dldSupplement.balance)+'</span></div>':'')+(n.spaPendingCN>0?";
+  if(!source.includes(dldCellOld))throw Error('Current installment stage-row anchor changed');
+  source=source.replace(dldCellOld,dldCellNew);
+
   const oldLate='d==="paid"&&(n.revisedDueDate||n.dueDate)&&n.paidDate&&n.paidDate.getTime()>(n.revisedDueDate||n.dueDate).getTime()+864e5';
   if(!source.includes(oldLate))throw Error('Late-paid presentation anchor changed');
   source=source.replace(oldLate,'!n.accountsConfirmationPending&&'+oldLate);
