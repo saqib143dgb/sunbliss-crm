@@ -168,7 +168,7 @@ function addSpaReconciliationAnnex(source){
   section('INSTALLMENT CREDIT ALLOCATIONS',74,707,435);
   const sum=k=>pr.stages.reduce((a,s)=>a+Number(s[k]||0),0);
   table(735,[42,240,185,185,170,175,175],
-     ['#','Installment','SPA Gross','Existing Issued\\nCredits','New Credits\\nApproved','Customer Cash\\nPayable','Recorded Cash\\nOutstanding'],
+     ['#','Installment','SPA Gross','Existing Issued\nCredits','New Credits\nApproved','Customer Cash\nPayable','Recorded Cash\nOutstanding'],
      pr.stages.map((s,i)=>[i+1,s.label,soaAmount(s.gross),soaAmount(s.existingIssuedCredit),
        soaAmount(s.approvedNewCredit),soaAmount(s.customerCashObligation),soaAmount(s.expectedCashOutstanding)]),
      {height:520,total:['','TOTAL',soaAmount(pr.spaPrice),soaAmount(pr.existingIssuedCredit),
@@ -182,7 +182,7 @@ function addSpaReconciliationAnnex(source){
   text('Pending approvals are not treated as issued credit notes or confirmed cash.',74,1520,17,'regular',C.muted);
  }
 `;
-  source=source.replace(pageMarker,annex+'\\n '+pageMarker);
+  source=source.replace(pageMarker,annex+'\n '+pageMarker);
   const label="['PURCHASE PRICE','AED '+soaAmount(data.total)]";
   if(!source.includes(label))throw new Error('SOA ledger amount label marker unavailable');
   source=source.replaceAll(label,"[data.priceRevision?'PREVIOUS LEDGER BASIS':'PURCHASE PRICE','AED '+soaAmount(data.total)]");
