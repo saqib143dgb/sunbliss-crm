@@ -1,9 +1,9 @@
-/* Read-only live SPA revision overview for verified B2-703; no financial writes. */
+/* Live SPA credit overview with per-stage, user-confirmed atomic issuance. */
 (function(){
 'use strict';
 if(window.__sunblissSpaRevisionPreviewInstalled)return;
 window.__sunblissSpaRevisionPreviewInstalled=true;
-var MODEL=window.SunblissPriceRevision,opened=false;
+var MODEL=window.SunblissPriceRevision,opened=false,issuing=false,latestReadiness=[];
 if(!MODEL)return;
 function str(v){return v==null?'':String(v);}
 function esc(v){return str(v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
@@ -39,6 +39,8 @@ function style(){
  '#spaPricePreview .spr-issuance-row{display:grid;grid-template-columns:minmax(0,1.4fr) 110px minmax(0,1fr);gap:10px;padding:10px 0;border-bottom:1px solid var(--paper-line,#ddd5c9);align-items:center;font:500 11px/1.35 CRMInter,Inter,Arial,sans-serif}',
  '#spaPricePreview .spr-issuance-row:last-child{border-bottom:0}',
  '#spaPricePreview .spr-issuance-row strong{text-align:right;font-weight:650}',
+ '#spaPricePreview .spr-issuance-row .spr-issue-btn{padding:6px 10px;font-size:11px;white-space:nowrap;grid-column:3}',
+ '#spaPricePreview .spr-issue-btn:disabled{opacity:.5;cursor:wait}',
  '@media(max-width:540px){#spaPricePreview .spr-issuance-row{grid-template-columns:minmax(0,1fr) 100px}.spr-issuance-row span:last-child{grid-column:1/-1;color:var(--muted,#627080)}}',
  '#spaPricePreview .spr-footer{flex:none;display:flex;gap:8px;justify-content:center;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--paper-line,#ddd5c9);background:var(--paper,#f6f1e4)}',
  '@media(max-width:560px){#spaPricePreview .spr-grid{grid-template-columns:1fr 1fr}#spaPricePreview .spr-value{font-size:14px}#spaPricePreview h2{font-size:18px}}'
@@ -73,17 +75,44 @@ function exportReconciliation(x,doc,pendingAccounts,clearance){
  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000);
 }
 function creditReadinessDetails(items){
- items=Array.isArray(items)?items:[];
+ items=Array.isArray(items)?items:[];latestReadiness=items;
  var issued=items.filter(function(item){return item.state==='issued'}).length;
+ var officer=window.state&&state.userRole==='crm_officer';
  var stages=items.map(function(item){
    var status=item.state==='issued'?'Issued':
      item.state==='awaiting_accounts'?'Awaiting Accounts':
-     item.state==='ledger_preparation'?'Ledger Preparation':'Ready for Individual Issuance';
-   return '<div class="spr-issuance-row"><span>'+esc(item.stage)+'</span><strong>'+esc(money(item.approvedAmount))+'</strong><span>'+esc(status)+'</span></div>';
+     item.state==='awaiting_stage_payment'?'Awaiting Stage Payment':
+     item.state==='ledger_preparation'?'Ledger Review':'Ready for Individual Issuance';
+   var action=officer&&item.canIssue?
+     '<button type="button" class="spr-issue-btn" data-allocation="'+Number(item.allocationId)+'" aria-label="Issue '+esc(item.stage)+' credit note">Issue Credit Note</button>':'';
+   return '<div class="spr-issuance-row"><span>'+esc(item.stage)+'</span><strong>'+esc(money(item.approvedAmount))+
+      '</strong><span>'+esc(status)+'</span>'+action+'</div>';
  }).join('');
  return '<details class="spr-card spr-issuance"><summary>Supplementary Credit Notes · '+issued+' of '+items.length+' issued</summary>'+
-  '<div class="spr-warning" style="margin:9px 0">Approval does not mean issuance. Each note requires the correct SPA installment amount and applicable Accounts clearance. No credit note will be created automatically.</div>'+
+  '<div class="spr-warning" style="margin:9px 0">Each supplementary note is issued individually, only after Accounts confirms the relevant payment. Issuance adjusts the SPA installment and posts the matching credit together, preserving the customer cash obligation. A Send Credit Note task is created for each issued note; no email is sent automatically.</div>'+
   stages+'</details>';
+}
+async function issueApprovedCredit(allocationId){
+ if(issuing||!window.sb||!window.state||state.userRole!=='crm_officer')return;
+ var match=latestReadiness.find(function(item){return Number(item.allocationId)===Number(allocationId)});
+ if(!match||!match.canIssue)return;
+ var question='Issue the '+money(match.approvedAmount)+' approved supplementary credit for '+match.stage+'?\n\nThis will reconcile its SPA gross amount, issue an actual credit note and create a Send Credit Note task. Nothing will be emailed automatically.';
+ if(!window.confirm(question))return;
+ issuing=true;
+ var panel=document.getElementById('spaPricePreview'),button=panel&&panel.querySelector('.spr-issue-btn[data-allocation="'+Number(allocationId)+'"]');
+ if(button){button.disabled=true;button.textContent='Issuing…'}
+ try{
+   var response=await sb.rpc('crm_issue_b2703_spa_credit',{p_allocation_id:Number(allocationId)});
+   if(response.error)throw response.error;
+   var result=response.data||{};
+   if(!result.credit_note_id)throw Error('The server did not confirm credit note creation');
+   window.alert('Credit note #'+result.credit_note_id+' issued for '+match.stage+'. The Send Credit Note task has been created.');
+   var c=customer();if(c)await load(c);
+   if(window.__sunblissRefreshPaymentScheduleSourceTruth)window.__sunblissRefreshPaymentScheduleSourceTruth({render:false});
+ }catch(err){
+   window.alert('Credit note was not issued: '+String(err&&err.message||err));
+   if(button){button.disabled=false;button.textContent='Issue Credit Note'}
+ }finally{issuing=false}
 }
 function render(x,c,doc,clearance,pendingAccounts,issuanceReadiness){
  var rows=x.stages.map(function(r){return '<tr><td>'+esc(r.label)+'</td><td>'+esc(money(r.gross))+
@@ -102,7 +131,7 @@ function render(x,c,doc,clearance,pendingAccounts,issuanceReadiness){
  '<div class="spr-table"><table><thead><tr><th>Installment</th><th>SPA Gross</th><th>Existing CN</th><th>Approved New CN</th><th>Cash Obligation</th><th>Cash Remaining</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>'+
  '<section class="spr-card"><h3 class="spr-section">DLD & Administrative Fees</h3>'+
  '<div class="spr-grid">'+card('DLD on revised SPA',doc.dldAmount)+card('Admin fees',doc.adminFees)+card('Recorded DLD cash',doc.cashPaid)+card('Existing DLD credit note',doc.existingIssuedCredit)+'</div></section>'+
- '<div class="spr-warning">Read-only reconciliation record. Approved but unissued credits affect expected cash, not the issued-credit ledger. The existing payment schedule and receipts remain unchanged until the final financial integration is completed.</div></div>';
+ '<div class="spr-warning">Approved but unissued supplementary credits are not posted to the ledger. Any future issuance will be individually confirmed and recorded without changing existing payments or dates.</div></div>';
 }
 async function load(c){
  var panel=document.getElementById('spaPricePreview');
@@ -122,6 +151,11 @@ function open(){
  p.innerHTML='<div class="spr-head"><button type="button" id="sprBack" aria-label="Back to customer">‹ Back</button><div><h2>Price Revision & Settlement</h2><div class="spr-context">Unit '+esc(c.unit)+' · '+esc(c.name)+'</div></div></div><div class="spr-scroll"><div class="spr-card">Loading approved price revision…</div></div><div class="spr-footer"><button type="button" id="sprExport" disabled>Export Reconciliation</button><button type="button" id="sprClose">Close</button></div>';
  document.body.appendChild(p);
  p.querySelector('#sprBack').onclick=close;p.querySelector('#sprClose').onclick=close;
+ p.querySelector('.spr-scroll').addEventListener('click',function(ev){
+  var button=ev.target.closest&&ev.target.closest('.spr-issue-btn');
+  if(!button||!p.contains(button))return;
+  ev.preventDefault();issueApprovedCredit(Number(button.getAttribute('data-allocation')));
+ });
  load(c);
 }
 function ensureMenu(){
