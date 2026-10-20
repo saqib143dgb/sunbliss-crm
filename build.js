@@ -183,6 +183,14 @@ function addSpaReconciliationAnnex(source){
  }
 `;
   source=source.replace(pageMarker,annex+'\n '+pageMarker);
+  // A recorded installment payment awaiting Accounts clearance is not
+  // presented as a fully cleared installment on this customer's SOA.
+  const pendingMarker="const total=round(c.total),balance=round(total-received-credits)";
+  const pendingCode="if(ctx.priceRevision){const pendingById=new Map();"+
+   "all.filter(t=>within(t.payment_date)&&String(t.accounts_confirmation_status||'').toLowerCase()!=='confirmed'&&Number(t.amount)>0).forEach(t=>{const id=String(t.payment_schedule_id||'');pendingById.set(id,(pendingById.get(id)||0)+Number(t.amount))});"+
+   "schedule.forEach(s=>{if((pendingById.get(String(s.id||s.scheduleId||''))||0)>0)s.status='Pending Accounts'})}\n ";
+  if(!source.includes(pendingMarker))throw new Error('SOA pending-confirmation marker unavailable');
+  source=source.replace(pendingMarker,pendingCode+pendingMarker);
   const label="['PURCHASE PRICE','AED '+soaAmount(data.total)]";
   if(!source.includes(label))throw new Error('SOA ledger amount label marker unavailable');
   source=source.replaceAll(label,"[data.priceRevision?'PREVIOUS LEDGER BASIS':'PURCHASE PRICE','AED '+soaAmount(data.total)]");
