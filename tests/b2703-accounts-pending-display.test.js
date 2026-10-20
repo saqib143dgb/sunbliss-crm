@@ -23,7 +23,8 @@ function mockTruth(t,prepared=false){
    units:[{id:467,unit_no:'B2-703'},{id:468,unit_no:'B2-704'}],
    payment_schedule:[prepared?{...schedule,due_amount:100100,revised_due_amount:97150}:schedule,{...schedule,id:1206,unit_id:468}],
    credit_notes:[],
-   payment_transactions:[t]
+   payment_transactions:[t],
+   spa_price_revisions:[]
  };
  const sb={
   from(table){
