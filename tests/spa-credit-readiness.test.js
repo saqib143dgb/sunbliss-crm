@@ -44,12 +44,11 @@ test('only after Accounts confirmation and ledger alignment are notes eligible f
  assert.equal(stillAwaiting[0].state,'awaiting_accounts');
  assert.equal(stillAwaiting[1].state,'awaiting_accounts');
  assert.ok(stillAwaiting.slice(2).every(row=>row.canIssue));
- const approved=readiness.inspect(allocations,aligned,[
-  {id:910,payment_schedule_id:1205,amount:97150,accounts_confirmation_status:'confirmed'},
-  {id:911,payment_schedule_id:1205,amount:2950,accounts_confirmation_status:'confirmed'}
- ]);
+ const approved=readiness.inspect(allocations,aligned,tx('confirmed'));
  assert.ok(approved.every(row=>row.canIssue));
  assert.ok(approved.every(row=>row.state==='ready_for_manual_issuance'));
+ const shortfall=readiness.inspect(allocations,aligned,[{payment_schedule_id:1205,amount:97000,accounts_confirmation_status:'confirmed'}]);
+ assert.equal(shortfall[0].state,'awaiting_accounts');
 });
 
 test('do not accept approval duplicates or an issued allocation without a real credit note',()=>{
