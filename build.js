@@ -221,6 +221,7 @@ function promoteSpaAmountsInSoa(source){
  const oldOverdue='overdue=round(schedule.filter(s=>s.balance>500&&soaDate(s.revisedDueDate||s.dueDate)&&soaDate(s.revisedDueDate||s.dueDate)<cut).reduce((n,s)=>n+s.balance,0))';
  if(!source.includes(oldOverdue))throw Error('SOA overdue marker changed');
  source=source.replace(oldOverdue,'overdue=projected?projected.overdue:'+oldOverdue.slice('overdue='.length));
+ source=source.replace(');,overdue=projected?',');const overdue=projected?');
  const oldMeta='priceRevision:ctx.priceRevision||null};';
  if(!source.includes(oldMeta))throw Error('SOA return marker changed');
  source=source.replace(oldMeta,'cashOutstanding,priceRevision:projected?ctx.priceRevision:null};');
