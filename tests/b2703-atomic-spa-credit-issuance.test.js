@@ -34,7 +34,7 @@ test('existing invoices and dates are untouched by migration and UI cannot bypas
  assert.doesNotMatch(sql,/update public\.payment_transactions/i);
  assert.doesNotMatch(sql,/update public\.sales/i);
  assert.doesNotMatch(sql,/set (?:due_date|revised_due_date|paid_date)\s*=/i);
- assert.match(sql,/issue_date,v_today/);
+ assert.match(sql,/v_today,\s*v_allocation\.approved_amount/);
  assert.match(ui,/match\.canIssue/);
  assert.match(ui,/window\.confirm\(question\)/);
  assert.match(ui,/sb\.rpc\('crm_issue_b2703_spa_credit'/);
