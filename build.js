@@ -103,6 +103,15 @@ function showAccountsPendingInInstallmentLedger(source){
   if(!source.includes(oldBadge))throw Error('Installment badge markup anchor changed');
   source=source.replace(oldBadge,newBadge);
 
+  // Show the signed SPA gross as Due, but keep stage collection status tied
+  // to the net amount protected while its supplementary note is unissued.
+  const sourceStage='var d=stageStatus(n.due,n.paid,n.dueDate,s)';
+  if(!source.includes(sourceStage))throw Error('SPA stage-status calculation anchor changed');
+  source=source.replace(sourceStage,'var d=stageStatus(n.spaCollectionDue||n.due,n.paid,n.dueDate,s)');
+  const oldDueRow="fmtAED(n.due)+'</span></div><div class=\"stage-row\"><span>By";
+  const newDueRow="fmtAED(n.due)+'</span></div>'+(n.spaPendingCN>0?'<div class=\"stage-row\"><span>Approved CN (Pending)</span><span>'+fmtAED(n.spaPendingCN)+'</span></div>':'')+'<div class=\"stage-row\"><span>By";
+  if(!source.includes(oldDueRow))throw Error('SPA gross-installment display anchor changed');
+  source=source.replace(oldDueRow,newDueRow);
   const oldLate='d==="paid"&&(n.revisedDueDate||n.dueDate)&&n.paidDate&&n.paidDate.getTime()>(n.revisedDueDate||n.dueDate).getTime()+864e5';
   if(!source.includes(oldLate))throw Error('Late-paid presentation anchor changed');
   source=source.replace(oldLate,'!n.accountsConfirmationPending&&'+oldLate);
