@@ -54,7 +54,8 @@ alter table public.spa_credit_allocations enable row level security;
 
 grant select,insert,update on public.spa_price_revisions to authenticated;
 grant select,insert,update on public.spa_credit_allocations to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
+grant usage, select on sequence public.spa_price_revisions_id_seq to authenticated;
+grant usage, select on sequence public.spa_credit_allocations_id_seq to authenticated;
 
 create policy "approved users read spa price revisions"
  on public.spa_price_revisions for select to authenticated
