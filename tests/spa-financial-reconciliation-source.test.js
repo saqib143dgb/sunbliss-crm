@@ -71,3 +71,41 @@ test('return null for unaffected customers',async()=>{
  const x=await Source.loadForUnit(fakeDb(fixture),999);
  assert.equal(x,null);
 });
+
+test('signed SPA can be stored as gross due with a protected net collectible bridge',async()=>{
+ const copy=JSON.parse(JSON.stringify(fixture));
+ copy.payment_schedule.forEach(row=>{
+  const a=copy.spa_credit_allocations.find(x=>x.payment_schedule_id===row.id);
+  if(!a)return;
+  row.revised_due_amount=row.due_amount;
+  row.due_amount=a.spa_gross_amount;
+ });
+ const reconciled=await Source.loadForUnit(fakeDb(copy),467);
+ assert.equal(reconciled.legacyMatchesApprovedNet,true);
+ assert.equal(reconciled.model.spaPrice,2002000);
+ assert.equal(reconciled.model.expectedCashOutstanding,1457250);
+ assert.equal(reconciled.model.pendingNewCredit,59000);
+ assert.equal(reconciled.issuanceReadiness[0].state,'awaiting_accounts');
+ assert.equal(reconciled.issuanceReadiness[2].state,'awaiting_accounts');
+ assert.equal(reconciled.issuanceReadiness[3].state,'awaiting_stage_payment');
+});
+test('after individual credit issuance approved credit is no longer pending or double counted',async()=>{
+ const copy=JSON.parse(JSON.stringify(fixture));
+ copy.payment_schedule.forEach(row=>{
+  const a=copy.spa_credit_allocations.find(x=>x.payment_schedule_id===row.id);
+  if(!a)return;
+  row.revised_due_amount=row.due_amount;
+  row.due_amount=a.spa_gross_amount;
+ });
+ copy.payment_transactions.find(t=>t.id===910).accounts_confirmation_status='confirmed';
+ const first=copy.spa_credit_allocations.find(a=>a.payment_schedule_id===1200);
+ first.status='issued';first.credit_note_id=51;
+ copy.payment_schedule.find(s=>s.id===1200).revised_due_amount=null;
+ copy.credit_notes.push({id:51,unit_id:467,payment_schedule_id:1200,amount:5900,issue_date:'2026-10-21'});
+ const model=await Source.loadForUnit(fakeDb(copy),467);
+ assert.equal(model.model.additionalIssuedCredit,5900);
+ assert.equal(model.model.pendingNewCredit,53100);
+ assert.equal(model.model.expectedCashOutstanding,1457250);
+ assert.equal(model.model.accountingOutstanding,1510350);
+ assert.equal(model.issuanceReadiness.find(a=>a.stageId===1200).state,'issued');
+});
