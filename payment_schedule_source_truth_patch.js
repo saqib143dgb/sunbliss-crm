@@ -50,10 +50,11 @@ async function fetchTruth(){
   sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,paid_date,status'),
   sb.from('credit_notes').select('payment_schedule_id,amount'),
   // Presentation-only check for unit B2-703. Never mutate payment ledger status.
-  sb.from('payment_transactions').select('unit_id,payment_schedule_id,amount,accounts_confirmation_status,payment_workflow_status').eq('unit_id',467)
+  sb.from('payment_transactions').select('unit_id,payment_schedule_id,amount,accounts_confirmation_status,payment_workflow_status').eq('unit_id',467),
+  sb.from('spa_price_revisions').select('id,unit_id,status,is_current,spa_price,dld_rate_percent,dld_admin_fees').eq('unit_id',467).eq('is_current',true)
  ]);
  q.forEach(function(x){if(x.error)throw x.error});
- var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={};
+ var unitNoById={},creditBySchedule={},rowsByUnit={},pendingAccountsBySchedule={},dldSpaRevisedGross=null;
  (q[0].data||[]).forEach(function(u){unitNoById[String(u.id)]=text(u.unit_no).trim()});
  (q[2].data||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var k=String(c.payment_schedule_id);creditBySchedule[k]=round2((creditBySchedule[k]||0)+num(c.amount))});
  // Only an explicitly pending, awaiting_accounts transaction counts.
@@ -66,6 +67,14 @@ async function fetchTruth(){
    if(t.payment_schedule_id!=null)pendingAccountsBySchedule[String(t.payment_schedule_id)]=true;
   });
  }
+ var signedSpa=(q[4].data||[]).filter(function(r){return num(r.unit_id)===467&&norm(r.status)==='executed'&&r.is_current===true;});
+ if(signedSpa.length===1&&norm(unitNoById['467'])==='b2-703'){
+   var revision=signedSpa[0];
+   // Reconciliation only: do not replace the settled historical DLD stage or
+   // assign a new due date. This is the supplemental liability under the SPA.
+   if(num(revision.spa_price)===2002000&&num(revision.dld_rate_percent)===4&&num(revision.dld_admin_fees)===5100)
+     dldSpaRevisedGross=round2(num(revision.spa_price)*num(revision.dld_rate_percent)/100+num(revision.dld_admin_fees));
+ }
  (q[1].data||[]).forEach(function(row){row.stage_name=cleanStageLabel(row.stage_name);var k=String(row.unit_id);if(!rowsByUnit[k])rowsByUnit[k]=[];rowsByUnit[k].push(row)});
  var nextTruth={};
  Object.keys(rowsByUnit).forEach(function(unitId){
@@ -76,7 +85,17 @@ async function fetchTruth(){
    var credit=creditBySchedule[String(row.id)]||0,due=effectiveAmount(row),cash=num(row.paid_amount),remaining=round2(due-cash-credit),paid=norm(row.status)==='paid'||remaining<=TOLERANCE;
    var spaBridge=norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)!=='DLD'&&row.revised_due_amount!=null&&num(row.due_amount)>num(row.revised_due_amount);
    var grossDue=spaBridge?num(row.due_amount):due;
-   stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:grossDue,spaCollectionDue:due,spaPendingCN:spaBridge?round2(grossDue-due):0,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim(),accountsConfirmationPending:norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)==='2ND'&&!!pendingAccountsBySchedule[String(row.id)]};
+   var dldSupplement=null;
+   if(norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)==='DLD'&&dldSpaRevisedGross!==null){
+     var originallySettled=round2(cash+credit);
+     // If the historical DLD entry is not fully settled, do not label it as
+     // a separate supplementary amount. Show that exception for review only.
+     var originalRemaining=round2(due-originallySettled);
+     if(Math.abs(originalRemaining)<=0.01&&dldSpaRevisedGross>=due)
+       dldSupplement={total:dldSpaRevisedGross,balance:round2(Math.max(0,dldSpaRevisedGross-originallySettled)),originallySettled:originallySettled};
+   }
+
+   stages[codeFromName(row.stage_name)]={id:row.id,status:paid?'Paid':row.status,due:grossDue,spaCollectionDue:due,spaPendingCN:spaBridge?round2(grossDue-due):0,dldSupplement:dldSupplement,cash:cash,credit:credit,settled:round2(cash+credit),remaining:paid?0:remaining,dueDate:effectiveDate(row),paidDate:dateValue(row.paid_date),label:cleanStageLabel(row.stage_name).trim(),accountsConfirmationPending:norm(unitNo)==='b2-703'&&codeFromName(row.stage_name)==='2ND'&&!!pendingAccountsBySchedule[String(row.id)]};
   });
   var open=rows.filter(function(row){
    if(effectiveAmount(row)<=0||/\bbooking\b/i.test(text(row.stage_name)))return false;
@@ -97,7 +116,7 @@ function applyCustomer(c){
  var t=truthByUnit[norm(c.unit)];if(!t)return;
  c.dbUnitId=t.unitId;
  var stageMap={};(c.stages||[]).forEach(function(s){if(s&&s.code)stageMap[s.code]=s});
- Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.accountsConfirmationPending=src.accountsConfirmationPending;dst.spaCollectionDue=src.spaCollectionDue;dst.spaPendingCN=src.spaPendingCN;dst.label=cleanStageLabel(dst.label||src.label)});
+ Object.keys(t.stages||{}).forEach(function(code){var src=t.stages[code],dst=stageMap[code];if(!dst)return;dst.id=src.id;dst.scheduleId=src.id;dst.status=src.status;dst.due=src.due;dst.cashPaid=src.cash;dst.creditNoteTotal=src.credit;dst.settledAmount=src.settled;dst.paid=src.settled;dst.outAmt=src.remaining;dst.dueDate=src.dueDate;dst.paidDate=src.paidDate;dst.accountsConfirmationPending=src.accountsConfirmationPending;dst.spaCollectionDue=src.spaCollectionDue;dst.spaPendingCN=src.spaPendingCN;dst.dldSupplement=src.dldSupplement;dst.label=cleanStageLabel(dst.label||src.label)});
  c.upStage=t.next?cleanStageLabel(t.next.label):'';
  c.upAmt=t.next?t.next.amount:null;
  c.upDate=t.next?t.next.date:null;
