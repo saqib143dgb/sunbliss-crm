@@ -134,7 +134,7 @@
   function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(t.workflow_kind==='modification_request'&&/in progress/i.test(text(t.action_label)))return{key:'inprogress',label:'In Progress'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
   function addDaysIso(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(Number(n)||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
   function isBookingWelcome(t){return text(t&&t.auto_key).indexOf('booking_welcome|')===0;}
-  function taskButtonLabel(t){if(t&&t.auto_kind==='credit_note_send')return'Mark Sent';if(collectionOutcomeTask(t))return'Open';if(isBookingWelcome(t))return'Mark Sent';if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&(t.auto_kind==='demand_letter'||t.auto_kind==='gentle_reminder'))return'Mark Sent';return'Mark Done';}
+  function taskButtonLabel(t){if(t&&t.auto_kind==='credit_note_send')return'Mark Sent';if(collectionOutcomeTask(t))return'Open';if(isBookingWelcome(t))return'Mark Sent';if(t&&t.workflow_kind)return'Open';if(t&&t.auto_kind==='overdue_follow_up')return'Open';if(t&&t.auto_kind==='demand_letter')return'Open';if(t&&t.auto_kind==='gentle_reminder')return'Mark Sent';return'Mark Done';}
   function collectionOutcomeTask(t){return !!(t&&(['overdue_follow_up','extension_residual_overdue','extension_uncovered_overdue'].indexOf(t.auto_kind)>=0||(!t.workflow_kind&&!t.auto_kind&&!isBookingWelcome(t)&&/collect.*payment|payment.*follow|follow.*payment|installment.*follow|dld.*follow/i.test(text(t.action_label)))||['promise_follow_up','payment_query','payment_follow_up','payment_review','partial_payment_commitment'].indexOf(text(t.workflow_kind))>=0));}
 
   function renderDetailTasks(){var old=document.getElementById('scheduledActionsDetail');if(old)old.remove();}
@@ -252,6 +252,12 @@
     }else if(isBookingWelcome(task)){
       body='<p class="scheduled-outcome-current">Send the Welcome Letter before the payment receipt, then mark this task as sent.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label>';
       button='Mark Sent';
+    }else if(task.auto_kind==='demand_letter'){
+      body='<p class="scheduled-outcome-help">Choose what happened before the Demand Letter. Customer confirmation does not mean Accounts has received the money.</p>'+
+        '<label class="brand-field">Demand Letter outcome<select id="saOutcome"><option value="">Select outcome</option><option value="sent">Demand Letter Sent</option><option value="customer_confirmed_payment">Customer Confirmed Payment</option></select></label>'+
+        '<label class="brand-field" id="saConfirmationSourceWrap" style="display:none">Confirmation via<select id="saConfirmationSource"><option value="">Select source</option><option value="phone_call">Phone Call</option><option value="whatsapp">WhatsApp</option><option value="email">Email</option><option value="other">Other</option></select></label>'+
+        '<label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Payment reference or customer message"></textarea></label>';
+      button='Save Outcome';
     }else if(task.workflow_kind==='accounts_confirmation'){
       body='<label class="brand-field">Accounts verification<select id="saOutcome"><option value="">Select outcome</option><option value="confirmed">Confirmed</option><option value="not_received">Not Received</option><option value="amount_mismatch">Amount Mismatch</option></select></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Reference, confirmation detail or issue"></textarea></label>';
       button='Save Outcome';
@@ -310,6 +316,7 @@
     if(collectionOutcomeTask(task))loadOutcomePayment(task,p);
     document.getElementById('saClose').onclick=removePanel;
     var outcome=document.getElementById('saOutcome');
+    if(task.auto_kind==='demand_letter'&&outcome){outcome.onchange=function(){var wrap=document.getElementById('saConfirmationSourceWrap');if(wrap)wrap.style.display=this.value==='customer_confirmed_payment'?'block':'none';};}
     if(outcome&&document.getElementById('saNextDateWrap'))outcome.onchange=function(){var needs=['still_pending','will_pay_later','no_response','extension_request','payment_issue','query_resolved'].indexOf(this.value)>=0,partial=this.value==='partial_payment_commitment',nextWrap=document.getElementById('saNextDateWrap'),partialWrap=document.getElementById('saPartialCommitmentWrap');nextWrap.style.display=needs?'block':'none';if(partialWrap)partialWrap.style.display=partial?'block':'none';var label=document.getElementById('saNextDateLabel');if(label)label.textContent=this.value==='extension_request'?'Requested extension date':this.value==='will_pay_later'?'Promised payment date':this.value==='payment_issue'?'Review by':'Next follow-up date';var noteLabel=document.getElementById('saNoteLabel');if(noteLabel)noteLabel.textContent=['extension_request','payment_issue','cancel_task','query_resolved'].indexOf(this.value)>=0?'Reason / details *':'Note (optional)';};
     if(task.workflow_kind==='extension_approval'&&outcome){outcome.onchange=function(){var box=document.getElementById('saExtensionApprovalFields');if(box)box.style.display=/^approved/.test(this.value)?'block':'none';};}
     if(task.workflow_kind==='extension_customer_confirmation'&&outcome){outcome.onchange=function(){var rereq=document.getElementById('saExtensionReRequestWrap'),followup=document.getElementById('saExtensionFollowupWrap');if(rereq)rereq.style.display=this.value==='rerequest'?'block':'none';if(followup)followup.style.display=this.value==='no_response'?'block':'none';};}
@@ -454,6 +461,19 @@
       if(task.workflow_kind==='payment_reported'){
         removePanel();await openPaymentFromTask(task);return;
       }
+      if(task.auto_kind==='demand_letter'){
+        if(!outcome)throw new Error('Select the Demand Letter outcome.');
+        if(outcome==='customer_confirmed_payment'){
+          var source=val('saConfirmationSource');
+          if(!source)throw new Error('Select Phone Call, WhatsApp or another confirmation source.');
+          var report=await sb.rpc('crm_customer_reported_before_demand_letter',{
+            p_task_id:Number(task.id),p_expected_updated_at:task.updated_at,p_source:source,p_note:note
+          });
+          if(report.error)throw report.error;
+          removePanel();await refreshAfterChange();return;
+        }
+        if(outcome!=='sent')throw new Error('Select a valid Demand Letter outcome.');
+      }
       if(task.workflow_kind==='extension_approval'){
         await resolveExtensionApproval(task,outcome,note);
         removePanel();await refreshAfterChange();return;
@@ -467,6 +487,13 @@
       }
       if(task.workflow_kind==='extension_clarification'){
         await submitExtensionClarification(task,note);
+        removePanel();await refreshAfterChange();return;
+      }
+      if(task.workflow_kind==='accounts_confirmation'&&!task.transaction_id&&text(task.auto_key).indexOf('customer_reported_before_demand_letter|')===0){
+        if(!outcome)throw new Error('Select an Accounts verification outcome.');
+        if(outcome==='confirmed'){removePanel();await openPaymentFromTask(task);return;}
+        var verification=await sb.rpc('crm_resolve_pre_demand_verification',{p_task_id:Number(task.id),p_outcome:outcome,p_note:note});
+        if(verification.error)throw verification.error;
         removePanel();await refreshAfterChange();return;
       }
       if(task.workflow_kind==='accounts_confirmation'||task.workflow_kind==='cheque_clearance'||task.workflow_kind==='payment_receipt'){
