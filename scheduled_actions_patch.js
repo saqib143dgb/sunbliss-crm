@@ -24,7 +24,17 @@
     return note.replace(/\s{2,}/g,' ').replace(/\s+[·•-]\s*$/,'').trim();
   }
   function currentCustomer(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit);})||null;}
-  function customerForUnit(unitId){if(!window.state||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return Number(c&&c.sno)===Number(unitId);})||null;}
+  function customerForUnit(unitId){
+    if(!window.state)return null;
+    var active=Array.isArray(state.dues)?state.dues.find(function(c){return Number(c&&c.sno)===Number(unitId);}):null;
+    if(active)return active;
+    // Preserve task identity after the original booking moves to the cancelled archive.
+    var cancelled=Array.isArray(state.cancelled)?state.cancelled.find(function(c){return Number(c&&c.sno)===Number(unitId);}):null;
+    if(cancelled)return Object.assign({},cancelled,{status:'Cancelled'});
+    var archive=window.__sunblissCancelledUnitArchive;
+    var record=archive&&Array.isArray(archive.records)?archive.records.find(function(r){return Number(r&&r.cancel&&r.cancel.unit_id)===Number(unitId);}):null;
+    return record?{sno:Number(unitId),unit:record.unitNo,name:record.customer&&record.customer.customer_name||'Former customer',status:'Cancelled'}:null;
+  }
   function canUse(){return !!(window.state&&(state.userRole==='crm_officer'||state.userRole==='manager'));}
   function managerOnly(){return window.state&&state.userRole==='manager';}
   function managementApproval(t){
@@ -93,7 +103,11 @@
     cache.loading=(async function(){
       var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,spa_step,commitment_part_id,extension_request_id,modification_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
       if(r.error)throw r.error;
-      cache.rows=r.data||[];cache.loaded=true;cache.loading=null;return cache.rows;
+      cache.rows=r.data||[];
+      // Cancelled units are archived asynchronously. Resolve their unit numbers before listing their tasks.
+      var archive=window.__sunblissCancelledUnitArchive;
+      if(archive&&archive.loading){try{await archive.loading;}catch(_e){}}
+      cache.loaded=true;cache.loading=null;return cache.rows;
     })().catch(function(e){cache.loading=null;throw e;});
     return cache.loading;
   }
@@ -172,7 +186,14 @@
     if(!rows.length&&managerOnly()){host.innerHTML='<div class="scheduled-empty">No tasks awaiting management approval.</div>';return;}
     if(!rows.length){host.innerHTML='<div class="scheduled-empty">No '+safe(cache.overviewFilter==='completed'?'completed':'pending')+' actions in this view.</div>';return;}
     host.innerHTML=rows.map(function(t){var c=customerForUnit(t.unit_id),st=stateForTask(t),name=c?c.name:'Customer',unit=c?c.unit:'Unit '+t.unit_id;var completion=t.status==='completed'&&t.completion_note?'<div class="scheduled-overview-meta">Completed: '+safe(t.completion_note)+'</div>':'';return '<div class="scheduled-overview-row" data-task-id="'+t.id+'"><div class="scheduled-overview-main" data-open-unit="'+safe(t.unit_id)+'"><div class="scheduled-overview-unit">'+safe(unit)+' · '+safe(name)+'</div><div class="scheduled-overview-title">'+safe(t.action_label)+'</div><div class="scheduled-overview-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span> · '+safe(t.priority)+' · '+safe(formatDate(t.due_date))+(t.note?' · '+safe(t.note):'')+'</div>'+completion+'</div>'+(t.status==='pending'?'<button type="button" class="btn-paper scheduled-overview-done scheduled-mark-done" data-task-id="'+t.id+'">'+safe(taskButtonLabel(t))+'</button>':'')+'</div>';}).join('');
-    host.querySelectorAll('[data-open-unit]').forEach(function(el){el.onclick=function(){var c=customerForUnit(Number(el.getAttribute('data-open-unit')));if(!c)return;if(typeof window.goToDetail==='function')window.goToDetail(c.unit,c.sno,'overview');else{state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';if(typeof window.renderMain==='function')window.renderMain();}};});
+    host.querySelectorAll('[data-open-unit]').forEach(function(el){el.onclick=function(){
+      var id=Number(el.getAttribute('data-open-unit')),c=customerForUnit(id);
+      var wrapper=el.closest('[data-task-id]'),task=wrapper?taskById(wrapper.getAttribute('data-task-id')):null;
+      // A cancelled booking has no active customer detail page. Open the existing task instead.
+      if(!c||c.status==='Cancelled'){if(task&&task.status==='pending')openComplete(task);return;}
+      if(typeof window.goToDetail==='function')window.goToDetail(c.unit,c.sno,'overview');
+      else{state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';if(typeof window.renderMain==='function')window.renderMain();}
+    };});
     bindTaskButtons(host);
   }
 
@@ -541,6 +562,13 @@
       if(!canUse())return false;
       var c=currentCustomer(),task=taskById(id);
       if(!c||!task||task.status!=='pending'||!visibleTask(task)||task.auto_kind==='extension_active'||Number(task.unit_id)!==Number(c.sno))return false;
+      openComplete(task);
+      return true;
+    };
+    window.__sunblissOpenArchivedScheduledAction=function(id){
+      if(!canUse())return false;
+      var task=taskById(id);
+      if(!task||task.status!=='pending'||!visibleTask(task)||task.auto_kind==='extension_active')return false;
       openComplete(task);
       return true;
     };
