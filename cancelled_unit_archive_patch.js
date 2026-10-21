@@ -51,6 +51,13 @@
     '.cancelled-archive-event-main b{font-weight:650;}',
     '.cancelled-sensitive{border:0;background:none;padding:0;color:var(--ink);font-family:"IBM Plex Mono",monospace;font-size:11.5px;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer;}',
     '.cancelled-archive-empty{padding:15px 2px;color:var(--muted);font-size:12px;}',
+    '.cancelled-archive-completed{margin:10px 0 14px;border:1px solid var(--paper-line);border-radius:10px;overflow:hidden;}',
+    '.cancelled-archive-completed>summary{list-style-position:inside;cursor:pointer;padding:12px 13px;font:600 12px/1.4 Inter,Arial,sans-serif;color:var(--ink);background:var(--paper-dim);}',
+    '.cancelled-archive-completed-row{padding:11px 13px;border-top:1px solid var(--paper-line);font:500 11.5px/1.45 Inter,Arial,sans-serif;color:var(--ink);}',
+    '.cancelled-archive-completed-name{display:block;font-weight:650;}',
+    '.cancelled-archive-completed-date{display:block;margin-top:3px;font-size:10.5px;color:var(--muted);}',
+    '.cancelled-archive-completed-note{margin-top:5px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;}',
+    '.cancelled-archive-completed-help{margin:0;padding:10px 13px;border-top:1px solid var(--paper-line);font:400 10.5px/1.4 Inter,Arial,sans-serif;color:var(--muted);}',
     '@media(max-width:420px){.cancelled-archive-page{padding-left:14px;padding-right:14px}.cancelled-archive-title{font-size:22px}.cancelled-archive-finance{grid-template-columns:1fr 1fr}.cancelled-archive-event{grid-template-columns:72px 10px 1fr;gap:6px}.cancelled-archive-row{gap:8px!important}.cancelled-archive-row .row-amt{max-width:115px!important}.cancelled-archive-row .row-amt-val{font-size:10.5px!important}}'
   ].join('');
   document.head.appendChild(style);
@@ -635,16 +642,34 @@
         }
         return;
       }
-      var tasks=rows.filter(function(t){
-        return Number(t&&t.unit_id)===Number(record.cancel.unit_id)&&t.status==='pending'&&t.auto_kind!=='extension_active';
-      }).sort(function(a,b){return String(a.due_date||'').localeCompare(String(b.due_date||''));});
-      if(!tasks.length){host.textContent='No outstanding scheduled tasks.';return;}
-      host.innerHTML=tasks.map(function(t){
+      var unitTasks=rows.filter(function(t){
+        return Number(t&&t.unit_id)===Number(record.cancel.unit_id)&&t.auto_kind!=='extension_active';
+      });
+      var tasks=unitTasks.filter(function(t){return t.status==='pending';})
+        .sort(function(a,b){return String(a.due_date||'').localeCompare(String(b.due_date||''));});
+      var completed=unitTasks.filter(function(t){return t.status==='completed';})
+        .sort(function(a,b){return String(b.completed_at||b.updated_at||'').localeCompare(String(a.completed_at||a.updated_at||''));});
+      var pendingHtml=tasks.length?tasks.map(function(t){
         return '<button type="button" class="row-btn cancelled-archive-row" data-cancelled-task-id="'+esc(t.id)+'">'+
           '<span class="row-main"><span class="row-name">'+esc(t.action_label)+'</span>'+
           '<span class="row-meta">'+esc(String(t.priority||'Medium')+' · Due '+String(t.due_date||'—'))+'</span></span>'+
           '<span class="row-amt"><span class="row-amt-val">Pending</span></span></button>';
-      }).join('');
+      }).join(''):'<div class="cancelled-archive-empty">No outstanding scheduled tasks.</div>';
+      var completedHtml=completed.length?'<details class="cancelled-archive-completed">'+
+        '<summary>Completed tasks · '+completed.length+'</summary>'+
+        completed.map(function(t){
+          var done=t.completed_at||t.updated_at;
+          var when=done?dateLabel(done):'Date not recorded';
+          return '<div class="cancelled-archive-completed-row">'+
+            '<span class="cancelled-archive-completed-name">'+esc(t.action_label)+'</span>'+
+            '<span class="cancelled-archive-completed-date">Marked completed · '+esc(when)+'</span>'+
+            (t.note?'<div class="cancelled-archive-completed-note">'+esc(t.note)+'</div>':'')+
+            (t.completion_note?'<div class="cancelled-archive-completed-note">Completion note: '+esc(t.completion_note)+'</div>':'')+
+          '</div>';
+        }).join('')+
+        '<p class="cancelled-archive-completed-help">A completed CRM task is not evidence that an email was sent.</p>'+
+        '</details>':'';
+      host.innerHTML=pendingHtml+completedHtml;
       host.querySelectorAll('[data-cancelled-task-id]').forEach(function(button){
         button.addEventListener('click',function(){
           var id=Number(button.getAttribute('data-cancelled-task-id'));
