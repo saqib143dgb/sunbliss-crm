@@ -74,3 +74,9 @@ test('scheduled demand task is dated exactly ten days before installment due dat
  const w=await simulate({rows:[payable(10,10)]});
  assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'&&x.val.due_date===datePlus(0)));
 });
+
+test('revised due date cancels an obsolete demand task but does not issue a new one early',async()=>{
+ const w=await simulate({rows:[payable(10,20)],tasks:[task(30,10)]});
+ assert(w.some(x=>x.op==='update'&&x.val.status==='cancelled'));
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});

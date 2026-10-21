@@ -95,7 +95,7 @@ async function run(){
      // Unfinished demand letters remain actionable even after due date or subsequent payment.
      // Only retire an outdated one when the contractual/revised due date changes.
      var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
-     var oldDue=(text(t.auto_key).match(/[|]due:(\\d{4}-\\d{2}-\\d{2})/)||[])[1];
+     var oldDue=(text(t.auto_key).match(/[|]due:(\d{4}-\d{2}-\d{2})/)||[])[1];
      if(oldDue&&ids.length&&ids.every(function(id){return !!schedulesById[id]})&&
        ids.some(function(id){return effectiveDue(schedulesById[id])!==oldDue}))
        dead.push(t.id);
