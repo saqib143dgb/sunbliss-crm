@@ -9,4 +9,4 @@ async function run({delta=5,status='pending',paid=0}={}){
 test('pending demand letter survives after its trigger day and after payment due date',async()=>{for(const delta of [5,-4]){const writes=await run({delta});assert(!writes.some(x=>x.operation==='update'&&x.value.status==='cancelled'));}});
 test('paid installment does not silently remove the unfinished demand-letter task',async()=>{const writes=await run({paid:10000});assert(!writes.some(x=>x.value.status==='cancelled'));});
 test('completed demand letter is not reopened during automatic sync',async()=>{const writes=await run({status:'completed'});assert(!writes.some(x=>x.operation==='update'&&x.value.status==='pending'));});
-test('gentle reminder remains available two days before payment due',async()=>{const writes=await run({delta:2});assert(writes.some(x=>x.operation==='insert'&&x.value.auto_kind==='gentle_reminder'));});
+test('unsent pending demand letter does not create a premature gentle reminder',async()=>{const writes=await run({delta:2});assert(!writes.some(x=>x.operation==='insert'&&x.value.auto_kind==='gentle_reminder'));});
