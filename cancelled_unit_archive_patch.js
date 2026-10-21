@@ -616,10 +616,45 @@
     html += '<p class="section-label">Installment schedule at cancellation</p>'+scheduleSection(record);
     html += '<p class="section-label">Payment history before cancellation</p>'+transactionsSection(record);
     html += '<p class="section-label">Resale / recovery</p>'+resaleSection(record);
+    // Outstanding actions must remain accessible after a booking is cancelled.
+    html += '<p class="section-label">Scheduled tasks</p><div id="cancelledArchiveScheduledTasks" class="cancelled-archive-tasks"></div>';
     html += '<p class="section-label">Unit history timeline</p>'+timelineSection(record);
     html += '</div>';
 
     main.innerHTML = html;
+    function renderArchivedTasks(){
+      var host=main.querySelector('#cancelledArchiveScheduledTasks');
+      if(!host)return;
+      var rows=window.__sunblissScheduledActionRows&&window.__sunblissScheduledActionRows();
+      if(!Array.isArray(rows)){
+        host.textContent='Loading scheduled tasks…';
+        if(typeof window.__sunblissEnsureScheduledActions==='function'){
+          window.__sunblissEnsureScheduledActions().then(renderArchivedTasks).catch(function(){
+            if(host.isConnected)host.textContent='Scheduled tasks could not be loaded.';
+          });
+        }
+        return;
+      }
+      var tasks=rows.filter(function(t){
+        return Number(t&&t.unit_id)===Number(record.cancel.unit_id)&&t.status==='pending'&&t.auto_kind!=='extension_active';
+      }).sort(function(a,b){return String(a.due_date||'').localeCompare(String(b.due_date||''));});
+      if(!tasks.length){host.textContent='No outstanding scheduled tasks.';return;}
+      host.innerHTML=tasks.map(function(t){
+        return '<button type="button" class="row-btn cancelled-archive-row" data-cancelled-task-id="'+esc(t.id)+'">'+
+          '<span class="row-main"><span class="row-name">'+esc(t.action_label)+'</span>'+
+          '<span class="row-meta">'+esc(String(t.priority||'Medium')+' · Due '+String(t.due_date||'—'))+'</span></span>'+
+          '<span class="row-amt"><span class="row-amt-val">Pending</span></span></button>';
+      }).join('');
+      host.querySelectorAll('[data-cancelled-task-id]').forEach(function(button){
+        button.addEventListener('click',function(){
+          var id=Number(button.getAttribute('data-cancelled-task-id'));
+          if(typeof window.__sunblissOpenArchivedScheduledAction==='function'){
+            window.__sunblissOpenArchivedScheduledAction(id);
+          }
+        });
+      });
+    }
+    renderArchivedTasks();
 
     var back = document.getElementById('cancelledArchiveBack');
     if (back) back.addEventListener('click',function(){
