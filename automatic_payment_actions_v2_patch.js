@@ -8,8 +8,9 @@ function text(v){return v==null?'':String(v)}
 function norm(v){return text(v).trim().toLowerCase().replace(/\s+/g,' ')}
 function iso(v){if(!v)return'';var s=String(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
 function day(v){var s=iso(v),d=s?new Date(s+'T00:00:00'):null;return d&&!isNaN(d.getTime())?d:null}
-function daysUntil(v){var d=day(v),t=new Date();t.setHours(0,0,0,0);return d?Math.round((d-t)/86400000):null}
-function addDays(v,n){var d=day(v);if(!d)return'';d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dubaiToday(){var p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Dubai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),o={};p.forEach(function(x){o[x.type]=x.value});return o.year+'-'+o.month+'-'+o.day}
+function daysUntil(v){var d=iso(v),t=dubaiToday();return d?Math.round((Date.parse(d+'T00:00:00Z')-Date.parse(t+'T00:00:00Z'))/86400000):null}
+function addDays(v,n){var d=iso(v);return d?new Date(Date.parse(d+'T00:00:00Z')+n*86400000).toISOString().slice(0,10):''}
 function dateText(v){var d=day(v);return d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):text(v)}
 function money(v){var n=Math.max(0,Number(v)||0);return typeof window.fmtAED==='function'?window.fmtAED(n):'AED '+n.toLocaleString('en-AE',{maximumFractionDigits:2})}
 function effectiveDue(r){return iso(r&&r.revised_due_date)||iso(r&&r.due_date)}
@@ -38,22 +39,71 @@ async function run(){
  var ur=await sb.auth.getUser(),user=ur&&ur.data&&ur.data.user;if(!user)return false;
  var q=await Promise.all([
    sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',units),
-   sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,created_at,updated_at'),
+   sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,created_at,updated_at,completion_note'),
    sb.from('credit_notes').select('payment_schedule_id,unit_id,amount').in('unit_id',units),
    sb.from('payment_extensions').select('payment_schedule_id,status,extended_due_date').in('unit_id',units).eq('status','active')
  ]);q.forEach(function(r){if(r.error)throw r.error});
  var schedules=q[0].data||[],tasks=q[1].data||[],credits=q[2].data||[],extensions=q[3].data||[],credit={},extended={};
  credits.forEach(function(c){if(c.payment_schedule_id!=null){var k=String(c.payment_schedule_id);credit[k]=Math.round(((credit[k]||0)+(Number(c.amount)||0))*100)/100}});
  extensions.forEach(function(e){if(e.payment_schedule_id!=null&&iso(e.extended_due_date)>=iso(new Date().toISOString()))extended[String(e.payment_schedule_id)]=1});
- var managed=carryManaged(),manualSchedule={},pendingDemand={},recentDemand={},activeUnits={};units.forEach(function(x){activeUnits[String(x)]=1});tasks.forEach(function(t){var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);if(manualPaymentTask(t))ids.forEach(function(id){manualSchedule[String(id)]=1});if(t.auto_kind==='demand_letter'&&t.status==='pending')ids.forEach(function(id){pendingDemand[String(id)]=1});if(t.auto_kind==='demand_letter'&&t.status==='completed'&&t.updated_at&&Date.now()-new Date(t.updated_at).getTime()<86400000)ids.forEach(function(id){recentDemand[String(id)]=1})});
- var auto=tasks.filter(function(t){return t.source==='automatic'&&t.auto_kind!=='credit_note_send'}),byKey={};auto.forEach(function(t){if(t.auto_key)byKey[t.auto_key]=t});
+ var managed=carryManaged(),manualSchedule={},pendingDemand={},recentDemand={},finishedDemand={},activeUnits={},schedulesById={};
+ units.forEach(function(x){activeUnits[String(x)]=1});
+ schedules.forEach(function(r){schedulesById[String(r.id)]=r});
+ tasks.forEach(function(t){
+   var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
+   if(manualPaymentTask(t))ids.forEach(function(id){manualSchedule[String(id)]=1});
+   if(t.auto_kind!=='demand_letter')return;
+   if(t.status==='pending')ids.forEach(function(id){pendingDemand[String(id)]=1});
+   if(t.status==='completed'){
+     ids.forEach(function(id){finishedDemand[String(id)]=1});
+     if(t.updated_at&&Date.now()-new Date(t.updated_at).getTime()<86400000)
+       ids.forEach(function(id){recentDemand[String(id)]=1});
+   }
+   // A customer-confirmed payment or other explicitly resolved cancellation must never be reopened.
+   if(t.status==='cancelled'&&text(t.completion_note).trim())
+     ids.forEach(function(id){finishedDemand[String(id)]=1});
+ });
+ // Keep ownership of this synchronizer restricted to payment tasks; never cancel SPA/extension workflows.
+ var auto=tasks.filter(function(t){return t.source==='automatic'&&['demand_letter','gentle_reminder','overdue_follow_up'].indexOf(t.auto_kind)>=0}),byKey={};
+ auto.forEach(function(t){if(t.auto_key)byKey[t.auto_key]=t});
  var byUnit={};
  schedules.forEach(function(r){var sid=String(r.id),kind=stageKind(r);if(!kind||managed[sid])return;var applied=credit[sid]||0,contractedNetDue=r.revised_due_amount==null?(Number(r.due_amount)||0):(Number(r.revised_due_amount)||0),remaining=Math.round(Math.max(0,contractedNetDue-(Number(r.paid_amount)||0)-applied)*100)/100,due=effectiveDue(r),delta=daysUntil(due);if(remaining<=1000||!due||delta===null)return;(byUnit[String(r.unit_id)]=byUnit[String(r.unit_id)]||[]).push({row:r,kind:kind,remaining:remaining,creditApplied:applied,delta:delta,due:due,extended:!!extended[sid],manual:!!manualSchedule[sid]})});
  var desired=[],desiredKeys={};
  function addDesired(kind,uid,rows,due){if(!rows.length)return;var total=Math.round(rows.reduce(function(s,x){return s+x.remaining},0)*100)/100,k=kind==='overdue_follow_up'?overdueKey(uid,rows):groupKey(kind,uid,rows,due),p={unit_id:Number(uid),action_label:label(kind,total),due_date:kind==='overdue_follow_up'?rows[0].due:actionDue(kind,due),priority:priority(kind),note:kind==='overdue_follow_up'?overdueNote(rows,total):groupedNote(rows,total),status:'pending',owner_id:user.id,source:'automatic',auto_kind:kind,auto_key:k,schedule_id:rows.length===1?Number(rows[0].row.id):null,updated_at:new Date().toISOString()};desired.push(p);desiredKeys[k]=1}
- Object.keys(byUnit).forEach(function(uid){var rows=byUnit[uid].slice().sort(function(a,b){return a.due.localeCompare(b.due)||Number(a.row.id)-Number(b.row.id)}),dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'}),current=dp.length?dp:pre.length?pre:rows.filter(function(x){return x.kind==='later'});current=current.filter(function(x){return!x.extended&&!x.manual});if(!current.length)return;var overdue=current.filter(function(x){return x.delta<0});if(overdue.length){var waitingDemand=overdue.filter(function(x){return!!pendingDemand[String(x.row.id)]}),readyOverdue=overdue.filter(function(x){return!pendingDemand[String(x.row.id)]});if(waitingDemand.length)addDesired('demand_letter',uid,waitingDemand,waitingDemand[0].due);if(readyOverdue.length)addDesired('overdue_follow_up',uid,readyOverdue,readyOverdue[0].due);return}var groups={};current.forEach(function(x){var kinds=[];if(x.delta<=10&&x.delta>=0)kinds.push('demand_letter');if(x.delta===2&&!pendingDemand[String(x.row.id)]&&!recentDemand[String(x.row.id)])kinds.push('gentle_reminder');kinds.forEach(function(kind){var k=kind+'|'+x.due;(groups[k]=groups[k]||{kind:kind,due:x.due,rows:[]}).rows.push(x)})});Object.keys(groups).forEach(function(k){var g=groups[k];addDesired(g.kind,uid,g.rows,g.due)})});
- var dead=[];auto.forEach(function(t){if(t.status!=='pending')return;if(!activeUnits[String(t.unit_id)]||!desiredKeys[t.auto_key])dead.push(t.id)});
- var changed=await cancel(dead);for(var i=0;i<desired.length;i++){var p=desired[i],old=byKey[p.auto_key];if(old){if(old.status==='completed')continue;var fieldsChanged=text(old.action_label)!==p.action_label||text(old.due_date)!==p.due_date||text(old.priority)!==p.priority||text(old.note)!==p.note;if(old.status!=='pending'||fieldsChanged){var update={action_label:p.action_label,due_date:p.due_date,priority:p.priority,note:p.note,status:'pending',completed_at:null,completion_note:null,cancelled_at:null,updated_at:p.updated_at},u=await sb.from('scheduled_actions').update(update).eq('id',old.id);if(u.error)throw u.error;changed=true}continue}var ins=await sb.from('scheduled_actions').insert(p);if(ins.error&&ins.error.code!=='23505')throw ins.error;if(!ins.error)changed=true}
+ // A previous overdue stage or a manual payment follow-up must not hide the next installment.
+ Object.keys(byUnit).forEach(function(uid){
+   var rows=byUnit[uid].slice().sort(function(a,b){return a.due.localeCompare(b.due)||Number(a.row.id)-Number(b.row.id)});
+   var dp=rows.filter(function(x){return x.kind==='dp'}),pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld'});
+   // Retain the established single overdue-follow-up priority without blocking future demands.
+   var current=dp.length?dp:pre.length?pre:rows.filter(function(x){return x.kind==='later'});
+   var overdue=current.filter(function(x){return x.delta<0&&!x.extended&&!x.manual&&!pendingDemand[String(x.row.id)]});
+   if(overdue.length)addDesired('overdue_follow_up',uid,overdue,overdue[0].due);
+   // Evaluate EVERY upcoming payable installment independently, including DLD and first installment.
+   rows.forEach(function(x){
+     var sid=String(x.row.id);
+     if(x.delta<0||x.delta>10||x.extended)return;
+     if(!pendingDemand[sid]&&!finishedDemand[sid])addDesired('demand_letter',uid,[x],x.due);
+     // Preserve the existing gentle-reminder trigger while keeping it installment-linked.
+     if(x.delta===2&&!pendingDemand[sid]&&!recentDemand[sid])
+       addDesired('gentle_reminder',uid,[x],x.due);
+   });
+ });
+ var dead=[];
+ auto.forEach(function(t){
+   if(t.status!=='pending')return;
+   if(t.auto_kind==='demand_letter'){
+     // Unfinished demand letters remain actionable even after due date or subsequent payment.
+     // Only retire an outdated one when the contractual/revised due date changes.
+     var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
+     var oldDue=(text(t.auto_key).match(/[|]due:(\\d{4}-\\d{2}-\\d{2})/)||[])[1];
+     if(oldDue&&ids.length&&ids.every(function(id){return !!schedulesById[id]})&&
+       ids.some(function(id){return effectiveDue(schedulesById[id])!==oldDue}))
+       dead.push(t.id);
+     return;
+   }
+   if(!activeUnits[String(t.unit_id)]||!desiredKeys[t.auto_key])dead.push(t.id);
+ });
+ var changed=await cancel(dead);for(var i=0;i<desired.length;i++){var p=desired[i],old=byKey[p.auto_key];if(old){if(old.status==='completed'||(old.status==='cancelled'&&text(old.completion_note).trim()))continue;var fieldsChanged=text(old.action_label)!==p.action_label||text(old.due_date)!==p.due_date||text(old.priority)!==p.priority||text(old.note)!==p.note;if(old.status!=='pending'||fieldsChanged){var update={action_label:p.action_label,due_date:p.due_date,priority:p.priority,note:p.note,status:'pending',completed_at:null,completion_note:null,cancelled_at:null,updated_at:p.updated_at},u=await sb.from('scheduled_actions').update(update).eq('id',old.id);if(u.error)throw u.error;changed=true}continue}var ins=await sb.from('scheduled_actions').insert(p);if(ins.error&&ins.error.code!=='23505')throw ins.error;if(!ins.error)changed=true}
  await refreshMeta();if(changed&&typeof window.__sunblissRefreshScheduledActions==='function')await window.__sunblissRefreshScheduledActions();return changed
 }
 function sync(force){if(syncing)return syncing;if(!force&&Date.now()-lastSyncAt<5000){decorate();return Promise.resolve(false)}syncing=run().catch(function(e){console.warn('Automatic payment actions v2 could not sync',e);return false}).then(function(v){lastSyncAt=Date.now();syncing=null;return v});return syncing}
