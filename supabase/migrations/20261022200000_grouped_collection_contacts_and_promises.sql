@@ -29,8 +29,10 @@ ALTER TABLE public.crm_collection_contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_collection_promises ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.crm_collection_contacts,public.crm_collection_promises FROM public,anon,authenticated;
 GRANT SELECT ON public.crm_collection_contacts,public.crm_collection_promises TO authenticated;
+DROP POLICY IF EXISTS crm_collection_contacts_read ON public.crm_collection_contacts;
 CREATE POLICY crm_collection_contacts_read ON public.crm_collection_contacts FOR SELECT TO authenticated
  USING (EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=auth.uid() AND p.role::text IN ('crm_officer','manager')));
+DROP POLICY IF EXISTS crm_collection_promises_read ON public.crm_collection_promises;
 CREATE POLICY crm_collection_promises_read ON public.crm_collection_promises FOR SELECT TO authenticated
  USING (EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=auth.uid() AND p.role::text IN ('crm_officer','manager')));
 
