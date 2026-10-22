@@ -23,6 +23,7 @@ function makeContext(ids=[10,11],changes={}){
   ],customer:{customer_name:'Demo Customer'},unit:{unit_no:'TEST-001',unit_type:'2BR'}},
   document:{querySelectorAll:()=>ids.map(id=>({value:String(id)}))},
   val:name=>values[name]||'',
+  values:()=>({customer:'Demo Customer',unit:'TEST-001',type:'2BR',amount:mockRows.filter(t=>ids.includes(t.id)&&t.accounts_confirmation_status==='confirmed').reduce((sum,t)=>sum+t.amount,0)}),
   receiptCustomerDetails:()=>({address:'Dubai',contact:'0500000000',area:'1200'}),
   clean:t=>String(t??''),
   money:n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2}),
