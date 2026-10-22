@@ -785,7 +785,7 @@
           if(['no_response','payment_issue','extension_request'].includes(outcome)&&!nextDate)throw new Error('Select the next date.');
           if(['payment_issue','extension_request'].includes(outcome)&&!note)throw new Error('Enter the customer request details.');
           var rpc=await sb.rpc('crm_record_grouped_collection_contact',{
-            p_task_id:Number(task.id),p_expected_updated_at:task.updated_at,p_outcome:outcome,
+            p_task_id:Number(task.id),p_expected_updated_at:task.updated_at,p_outcome:outcome==='will_pay_later'?'promise':outcome,
             p_schedule_ids:selected,p_method:method,p_note:note||null,
             p_next_date:nextDate||null,p_allocations:allocations
           });
