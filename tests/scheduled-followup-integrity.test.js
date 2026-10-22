@@ -25,7 +25,7 @@ test('group key overrides stale single schedule ID, preserving all 1010 obligati
  const t={auto_key:'overdue_follow_up|unit:471|schedules:1232,1233,1234',schedule_id:1231};
  assert.deepEqual(Array.from(h.linkedPaymentIds(t)),[1232,1233,1234]);
  assert.doesNotMatch(h.taskPaymentContext({...t,action_label:'Payment Follow-up with Customer'}),/5th Installment/);
- assert.match(h.taskPaymentContext({...t,action_label:'Payment Follow-up with Customer'}),/226,462\\.50/);
+ assert.match(h.taskPaymentContext({...t,action_label:'Payment Follow-up with Customer'}),/226,462\.50/);
 });
 test('origin shows automatic to no-response transition',()=>{
  const h=helpers();
@@ -33,12 +33,12 @@ test('origin shows automatic to no-response transition',()=>{
 });
 test('manual save rejects an overlapping follow-up on the same date',()=>{
  assert.match(src,/Payment already covered by task #/);
- assert.match(src,/linkedPaymentIds\\(t\\)\\.some\\(function\\(id\\)/);
+ assert.match(src,/linkedPaymentIds\(t\)\.some\(function\(id\)/);
 });
 test('automatic sync honors all group ids before one stray foreign key',()=>{
  const auto=fs.readFileSync('automatic_payment_actions_v2_patch.js','utf8');
- assert.match(auto,/var ids=keyIds\\.length\\?keyIds:/);
- assert.match(auto,/manualSchedule\\[String\\(id\\)\\]=1/);
+ assert.match(auto,/var ids=keyIds\.length\?keyIds:/);
+ assert.match(auto,/manualSchedule\[String\(id\)\]=1/);
 });
 test('database migration preserves group identity during an outcome and deduplicates',()=>{
  const migration=fs.readFileSync('supabase/migrations/20261022183000_preserve_followup_payment_group.sql','utf8');
