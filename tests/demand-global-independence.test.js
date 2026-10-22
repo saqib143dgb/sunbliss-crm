@@ -166,3 +166,93 @@ test('existing pending Down Payment Gentle Reminder is not duplicated',async()=>
  assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder'));
  assert(!w.some(x=>x.op==='update'&&x.val.status==='cancelled'));
 });
+
+
+test('B3-605 existing booking follow-up covers shared-date DLD without a duplicate demand',async()=>{
+ const rows=[
+  {...payable(1508,-9,'Down Payment'),customer_id:96,due_amount:199665,paid_amount:50000},
+  {...payable(1509,70,'1st Installment'),customer_id:96,due_amount:199665},
+  {...payable(1510,-9,'DLD + Admin Fees (SPA)'),customer_id:96,due_amount:84966}
+ ];
+ const followUp={id:361,unit_id:2,schedule_id:1508,status:'pending',source:'manual',auto_kind:null,
+   action_label:'Follow Up — Remaining Down Payment · AED 149,665.00',
+   auto_key:'booking_balance|unit:2|schedule:1508',
+   workflow_kind:'payment_follow_up',note:'Customer commitment to complete remaining Down Payment'};
+ const w=await simulate({rows,tasks:[followUp]});
+ assert(!w.some(x=>x.op==='insert'&&['demand_letter','gentle_reminder','overdue_follow_up'].includes(x.val.auto_kind)
+   &&(x.val.schedule_id===1510||String(x.val.auto_key).includes('1510'))));
+});
+test('same-date Down Payment and DLD without a manual booking task use one combined Gentle Reminder',async()=>{
+ const rows=[
+  {...payable(1508,5,'Down Payment'),customer_id:96,due_amount:199665,paid_amount:50000},
+  {...payable(1510,5,'DLD + Admin Fees (SPA)'),customer_id:96,due_amount:84966}
+ ];
+ const w=await simulate({rows});
+ const reminders=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder');
+ assert.equal(reminders.length,1);
+ assert(reminders[0].val.auto_key.includes('schedules:1508,1510'));
+ assert(reminders[0].val.note.includes('Down Payment'));
+ assert(reminders[0].val.note.includes('DLD + Admin Fees'));
+ assert(reminders[0].val.note.includes('234,631'));
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+test('shared-date Down Payment and DLD overdue without manual follow-up create one combined overdue task',async()=>{
+ const rows=[
+  {...payable(1508,-9,'Down Payment'),customer_id:96,due_amount:199665,paid_amount:50000},
+  {...payable(1510,-9,'DLD + Admin Fees (SPA)'),customer_id:96,due_amount:84966}
+ ];
+ const w=await simulate({rows});
+ const late=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='overdue_follow_up');
+ assert.equal(late.length,1);
+ assert(late[0].val.auto_key.includes('schedules:1508,1510'));
+ assert(late[0].val.note.includes('234,631'));
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+test('when Down Payment is fully paid but same-date DLD is outstanding, gentle reminder still covers DLD',async()=>{
+ const rows=[
+  {...payable(1508,5,'Down Payment'),customer_id:96,paid_amount:10000},
+  {...payable(1510,5,'DLD + Admin Fees (SPA)'),customer_id:96,due_amount:8000}
+ ];
+ const w=await simulate({rows});
+ const reminders=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder');
+ assert.equal(reminders.length,1);
+ assert(reminders[0].val.auto_key.includes('schedules:1508,1510'));
+ assert(reminders[0].val.note.includes('DLD + Admin Fees'));
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+test('when DP and DLD due dates differ they remain separately tracked',async()=>{
+ const rows=[
+  {...payable(1508,5,'Down Payment'),customer_id:96},
+  {...payable(1510,8,'DLD + Admin Fees (SPA)'),customer_id:96}
+ ];
+ const w=await simulate({rows});
+ assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder'&&x.val.schedule_id===1508));
+ assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'&&x.val.schedule_id===1510));
+});
+test('existing pending DLD Demand Letter is retired when same-date Down Payment follow-up covers it',async()=>{
+ const rows=[
+  {...payable(1508,5,'Down Payment'),customer_id:96},
+  {...payable(1510,5,'DLD + Admin Fees (SPA)'),customer_id:96}
+ ];
+ const followUp={id:361,unit_id:2,schedule_id:1508,status:'pending',source:'manual',
+   action_label:'Follow Up — Remaining Down Payment',auto_key:'booking_balance|unit:2|schedule:1508',
+   workflow_kind:'payment_follow_up',note:'Booking balance'};
+ const demand=task(491,1510,'pending','demand_letter',{auto_key:'demand_letter|schedule:1510|due:'+datePlus(5)});
+ const w=await simulate({rows,tasks:[followUp,demand]});
+ assert(w.some(x=>x.op==='update'&&x.val.status==='cancelled'&&
+   /Consolidated into the same-date/.test(x.val.completion_note||'')));
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+test('if first installment shares DLD due date, keep first+DLD Demand Letter and independent Down Payment reminder',async()=>{
+ const rows=[
+  {...payable(1508,5,'Down Payment'),customer_id:96},
+  {...payable(1509,5,'1st Installment'),customer_id:96},
+  {...payable(1510,5,'DLD + Admin Fees (SPA)'),customer_id:96}
+ ];
+ const w=await simulate({rows});
+ const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
+ const g=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder');
+ assert.equal(d.length,1);
+ assert(d[0].val.auto_key.includes('schedules:1509,1510'));
+ assert(g.some(x=>x.val.schedule_id===1508));
+});
