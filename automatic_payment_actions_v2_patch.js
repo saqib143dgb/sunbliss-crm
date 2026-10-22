@@ -66,10 +66,26 @@ async function run(){
  // Keep ownership of this synchronizer restricted to payment tasks; never cancel SPA/extension workflows.
  var auto=tasks.filter(function(t){return t.source==='automatic'&&['demand_letter','gentle_reminder','overdue_follow_up'].indexOf(t.auto_kind)>=0}),byKey={};
  auto.forEach(function(t){if(t.auto_key)byKey[t.auto_key]=t});
- var byUnit={};
- schedules.forEach(function(r){var sid=String(r.id),kind=stageKind(r);if(!kind||managed[sid])return;var applied=credit[sid]||0,contractedNetDue=r.revised_due_amount==null?(Number(r.due_amount)||0):(Number(r.revised_due_amount)||0),remaining=Math.round(Math.max(0,contractedNetDue-(Number(r.paid_amount)||0)-applied)*100)/100,due=effectiveDue(r),delta=daysUntil(due);if(remaining<=1000||!due||delta===null)return;(byUnit[String(r.unit_id)]=byUnit[String(r.unit_id)]||[]).push({row:r,kind:kind,remaining:remaining,creditApplied:applied,delta:delta,due:due,extended:!!extended[sid],manual:!!manualSchedule[sid]})});
+ var byUnit={},allByUnit={};
+ schedules.forEach(function(r){var sid=String(r.id),kind=stageKind(r);if(!kind||managed[sid])return;var applied=credit[sid]||0,contractedNetDue=r.revised_due_amount==null?(Number(r.due_amount)||0):(Number(r.revised_due_amount)||0),remaining=Math.round(Math.max(0,contractedNetDue-(Number(r.paid_amount)||0)-applied)*100)/100,due=effectiveDue(r),delta=daysUntil(due);if(!due||delta===null)return;var entry={row:r,kind:kind,remaining:remaining,creditApplied:applied,delta:delta,due:due,extended:!!extended[sid],manual:!!manualSchedule[sid]};(allByUnit[String(r.unit_id)]=allByUnit[String(r.unit_id)]||[]).push(entry);if(remaining>1000)(byUnit[String(r.unit_id)]=byUnit[String(r.unit_id)]||[]).push(entry)});
+ var pairedBySchedule={},pairedGroups=[];
+ // Shared date: first installment and DLD/Admin must have one task.
+ // The linked IDs are stable even after either component is paid.
+ Object.keys(allByUnit).forEach(function(uid){
+   var byDate={};
+   allByUnit[uid].forEach(function(x){
+     if(x.extended||(x.kind!=='first'&&x.kind!=='dld'))return;
+     (byDate[x.due]=byDate[x.due]||[]).push(x);
+   });
+   Object.keys(byDate).forEach(function(d){
+     var group=byDate[d];
+     if(!group.some(function(x){return x.kind==='first'})||!group.some(function(x){return x.kind==='dld'}))return;
+     pairedGroups.push({uid:uid,due:d,rows:group});
+     group.forEach(function(x){pairedBySchedule[String(x.row.id)]=group});
+   });
+ });
  var desired=[],desiredKeys={};
- function addDesired(kind,uid,rows,due){if(!rows.length)return;var total=Math.round(rows.reduce(function(s,x){return s+x.remaining},0)*100)/100,k=kind==='overdue_follow_up'?overdueKey(uid,rows):groupKey(kind,uid,rows,due),p={unit_id:Number(uid),action_label:label(kind,total),due_date:kind==='overdue_follow_up'?rows[0].due:actionDue(kind,due),priority:priority(kind),note:kind==='overdue_follow_up'?overdueNote(rows,total):groupedNote(rows,total),status:'pending',owner_id:user.id,source:'automatic',auto_kind:kind,auto_key:k,schedule_id:rows.length===1?Number(rows[0].row.id):null,updated_at:new Date().toISOString()};desired.push(p);desiredKeys[k]=1}
+ function addDesired(kind,uid,rows,due,keyRows){if(!rows.length)return;var total=Math.round(rows.reduce(function(s,x){return s+x.remaining},0)*100)/100,links=keyRows||rows,k=kind==='overdue_follow_up'?overdueKey(uid,links):groupKey(kind,uid,links,due),p={unit_id:Number(uid),action_label:label(kind,total),due_date:kind==='overdue_follow_up'?rows[0].due:actionDue(kind,due),priority:priority(kind),note:kind==='overdue_follow_up'?overdueNote(rows,total):groupedNote(rows,total),status:'pending',owner_id:user.id,source:'automatic',auto_kind:kind,auto_key:k,schedule_id:links.length===1?Number(links[0].row.id):null,updated_at:new Date().toISOString()};desired.push(p);desiredKeys[k]=1}
  // A previous overdue stage or a manual payment follow-up must not hide the next installment.
  Object.keys(byUnit).forEach(function(uid){
    var rows=byUnit[uid].slice().sort(function(a,b){return a.due.localeCompare(b.due)||Number(a.row.id)-Number(b.row.id)});
@@ -78,16 +94,58 @@ async function run(){
    var current=dp.length?dp:pre.length?pre:rows.filter(function(x){return x.kind==='later'});
    var overdue=current.filter(function(x){return x.delta<0&&!x.extended&&!x.manual&&!pendingDemand[String(x.row.id)]});
    if(overdue.length)addDesired('overdue_follow_up',uid,overdue,overdue[0].due);
-   // Evaluate EVERY upcoming payable installment independently, including DLD and first installment.
+   // Create only one scheduled task for the shared payment obligation.
+   var seen={};
    rows.forEach(function(x){
-     var sid=String(x.row.id);
      if(x.delta<0||x.delta>10||x.extended)return;
-     if(!pendingDemand[sid]&&!finishedDemand[sid])addDesired('demand_letter',uid,[x],x.due);
-     // Preserve the existing gentle-reminder trigger while keeping it installment-linked.
-     if(x.delta===2&&!pendingDemand[sid]&&!recentDemand[sid])
-       addDesired('gentle_reminder',uid,[x],x.due);
+     var links=pairedBySchedule[String(x.row.id)]||[x],key=groupKey('demand_letter',uid,links,x.due);
+     if(seen[key])return;seen[key]=1;
+     var unpaid=links.filter(function(y){return y.remaining>1000&&!y.extended});
+     if(!unpaid.length)return;
+     var ids=links.map(function(y){return String(y.row.id)}),
+       pending=ids.some(function(id){return pendingDemand[id]}),
+       resolved=ids.some(function(id){return finishedDemand[id]}),
+       recent=ids.some(function(id){return recentDemand[id]});
+     if(pending||!resolved)addDesired('demand_letter',uid,unpaid,x.due,links);
+     if(x.delta===2&&!pending&&!recent&&!resolved)addDesired('gentle_reminder',uid,unpaid,x.due,links);
    });
  });
+ // Merge previously created pending single-stage Demand Letters into the shared task.
+ // Keep one task ID and preserve every other row in the audit history.
+ for(var g=0;g<pairedGroups.length;g++){
+   var group=pairedGroups[g],ids=group.rows.map(function(x){return String(x.row.id)}),
+     newKey=groupKey('demand_letter',group.uid,group.rows,group.due);
+   var matches=auto.filter(function(t){
+     if(t.auto_kind!=='demand_letter'||t.status!=='pending'||String(t.unit_id)!==String(group.uid))return false;
+     var taskDue=(text(t.auto_key).match(/[|]due:(\d{4}-\d{2}-\d{2})/)||[])[1];
+     if(taskDue!==group.due)return false;
+     var linked=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
+     return linked.some(function(id){return ids.indexOf(id)>=0});
+   });
+   if(!matches.length)continue;
+   matches.sort(function(a,b){
+     function order(t){if(t.auto_key===newKey)return 0;
+       return group.rows.some(function(x){return x.kind==='first'&&Number(x.row.id)===Number(t.schedule_id)})?1:2}
+     return order(a)-order(b)||Number(a.id)-Number(b.id);
+   });
+   var keep=matches[0],unpaid=group.rows.filter(function(x){return x.remaining>1000&&!x.extended});
+   if(keep.auto_key!==newKey||keep.schedule_id!==null){
+     var oldKey=keep.auto_key,upd={auto_key:newKey,schedule_id:null,updated_at:new Date().toISOString()};
+     if(unpaid.length)upd.note=groupedNote(unpaid,unpaid.reduce(function(n,x){return n+x.remaining},0));
+     var result=await sb.from('scheduled_actions').update(upd).eq('id',keep.id);
+     if(result.error)throw result.error;
+     if(byKey[oldKey]===keep)delete byKey[oldKey];
+     Object.assign(keep,upd);byKey[newKey]=keep;
+   }
+   ids.forEach(function(id){pendingDemand[id]=1});
+   for(var j=1;j<matches.length;j++){
+     var duplicate=matches[j],now=new Date().toISOString(),msg='Consolidated into Demand Letter task #'+keep.id+' for shared due date.';
+     var result=await sb.from('scheduled_actions').update({status:'cancelled',cancelled_at:now,updated_at:now,completion_note:msg}).eq('id',duplicate.id);
+     if(result.error)throw result.error;
+     duplicate.status='cancelled';duplicate.completion_note=msg;
+     if(byKey[duplicate.auto_key]===duplicate)delete byKey[duplicate.auto_key];
+   }
+ }
  var dead=[];
  auto.forEach(function(t){
    if(t.status!=='pending')return;
