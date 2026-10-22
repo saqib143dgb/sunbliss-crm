@@ -378,8 +378,8 @@
       button='Return to Management';
     }else if(collectionOutcomeTask(task)){
       var txReview=!!task.transaction_id;
-      var partialOption=!txReview&&!task.commitment_part_id?'<option value="partial_payment_commitment">Payment in parts</option>':'';
-      body='<p class="scheduled-outcome-help">Choose what happened. Review the next step before saving.</p>'+(!task.schedule_id?'<label class="brand-field">Related installment *<select id="saRelatedSchedule"><option value="">Loading installments…</option></select></label>':'<div id="saPaymentSummary" class="scheduled-outcome-current">Loading payment balance…</div>')+
+      var partialOption=!txReview&&!task.commitment_part_id&&linkedPaymentIds(task).length<2?'<option value="partial_payment_commitment">Payment in parts</option>':'';
+      body='<p class="scheduled-outcome-help">Choose what happened. Review the next step before saving.</p>'+(!task.schedule_id||linkedPaymentIds(task).length>1?'<label class="brand-field">Related installment *<select id="saRelatedSchedule"><option value="">Loading installments…</option></select></label>':'<div id="saPaymentSummary" class="scheduled-outcome-current">Loading payment balance…</div>')+
         '<label class="brand-field">What happened?<select id="saOutcome"><option value="">Select outcome</option>'+
         (txReview?'<option value="recheck_accounts">Recheck with Accounts</option>':'<option value="payment_reported">Payment received / reported</option><option value="will_pay_later">Payment promised</option>'+partialOption+'<option value="extension_request">Extension requested</option>')+
         '<option value="payment_issue">Payment query</option>'+(task.workflow_kind==='payment_query'?'<option value="query_resolved">Query resolved</option>':'')+
@@ -417,7 +417,7 @@
       function remaining(r){return Math.max(0,Number(r.revised_due_amount==null?r.due_amount:r.revised_due_amount)-Number(r.paid_amount||0)-(credits[r.id]||0));}
       function describe(r){return r.stage_name+' · AED '+remaining(r).toLocaleString('en-AE',{maximumFractionDigits:2})+' outstanding';}
       var select=panel.querySelector('#saRelatedSchedule'),summary=panel.querySelector('#saPaymentSummary');
-      if(select)select.innerHTML='<option value="">Select installment</option>'+(q[0].data||[]).filter(function(r){return remaining(r)>.01&&!/booking/i.test(r.stage_name);}).map(function(r){return '<option value="'+Number(r.id)+'">'+safe(describe(r))+'</option>';}).join('');
+      if(select){var linked=linkedPaymentIds(task);select.innerHTML='<option value="">Select installment</option>'+(q[0].data||[]).filter(function(r){return remaining(r)>.01&&!/booking/i.test(r.stage_name)&&(linked.length<2||linked.indexOf(Number(r.id))>=0);}).map(function(r){return '<option value="'+Number(r.id)+'">'+safe(describe(r))+'</option>';}).join('');}
       if(summary){var row=(q[0].data||[]).find(function(r){return Number(r.id)===Number(task.schedule_id);});summary.textContent=row?describe(row):'Linked installment could not be found. Reopen the task after syncing.';}
     }catch(e){var host=panel.querySelector('#saPaymentSummary');if(host)host.textContent='Balance unavailable. Sync and reopen to check the current amount.';var select=panel.querySelector('#saRelatedSchedule');if(select)select.innerHTML='<option value="">Could not load installments. Go back and retry.</option>';}
   }
@@ -526,7 +526,7 @@
   async function resolveCollectionOutcome(task,outcome,note,nextDate){
     // Payment entry owns the transaction and completion. Leaving it must not close this task.
     if(outcome==='payment_reported')return 'payment';
-    var scheduleId=Number(task.schedule_id||val('saRelatedSchedule'))||null;
+    var scheduleId=Number(linkedPaymentIds(task).length>1?val('saRelatedSchedule'):(task.schedule_id||val('saRelatedSchedule')))||null;
     var r=await sb.rpc('crm_record_scheduled_outcome',{
       p_task_id:Number(task.id),p_expected_updated_at:task.updated_at,
       p_outcome:outcome,p_schedule_id:scheduleId,p_note:note||null,
@@ -587,7 +587,16 @@
       }
       if(collectionOutcomeTask(task)){
         if(!outcome)throw new Error('Select an outcome.');
-        if(!task.schedule_id&&outcome!=='cancel_task'){var sid=Number(val('saRelatedSchedule'));if(!sid)throw new Error('Select the related installment.');task=Object.assign({},task,{schedule_id:sid});}
+        if((!task.schedule_id||linkedPaymentIds(task).length>1)&&outcome!=='cancel_task'){
+          var sid=Number(val('saRelatedSchedule'));if(!sid)throw new Error('Select which installment this outcome concerns.');
+          if(linkedPaymentIds(task).length>1&&!linkedPaymentIds(task).includes(sid))
+            throw new Error('Select a payment linked to this task.');
+          if(linkedPaymentIds(task).length>1){
+            var originalGroup=text(task.note).split('\n\n[Related payments]')[1];
+            if(originalGroup)note=(note||'')+'\n\n[Related payments]'+originalGroup;
+            if(outcome==='payment_reported')task=Object.assign({},task,{schedule_id:sid});
+          }else task=Object.assign({},task,{schedule_id:sid});
+        }
         if(['extension_request','payment_issue','cancel_task','query_resolved'].indexOf(outcome)>=0&&!note)throw new Error('Enter the reason or details.');
         if(['will_pay_later','no_response','extension_request','payment_issue','query_resolved'].indexOf(outcome)>=0&&!nextDate)throw new Error('Select the next date.');
         var result=await resolveCollectionOutcome(task,outcome,note,nextDate);
