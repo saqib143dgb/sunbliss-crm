@@ -31,6 +31,7 @@ test('distinct amounts and dates remain allocated to their own installments',()=
 test('payment reporting remains single-stage but no response and promises use grouped RPC',()=>{
  assert.match(src,/Choose one installment for this specific payment action/);
  assert.match(src,/p_schedule_ids:selected/);
+ assert.match(src,/p_outcome:outcome==='will_pay_later'\?'promise':outcome/);
  assert.match(src,/p_allocations:allocations/);
  assert.match(src,/saContactMethod/);
  assert.match(src,/Customer contact history/);
