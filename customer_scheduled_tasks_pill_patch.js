@@ -125,7 +125,9 @@
     if(!rows.length){list.innerHTML='<div class="crm-customer-tasks-empty">No active scheduled tasks for this customer.</div>';return;}
     list.innerHTML=rows.map(function(t){
       var state=dueState(t.due_date),note=str(t.note).trim(),label=str(t.action_label)||'Scheduled action';
-      return '<button type="button" class="crm-customer-tasks-item" data-customer-task-id="'+esc(t.id)+'" aria-label="Open '+esc(label)+'"><div class="crm-customer-tasks-row"><span>'+esc(label)+'</span><span class="crm-customer-tasks-due '+state.kind+'">'+esc(state.label)+'</span></div><div class="crm-customer-tasks-note">'+esc(dueText(t.due_date))+(note?' · '+esc(note):'')+'</div></button>';
+      var payment=typeof window.__sunblissTaskPaymentSummary==='function'?window.__sunblissTaskPaymentSummary(t):'';
+      var origin=typeof window.__sunblissTaskOrigin==='function'?window.__sunblissTaskOrigin(t):'';
+      return '<button type="button" class="crm-customer-tasks-item" data-customer-task-id="'+esc(t.id)+'" aria-label="Open '+esc(label)+'"><div class="crm-customer-tasks-row"><span>'+esc(label)+'</span><span class="crm-customer-tasks-due '+state.kind+'">'+esc(state.label)+'</span></div><div class="crm-customer-tasks-note">'+esc(dueText(t.due_date))+(payment?' · '+esc(payment):note?' · '+esc(note):'')+(origin?' · '+esc(origin):'')+'</div></button>';
     }).join('');
   }
   async function open(){
