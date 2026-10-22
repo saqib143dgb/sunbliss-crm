@@ -118,32 +118,69 @@
   function paymentStage(r){return!!stageKind(r);}
   function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[1].split(',').map(Number):[];}
   function isPaymentAction(action){return /(payment|installment|dld|admin fee|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/i.test(text(action));}
-  function relatedPaymentRows(c){
-    var core=window.PaymentExtensionsCore,cc=core&&core.cache;if(!c||!cc||!Array.isArray(cc.s))return[];
-    var credit=typeof core.creditMap==='function'?core.creditMap():{},ext={};
-    (cc.e||[]).forEach(function(e){if(e&&e.status==='active'&&e.payment_schedule_id!=null)ext[String(e.payment_schedule_id)]=text(e.extended_due_date).slice(0,10);});
-    var rows=cc.s.filter(function(r){
-      if(Number(r&&r.unit_id)!==Number(c.sno)||!paymentStage(r))return false;
-      var status=text(r&&r.status).trim().toLowerCase();
-      if(status==='paid'||status==='completed'||status==='settled')return false;
-      var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0);
-      return Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied)>1;
-    }).map(function(r){
-      var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0),due=ext[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining=Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied);
-      return{row:r,due:due,remaining:remaining,kind:stageKind(r)};
-    }).sort(function(a,b){
-      var ad=text(a.due),bd=text(b.due);
-      if(!ad&&bd)return 1;
-      if(ad&&!bd)return-1;
-      return ad.localeCompare(bd)||Number(a.row.id)-Number(b.row.id);
-    });
-    var dp=rows.filter(function(x){return x.kind==='dp';});if(dp.length)return dp;
-    var pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld';});if(pre.length)return pre;
-    return rows.filter(function(x){return x.kind==='later';});
+
+  function linkedPaymentIds(t){
+    if(!t)return [];
+    var ids=idsFromKey(t.auto_key);
+    return ids.length>1?ids:(t.schedule_id!=null?[Number(t.schedule_id)]:ids);
   }
-  function relatedPaymentField(c,selected){
-    var rows=relatedPaymentRows(c);if(!rows.length)return'';var chosen=selected==='auto'?Number(rows[0].row.id):Number(selected)||0;
-    return '<label class="brand-field">Related payment<select id="saRelatedSchedule"><option value="">General customer follow-up</option>'+rows.map(function(x){var r=x.row;return'<option value="'+r.id+'"'+(Number(r.id)===chosen?' selected':'')+'>'+safe(r.stage_name)+' · '+safe(formatDate(x.due))+' · '+safe(typeof window.fmtAED==='function'?window.fmtAED(x.remaining):x.remaining)+'</option>';}).join('')+'</select></label>';
+  function selectedPaymentIds(panel){
+    return Array.from((panel||document).querySelectorAll('#saPaymentList input[name="saPaymentIds"]:checked'))
+      .map(function(x){return Number(x.value)}).filter(function(n){return Number.isInteger(n)&&n>0})
+      .filter(function(n,i,a){return a.indexOf(n)===i}).sort(function(a,b){return a-b;});
+  }
+  function userNoteOnly(v){return text(v).split('\n\n[Related payments]')[0].trim();}
+  function selectedPaymentNote(note,rows){
+    if(rows.length<2)return note||null;
+    var total=Math.round(rows.reduce(function(n,x){return n+x.remaining},0)*100)/100;
+    return (note?note+'\n\n':'')+'[Related payments]\n'
+      +rows.map(function(x){return x.name+' · '+formatDate(x.due)+' · AED '+x.remaining.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2})+' outstanding';}).join('\n')
+      +'\nTotal outstanding · AED '+total.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function relatedPaymentField(){
+    return '<div class="brand-field"><span>Related payments</span>'
+      +'<details class="sa-payment-selector" id="saPaymentSelector"><summary id="saPaymentSelectorSummary">Loading payments…</summary>'
+      +'<div class="sa-payment-list" id="saPaymentList">Loading outstanding installments…</div></details>'
+      +'<p class="sa-payment-total" id="saPaymentTotal">Select one, multiple, or none for a general follow-up.</p></div>';
+  }
+  async function loadRelatedPaymentChoices(c,task,panel){
+    var list=panel.querySelector('#saPaymentList'),summary=panel.querySelector('#saPaymentSelectorSummary'),total=panel.querySelector('#saPaymentTotal');
+    if(!list)return;
+    try{
+      var q=await Promise.all([
+        sb.from('current_payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',Number(c.sno)),
+        sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',Number(c.sno)),
+        sb.from('payment_extensions').select('payment_schedule_id,extended_due_date,status').eq('unit_id',Number(c.sno)).eq('status','active')
+      ]);
+      q.forEach(function(r){if(r.error)throw r.error;});
+      if(!panel.isConnected)return;
+      var credit={},extensions={};
+      (q[1].data||[]).forEach(function(x){var k=String(x.payment_schedule_id);credit[k]=(credit[k]||0)+(Number(x.amount)||0);});
+      (q[2].data||[]).forEach(function(x){if(x.payment_schedule_id&&x.extended_due_date)extensions[String(x.payment_schedule_id)]=text(x.extended_due_date).slice(0,10);});
+      var linked=linkedPaymentIds(task);
+      var rows=(q[0].data||[]).filter(paymentStage).map(function(r){
+        var amount=Number(r.revised_due_amount==null?r.due_amount:r.revised_due_amount)||0;
+        var remaining=Math.round(Math.max(0,amount-(Number(r.paid_amount)||0)-(credit[String(r.id)]||0))*100)/100;
+        return {id:Number(r.id),name:text(r.stage_name),due:extensions[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining:remaining};
+      }).filter(function(x){return x.remaining>.01||linked.indexOf(x.id)>=0;})
+        .sort(function(a,b){return text(a.due).localeCompare(text(b.due))||a.id-b.id;});
+      panel.__saPaymentRows=rows;
+      if(!rows.length){list.textContent='No outstanding payments. Leave unselected for a general follow-up.';summary.textContent='General customer follow-up';total.textContent='No outstanding payment stages available.';return;}
+      list.innerHTML=rows.map(function(x){
+        return '<label class="sa-payment-option"><input type="checkbox" name="saPaymentIds" value="'+x.id+'"'+(linked.indexOf(x.id)>=0?' checked':'')+'><span class="sa-payment-option-text">'+safe(x.name)+'<span class="sa-payment-option-details">'+safe(formatDate(x.due))+' · '+safe(typeof window.fmtAED==='function'?window.fmtAED(x.remaining):'AED '+x.remaining.toLocaleString('en-AE',{maximumFractionDigits:2}))+' outstanding</span></span></label>';
+      }).join('');
+      function update(){
+        var ids=selectedPaymentIds(panel),chosen=rows.filter(function(x){return ids.indexOf(x.id)>=0;});
+        var sum=Math.round(chosen.reduce(function(n,x){return n+x.remaining},0)*100)/100;
+        summary.textContent=chosen.length?chosen.length+' payment'+(chosen.length===1?'':'s')+' selected':'Select payment(s)';
+        total.textContent=chosen.length?'Selected outstanding: '+(typeof window.fmtAED==='function'?window.fmtAED(sum):'AED '+sum.toLocaleString('en-AE',{maximumFractionDigits:2})):'No payments selected — general customer follow-up';
+      }
+      list.addEventListener('change',update);update();
+    }catch(e){
+      list.textContent='Could not load payment stages. Reopen to try again.';
+      summary.textContent='Payments unavailable';total.textContent='Could not verify outstanding payments.';
+      panel.__saPaymentRows=null;
+    }
   }
   function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(t.workflow_kind==='modification_request'&&/in progress/i.test(text(t.action_label)))return{key:'inprogress',label:'In Progress'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
   function addDaysIso(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(Number(n)||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
