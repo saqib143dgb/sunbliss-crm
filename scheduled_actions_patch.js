@@ -426,6 +426,17 @@
       return Number(row.unit_id)===Number(task.unit_id)&&row.status==='pending'&&isBookingWelcome(row);
     });
   }
+  function receiptPaymentMethod(remarks){
+    var raw=text(remarks).trim();
+    if(/^cash\s*(?:\/|-|or)\s*card\b/i.test(raw))return 'Cash/Card';
+    if(/^cheque\b/i.test(raw))return 'Cheque';
+    if(/^card\b/i.test(raw))return 'Card';
+    if(/^cash\b/i.test(raw))return 'Cash';
+    if(/^online\s+transfer\b/i.test(raw))return 'Online Transfer';
+    if(/^online\b/i.test(raw))return 'Online';
+    if(/^(?:bank|wire)\s+transfer\b/i.test(raw))return 'Bank Transfer';
+    return 'Not recorded';
+  }
   async function loadReceiptDetails(task,panel){
     var host=panel.querySelector('#saReceiptInfo'),save=panel.querySelector('#saComplete');
     if(!host||!save)return;
@@ -433,7 +444,7 @@
     try{
       if(!task.transaction_id)throw new Error('Missing linked payment transaction.');
       var result=await sb.from('payment_transactions')
-        .select('id,unit_id,amount,payment_type,payment_schedule_id,accounts_confirmation_status')
+        .select('id,unit_id,amount,payment_type,payment_date,remarks,payment_schedule_id,accounts_confirmation_status')
         .eq('id',Number(task.transaction_id)).single();
       if(result.error)throw result.error;
       if(!panel.isConnected)return;
@@ -450,11 +461,15 @@
       var waitingWelcome=receiptNeedsWelcome(task,tx);
       var stageName=text(stage&&stage.stage_name||tx.payment_type||'Payment');
       var due=stage&&formatDate(stage.revised_due_date||stage.due_date);
+      var paidOn=tx.payment_date?formatDate(tx.payment_date):'Not recorded';
+      var method=receiptPaymentMethod(tx.remarks);
       host.innerHTML='<div class="sa-receipt-card">'+
         '<div class="sa-receipt-top"><span class="sa-receipt-kicker">Receipt amount</span>'+
         (confirmed?'<span class="sa-receipt-status">Accounts confirmed</span>':'<span class="sa-receipt-warning-label">Accounts confirmation pending</span>')+'</div>'+
         '<strong class="sa-receipt-amount">'+safe(amount)+'</strong>'+
-        '<div class="sa-receipt-meta"><span>Related payment</span><strong>'+safe(stageName)+'</strong></div>'+
+        '<div class="sa-receipt-meta"><span>Related payment</span><strong>'+safe(stageName)+'</strong></div>'+ 
+        '<div class="sa-receipt-meta"><span>Paid on</span><strong>'+safe(paidOn)+'</strong></div>'+ 
+        '<div class="sa-receipt-meta"><span>Payment method</span><strong>'+safe(method)+'</strong></div>'+
         (due?'<div class="sa-receipt-meta"><span>Instalment due</span><strong>'+safe(due)+'</strong></div>':'')+
         '</div>'+
         (waitingWelcome?'<p class="sa-receipt-alert">Complete the pending Welcome Letter before sending this initial-payment receipt.</p>':'')+
