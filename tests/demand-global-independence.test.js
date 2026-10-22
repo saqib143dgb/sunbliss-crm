@@ -45,10 +45,36 @@ test('manual payment follow-up never suppresses future demand letter',async()=>{
  const w=await simulate({rows:[payable(10,10)],tasks:[{id:5,unit_id:2,status:'pending',source:'manual',auto_kind:null,action_label:'Payment Follow-up with Customer',schedule_id:10,note:''}]});
  assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'&&x.val.schedule_id===10));
 });
-test('first installment and DLD same date each receive an installment-linked task',async()=>{
+test('same-date first installment and DLD create one shared task; down payment remains independent',async()=>{
  const w=await simulate({rows:[payable(10,6,'1st Installment'),payable(11,6,'DLD + Admin Fees (SPA)'),payable(12,6,'Down Payment')]});
  const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
- assert.deepEqual(d.map(x=>x.val.schedule_id).sort(),[10,11,12]);
+ assert.equal(d.length,2);
+ assert(d.some(x=>x.val.schedule_id===null&&x.val.auto_key.includes('schedules:10,11')&&x.val.note.includes('1st Installment')&&x.val.note.includes('DLD + Admin Fees')));
+ assert(d.some(x=>x.val.schedule_id===12));
+});
+test('shared due date keeps one demand letter when first installment is paid',async()=>{
+ const first=payable(10,6,'1st Installment');first.paid_amount=first.due_amount;
+ const w=await simulate({rows:[first,payable(11,6,'DLD + Admin Fees (SPA)')]});
+ const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
+ assert.equal(d.length,1);
+ assert(d[0].val.auto_key.includes('schedules:10,11'));
+ assert(d[0].val.note.includes('DLD + Admin Fees'));
+ assert(!d[0].val.note.includes('1st Installment'));
+});
+test('shared due date keeps one demand letter when DLD and admin fees are paid',async()=>{
+ const dld=payable(11,6,'DLD + Admin Fees (SPA)');dld.paid_amount=dld.due_amount;
+ const w=await simulate({rows:[payable(10,6,'1st Installment'),dld]});
+ const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
+ assert.equal(d.length,1);
+ assert(d[0].val.auto_key.includes('schedules:10,11'));
+ assert(d[0].val.note.includes('1st Installment'));
+ assert(!d[0].val.note.includes('DLD + Admin Fees'));
+});
+test('different first installment and DLD due dates retain separate tasks',async()=>{
+ const w=await simulate({rows:[payable(10,6,'1st Installment'),payable(11,8,'DLD + Admin Fees (SPA)')]});
+ const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
+ assert.equal(d.length,2);
+ assert.deepEqual(d.map(x=>x.val.schedule_id).sort(),[10,11]);
 });
 test('completed and explicitly cancelled demand letters stay untouched',async()=>{
  const rows=[payable(10,10),payable(11,10)];
