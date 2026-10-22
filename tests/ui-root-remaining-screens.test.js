@@ -101,7 +101,7 @@ test('Scheduled Actions original due dates and all workflow handlers are preserv
   assert.match(tasks,/sb\.rpc\('crm_resolve_payment_workflow_task'/);
   assert.match(tasks,/sb\.rpc\('crm_record_extension_customer_response'/);
   assert.match(tasks,/if\(!due\)\{fail\('Select a due date\.'\)/);
-  assert.match(tasks,/payload=\{action_label:action,due_date:due,priority:priority,note:note/);
+  assert.match(tasks,/payload=\{action_label:action,due_date:due,priority:priority,note:selectedPaymentNote\(note,chosen\)/);
 });
 test('Scheduled Action preview remains in the scroll card when present',()=>{
   assert.match(preview,/panel\.querySelector\('\.crm-scheduled-scroll'\)/);

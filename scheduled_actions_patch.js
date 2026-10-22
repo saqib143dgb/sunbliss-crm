@@ -84,6 +84,15 @@
       '#scheduledActionPanel .scheduled-form-summary{margin:-2px 0 14px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font-size:11.5px;line-height:1.45;color:var(--muted)}',
       '#scheduledActionPanel select,#scheduledActionPanel input,#scheduledActionPanel textarea{display:block;width:100%;margin-top:5px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:8px;font:500 16px/1.25 Inter,sans-serif;color:var(--ink);background:var(--paper-dim);box-sizing:border-box}',
       '#scheduledActionPanel textarea{min-height:100px;resize:vertical}',
+       '#scheduledActionPanel .sa-payment-selector{border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);margin:5px 0;overflow:hidden}',
+       '#scheduledActionPanel .sa-payment-selector>summary{cursor:pointer;padding:10px 11px;font:600 12px/1.45 Inter,sans-serif;color:var(--ink);list-style-position:inside}',
+       '#scheduledActionPanel .sa-payment-list{max-height:260px;overflow:auto;border-top:1px solid var(--paper-line);padding:4px 8px}',
+       '#scheduledActionPanel .sa-payment-option{display:flex!important;align-items:flex-start;gap:10px;padding:9px 4px;margin:0;border-bottom:1px solid var(--paper-line);cursor:pointer;color:var(--ink)}',
+       '#scheduledActionPanel .sa-payment-option:last-child{border-bottom:0}',
+       '#scheduledActionPanel .sa-payment-option input[type="checkbox"]{appearance:auto!important;display:inline-block!important;width:17px!important;min-width:17px!important;height:17px!important;padding:0!important;margin:2px 0 0!important;flex:none;accent-color:var(--gold-deep,#A27C35)}',
+       '#scheduledActionPanel .sa-payment-option-text{display:block;flex:1;min-width:0;font:600 12px/1.35 Inter,sans-serif}',
+       '#scheduledActionPanel .sa-payment-option-details{display:block;color:var(--muted);font:400 11px/1.4 Inter,sans-serif;margin-top:3px}',
+       '#scheduledActionPanel .sa-payment-total{font:600 11px/1.4 Inter,sans-serif;color:var(--muted);margin:5px 1px 13px}',
       '#scheduledActionPanel .scheduled-danger{margin-top:10px;width:100%;justify-content:center;color:var(--rust)}',
       '.scheduled-next-check{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font-size:11.5px;line-height:1.4;color:var(--muted)}',
       '.scheduled-next-check input{width:auto!important;margin:1px 0 0!important}',
@@ -118,32 +127,69 @@
   function paymentStage(r){return!!stageKind(r);}
   function idsFromKey(k){var m=text(k).match(/\|schedules?:([0-9,]+)/);return m?m[1].split(',').map(Number):[];}
   function isPaymentAction(action){return /(payment|installment|dld|admin fee|demand|reminder|outstanding|overdue|receipt|transfer|charges|collection)/i.test(text(action));}
-  function relatedPaymentRows(c){
-    var core=window.PaymentExtensionsCore,cc=core&&core.cache;if(!c||!cc||!Array.isArray(cc.s))return[];
-    var credit=typeof core.creditMap==='function'?core.creditMap():{},ext={};
-    (cc.e||[]).forEach(function(e){if(e&&e.status==='active'&&e.payment_schedule_id!=null)ext[String(e.payment_schedule_id)]=text(e.extended_due_date).slice(0,10);});
-    var rows=cc.s.filter(function(r){
-      if(Number(r&&r.unit_id)!==Number(c.sno)||!paymentStage(r))return false;
-      var status=text(r&&r.status).trim().toLowerCase();
-      if(status==='paid'||status==='completed'||status==='settled')return false;
-      var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0);
-      return Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied)>1;
-    }).map(function(r){
-      var applied=stageKind(r)==='dld'?0:(Number(credit[r.id])||0),due=ext[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining=Math.max(0,(Number(r.due_amount)||0)-(Number(r.paid_amount)||0)-applied);
-      return{row:r,due:due,remaining:remaining,kind:stageKind(r)};
-    }).sort(function(a,b){
-      var ad=text(a.due),bd=text(b.due);
-      if(!ad&&bd)return 1;
-      if(ad&&!bd)return-1;
-      return ad.localeCompare(bd)||Number(a.row.id)-Number(b.row.id);
-    });
-    var dp=rows.filter(function(x){return x.kind==='dp';});if(dp.length)return dp;
-    var pre=rows.filter(function(x){return x.kind==='first'||x.kind==='dld';});if(pre.length)return pre;
-    return rows.filter(function(x){return x.kind==='later';});
+
+  function linkedPaymentIds(t){
+    if(!t)return [];
+    var ids=idsFromKey(t.auto_key);
+    return ids.length>1?ids:(t.schedule_id!=null?[Number(t.schedule_id)]:ids);
   }
-  function relatedPaymentField(c,selected){
-    var rows=relatedPaymentRows(c);if(!rows.length)return'';var chosen=selected==='auto'?Number(rows[0].row.id):Number(selected)||0;
-    return '<label class="brand-field">Related payment<select id="saRelatedSchedule"><option value="">General customer follow-up</option>'+rows.map(function(x){var r=x.row;return'<option value="'+r.id+'"'+(Number(r.id)===chosen?' selected':'')+'>'+safe(r.stage_name)+' · '+safe(formatDate(x.due))+' · '+safe(typeof window.fmtAED==='function'?window.fmtAED(x.remaining):x.remaining)+'</option>';}).join('')+'</select></label>';
+  function selectedPaymentIds(panel){
+    return Array.from((panel||document).querySelectorAll('#saPaymentList input[name="saPaymentIds"]:checked'))
+      .map(function(x){return Number(x.value)}).filter(function(n){return Number.isInteger(n)&&n>0})
+      .filter(function(n,i,a){return a.indexOf(n)===i}).sort(function(a,b){return a-b;});
+  }
+  function userNoteOnly(v){return text(v).split('\n\n[Related payments]')[0].trim();}
+  function selectedPaymentNote(note,rows){
+    if(rows.length<2)return note||null;
+    var total=Math.round(rows.reduce(function(n,x){return n+x.remaining},0)*100)/100;
+    return (note?note+'\n\n':'')+'[Related payments]\n'
+      +rows.map(function(x){return x.name+' · '+formatDate(x.due)+' · AED '+x.remaining.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2})+' outstanding';}).join('\n')
+      +'\nTotal outstanding · AED '+total.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function relatedPaymentField(){
+    return '<div class="brand-field"><span>Related payments</span>'
+      +'<details class="sa-payment-selector" id="saPaymentSelector"><summary id="saPaymentSelectorSummary">Loading payments…</summary>'
+      +'<div class="sa-payment-list" id="saPaymentList">Loading outstanding installments…</div></details>'
+      +'<p class="sa-payment-total" id="saPaymentTotal">Select one, multiple, or none for a general follow-up.</p></div>';
+  }
+  async function loadRelatedPaymentChoices(c,task,panel){
+    var list=panel.querySelector('#saPaymentList'),summary=panel.querySelector('#saPaymentSelectorSummary'),total=panel.querySelector('#saPaymentTotal');
+    if(!list)return;
+    try{
+      var q=await Promise.all([
+        sb.from('current_payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',Number(c.sno)),
+        sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',Number(c.sno)),
+        sb.from('payment_extensions').select('payment_schedule_id,extended_due_date,status').eq('unit_id',Number(c.sno)).eq('status','active')
+      ]);
+      q.forEach(function(r){if(r.error)throw r.error;});
+      if(!panel.isConnected)return;
+      var credit={},extensions={};
+      (q[1].data||[]).forEach(function(x){var k=String(x.payment_schedule_id);credit[k]=(credit[k]||0)+(Number(x.amount)||0);});
+      (q[2].data||[]).forEach(function(x){if(x.payment_schedule_id&&x.extended_due_date)extensions[String(x.payment_schedule_id)]=text(x.extended_due_date).slice(0,10);});
+      var linked=linkedPaymentIds(task);
+      var rows=(q[0].data||[]).filter(paymentStage).map(function(r){
+        var amount=Number(r.revised_due_amount==null?r.due_amount:r.revised_due_amount)||0;
+        var remaining=Math.round(Math.max(0,amount-(Number(r.paid_amount)||0)-(credit[String(r.id)]||0))*100)/100;
+        return {id:Number(r.id),name:text(r.stage_name),due:extensions[String(r.id)]||text(r.revised_due_date||r.due_date).slice(0,10),remaining:remaining};
+      }).filter(function(x){return x.remaining>.01||linked.indexOf(x.id)>=0;})
+        .sort(function(a,b){return text(a.due).localeCompare(text(b.due))||a.id-b.id;});
+      panel.__saPaymentRows=rows;
+      if(!rows.length){list.textContent='No outstanding payments. Leave unselected for a general follow-up.';summary.textContent='General customer follow-up';total.textContent='No outstanding payment stages available.';return;}
+      list.innerHTML=rows.map(function(x){
+        return '<label class="sa-payment-option"><input type="checkbox" name="saPaymentIds" value="'+x.id+'"'+(linked.indexOf(x.id)>=0?' checked':'')+'><span class="sa-payment-option-text">'+safe(x.name)+'<span class="sa-payment-option-details">'+safe(formatDate(x.due))+' · '+safe(typeof window.fmtAED==='function'?window.fmtAED(x.remaining):'AED '+x.remaining.toLocaleString('en-AE',{maximumFractionDigits:2}))+' outstanding</span></span></label>';
+      }).join('');
+      function update(){
+        var ids=selectedPaymentIds(panel),chosen=rows.filter(function(x){return ids.indexOf(x.id)>=0;});
+        var sum=Math.round(chosen.reduce(function(n,x){return n+x.remaining},0)*100)/100;
+        summary.textContent=chosen.length?chosen.length+' payment'+(chosen.length===1?'':'s')+' selected':'Select payment(s)';
+        total.textContent=chosen.length?'Selected outstanding: '+(typeof window.fmtAED==='function'?window.fmtAED(sum):'AED '+sum.toLocaleString('en-AE',{maximumFractionDigits:2})):'No payments selected — general customer follow-up';
+      }
+      list.addEventListener('change',update);update();
+    }catch(e){
+      list.textContent='Could not load payment stages. Reopen to try again.';
+      summary.textContent='Payments unavailable';total.textContent='Could not verify outstanding payments.';
+      panel.__saPaymentRows=null;
+    }
   }
   function stateForTask(t){var today=todayIso(0),tomorrow=todayIso(1),date=text(t.due_date);if(t.status==='completed')return{key:'completed',label:'Completed'};if(t.workflow_kind==='modification_request'&&/in progress/i.test(text(t.action_label)))return{key:'inprogress',label:'In Progress'};if(date<today)return{key:'overdue',label:'Overdue'};if(date===today)return{key:'today',label:'Today'};if(date===tomorrow)return{key:'tomorrow',label:'Tomorrow'};return{key:'upcoming',label:'Upcoming'};}
   function addDaysIso(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(Number(n)||0));var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day);}
@@ -233,9 +279,10 @@
     removePanel();closeActionMenu();var c=task?customerForUnit(task.unit_id):currentCustomer();if(!c)return;
     var current=task?task.action_label:'Payment follow-up',isKnown=ACTIONS.indexOf(current)>=0,selectValue=isKnown?current:'Other';
     var p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode',task?'edit':'new');
-    p.innerHTML='<p class="section-label" style="margin-top:0">'+(task?'Edit Scheduled Action':'Schedule Action')+'</p><p class="scheduled-form-summary">Unit '+safe(c.unit)+' · '+safe(c.name)+(task?' · update or reschedule this action.':' · this action will stay in Scheduled Actions on the overview until completed or cancelled.')+'</p><p class="brand-error" id="saError" style="display:none"></p><label class="brand-field">Action<select id="saAction">'+actionOptions(selectValue)+'</select></label><label class="brand-field" id="saCustomWrap"'+(selectValue==='Other'?'':' style="display:none"')+'>Custom action<input type="text" id="saCustom" maxlength="120" value="'+safe(isKnown?'':current)+'" placeholder="What needs to be done?" /></label>'+relatedPaymentField(c,task?task.schedule_id:'auto')+'<label class="brand-field">Due date<input type="date" id="saDate" value="'+safe(task?task.due_date:'')+'" /></label><label class="brand-field">Priority<select id="saPriority"><option'+((task?task.priority:'Medium')==='High'?' selected':'')+'>High</option><option'+((task?task.priority:'Medium')==='Medium'?' selected':'')+'>Medium</option><option'+((task?task.priority:'Medium')==='Low'?' selected':'')+'>Low</option></select></label><label class="brand-field">Note (optional)<textarea id="saNote" placeholder="Short instruction or customer commitment">'+safe(task&&task.note||'')+'</textarea></label><div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saSave">'+(task?'Save Changes':'Schedule Action')+'</button><button type="button" class="btn-paper" id="saClose">Cancel</button></div>'+(task?'<button type="button" class="btn-paper scheduled-danger" id="saCancelTask">Cancel Scheduled Action</button>':'');
+    p.innerHTML='<p class="section-label" style="margin-top:0">'+(task?'Edit Scheduled Action':'Schedule Action')+'</p><p class="scheduled-form-summary">Unit '+safe(c.unit)+' · '+safe(c.name)+(task?' · update or reschedule this action.':' · this action will stay in Scheduled Actions on the overview until completed or cancelled.')+'</p><p class="brand-error" id="saError" style="display:none"></p><label class="brand-field">Action<select id="saAction">'+actionOptions(selectValue)+'</select></label><label class="brand-field" id="saCustomWrap"'+(selectValue==='Other'?'':' style="display:none"')+'>Custom action<input type="text" id="saCustom" maxlength="120" value="'+safe(isKnown?'':current)+'" placeholder="What needs to be done?" /></label>'+relatedPaymentField()+'<label class="brand-field">Due date<input type="date" id="saDate" value="'+safe(task?task.due_date:'')+'" /></label><label class="brand-field">Priority<select id="saPriority"><option'+((task?task.priority:'Medium')==='High'?' selected':'')+'>High</option><option'+((task?task.priority:'Medium')==='Medium'?' selected':'')+'>Medium</option><option'+((task?task.priority:'Medium')==='Low'?' selected':'')+'>Low</option></select></label><label class="brand-field">Note (optional)<textarea id="saNote" placeholder="Short instruction or customer commitment">'+safe(userNoteOnly(task&&task.note))+'</textarea></label><div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saSave">'+(task?'Save Changes':'Schedule Action')+'</button><button type="button" class="btn-paper" id="saClose">Cancel</button></div>'+(task?'<button type="button" class="btn-paper scheduled-danger" id="saCancelTask">Cancel Scheduled Action</button>':'');
     document.body.appendChild(p);
     scheduledRootUi(p);
+    loadRelatedPaymentChoices(c,task,p);
     document.getElementById('saAction').onchange=function(){document.getElementById('saCustomWrap').style.display=this.value==='Other'?'block':'none';};
     document.getElementById('saClose').onclick=removePanel;
     document.getElementById('saSave').onclick=function(){saveTask(c,task);};
@@ -244,21 +291,45 @@
 
   function val(id){var el=document.getElementById(id);return el?text(el.value).trim():'';}
   async function saveTask(c,task){
-    var err=document.getElementById('saError'),save=document.getElementById('saSave');
-    var action=val('saAction')==='Other'?val('saCustom'):val('saAction'),due=val('saDate'),priority=val('saPriority'),note=val('saNote')||null,related=Number(val('saRelatedSchedule'))||null;
+    var panel=document.getElementById('scheduledActionPanel'),err=document.getElementById('saError'),save=document.getElementById('saSave');
+    var action=val('saAction')==='Other'?val('saCustom'):val('saAction'),due=val('saDate'),priority=val('saPriority'),note=val('saNote')||null;
     function fail(msg){if(err){err.textContent=msg;err.style.display='block';}}
-    if(action.length<2){fail('Enter the action you need to complete.');return;}if(!due){fail('Select a due date.');return;}
+    if(action.length<2){fail('Enter the action you need to complete.');return;}
+    if(!due){fail('Select a due date.');return;}
+    if(!panel||!Array.isArray(panel.__saPaymentRows)){fail('Payment stages have not loaded. Reopen the form and try again.');return;}
+    var ids=selectedPaymentIds(panel),all=panel.__saPaymentRows,chosen=ids.map(function(id){return all.find(function(x){return x.id===id;});}).filter(Boolean);
+    if(ids.length!==chosen.length){fail('Payment selection changed. Reopen the form and select again.');return;}
     if(save){save.disabled=true;save.textContent='Saving…';}if(err)err.style.display='none';
     try{
-      var payment=isPaymentAction(action,note)||!!related;
-      var payload={action_label:action,due_date:due,priority:priority,note:note,source:'manual',auto_kind:null,schedule_id:related,auto_key:related&&payment?'manual_payment|unit:'+Number(c.sno)+'|schedule:'+related:null,updated_at:new Date().toISOString()};var r;
-      if(task)r=await sb.from('scheduled_actions').update(payload).eq('id',task.id).select().single();
-      else{
-        var existing=related?cache.rows.find(function(t){if(Number(t.unit_id)!==Number(c.sno)||t.status!=='pending'||t.auto_kind==='extension_active'||t.workflow_kind||t.transaction_id||t.extension_request_id||t.modification_request_id)return false;if(Number(t.schedule_id)===related)return true;return idsFromKey(t.auto_key).indexOf(related)>=0;}):null;
-        if(existing)r=await sb.from('scheduled_actions').update(payload).eq('id',existing.id).select().single();
-        else{payload.unit_id=Number(c.sno);r=await sb.from('scheduled_actions').insert(payload).select().single();}
+      var related=ids.length===1?ids[0]:null,
+        autoKey=ids.length>1?'manual_payment|unit:'+Number(c.sno)+'|schedules:'+ids.join(','):
+          related?'manual_payment|unit:'+Number(c.sno)+'|schedule:'+related:null,
+        payload={action_label:action,due_date:due,priority:priority,note:selectedPaymentNote(note,chosen),
+          source:'manual',auto_kind:null,schedule_id:related,auto_key:autoKey,updated_at:new Date().toISOString()},r;
+      if(!task&&related){
+        var conflict=cache.rows.find(function(t){return Number(t.unit_id)===Number(c.sno)&&t.status==='pending'&&t.source==='manual'&&
+          !t.auto_kind&&Number(t.schedule_id)===related&&!t.transaction_id&&!t.commitment_part_id&&
+          !t.extension_request_id&&!t.modification_request_id;});
+        if(conflict)throw new Error('A task already exists for this payment. Open that task to edit it, or select multiple payments.');
       }
-      if(r.error)throw r.error;removePanel();await refreshAfterChange();
+      if(!task&&ids.length>1){
+        var duplicate=cache.rows.find(function(t){return Number(t.unit_id)===Number(c.sno)&&t.status==='pending'&&
+          t.source==='manual'&&t.action_label===action&&t.auto_key===autoKey;});
+        if(duplicate)throw new Error('A follow-up for these selected payments already exists. Open that task instead.');
+        // Protect existing booking-balance follow-ups such as B3-605.
+        if(action==='Payment follow-up'){
+          var bookingDuplicate=cache.rows.find(function(t){
+            if(Number(t.unit_id)!==Number(c.sno)||t.status!=='pending'||!/^booking_balance\|/.test(text(t.auto_key)))return false;
+            var note=text(t.note);
+            return ids.every(function(id){return note.indexOf('(schedule #'+id+')')>=0;});
+          });
+          if(bookingDuplicate)throw new Error('These payments are already covered by an existing booking follow-up. Open that task instead of scheduling a duplicate.');
+        }
+      }
+      if(task)r=await sb.from('scheduled_actions').update(payload).eq('id',task.id).select().single();
+      else{payload.unit_id=Number(c.sno);r=await sb.from('scheduled_actions').insert(payload).select().single();}
+      if(r.error)throw r.error;
+      removePanel();await refreshAfterChange();
     }catch(e){fail(e&&e.message?e.message:'Could not save this scheduled action.');if(save){save.disabled=false;save.textContent=task?'Save Changes':'Schedule Action';}}
   }
 
@@ -316,8 +387,8 @@
       button='Return to Management';
     }else if(collectionOutcomeTask(task)){
       var txReview=!!task.transaction_id;
-      var partialOption=!txReview&&!task.commitment_part_id?'<option value="partial_payment_commitment">Payment in parts</option>':'';
-      body='<p class="scheduled-outcome-help">Choose what happened. Review the next step before saving.</p>'+(!task.schedule_id?'<label class="brand-field">Related installment *<select id="saRelatedSchedule"><option value="">Loading installments…</option></select></label>':'<div id="saPaymentSummary" class="scheduled-outcome-current">Loading payment balance…</div>')+
+      var partialOption=!txReview&&!task.commitment_part_id&&linkedPaymentIds(task).length<2?'<option value="partial_payment_commitment">Payment in parts</option>':'';
+      body='<p class="scheduled-outcome-help">Choose what happened. Review the next step before saving.</p>'+(!task.schedule_id||linkedPaymentIds(task).length>1?'<label class="brand-field">Related installment *<select id="saRelatedSchedule"><option value="">Loading installments…</option></select></label>':'<div id="saPaymentSummary" class="scheduled-outcome-current">Loading payment balance…</div>')+
         '<label class="brand-field">What happened?<select id="saOutcome"><option value="">Select outcome</option>'+
         (txReview?'<option value="recheck_accounts">Recheck with Accounts</option>':'<option value="payment_reported">Payment received / reported</option><option value="will_pay_later">Payment promised</option>'+partialOption+'<option value="extension_request">Extension requested</option>')+
         '<option value="payment_issue">Payment query</option>'+(task.workflow_kind==='payment_query'?'<option value="query_resolved">Query resolved</option>':'')+
@@ -355,7 +426,7 @@
       function remaining(r){return Math.max(0,Number(r.revised_due_amount==null?r.due_amount:r.revised_due_amount)-Number(r.paid_amount||0)-(credits[r.id]||0));}
       function describe(r){return r.stage_name+' · AED '+remaining(r).toLocaleString('en-AE',{maximumFractionDigits:2})+' outstanding';}
       var select=panel.querySelector('#saRelatedSchedule'),summary=panel.querySelector('#saPaymentSummary');
-      if(select)select.innerHTML='<option value="">Select installment</option>'+(q[0].data||[]).filter(function(r){return remaining(r)>.01&&!/booking/i.test(r.stage_name);}).map(function(r){return '<option value="'+Number(r.id)+'">'+safe(describe(r))+'</option>';}).join('');
+      if(select){var linked=linkedPaymentIds(task);select.innerHTML='<option value="">Select installment</option>'+(q[0].data||[]).filter(function(r){return remaining(r)>.01&&!/booking/i.test(r.stage_name)&&(linked.length<2||linked.indexOf(Number(r.id))>=0);}).map(function(r){return '<option value="'+Number(r.id)+'">'+safe(describe(r))+'</option>';}).join('');}
       if(summary){var row=(q[0].data||[]).find(function(r){return Number(r.id)===Number(task.schedule_id);});summary.textContent=row?describe(row):'Linked installment could not be found. Reopen the task after syncing.';}
     }catch(e){var host=panel.querySelector('#saPaymentSummary');if(host)host.textContent='Balance unavailable. Sync and reopen to check the current amount.';var select=panel.querySelector('#saRelatedSchedule');if(select)select.innerHTML='<option value="">Could not load installments. Go back and retry.</option>';}
   }
@@ -464,7 +535,7 @@
   async function resolveCollectionOutcome(task,outcome,note,nextDate){
     // Payment entry owns the transaction and completion. Leaving it must not close this task.
     if(outcome==='payment_reported')return 'payment';
-    var scheduleId=Number(task.schedule_id||val('saRelatedSchedule'))||null;
+    var scheduleId=Number(linkedPaymentIds(task).length>1?val('saRelatedSchedule'):(task.schedule_id||val('saRelatedSchedule')))||null;
     var r=await sb.rpc('crm_record_scheduled_outcome',{
       p_task_id:Number(task.id),p_expected_updated_at:task.updated_at,
       p_outcome:outcome,p_schedule_id:scheduleId,p_note:note||null,
@@ -525,7 +596,16 @@
       }
       if(collectionOutcomeTask(task)){
         if(!outcome)throw new Error('Select an outcome.');
-        if(!task.schedule_id&&outcome!=='cancel_task'){var sid=Number(val('saRelatedSchedule'));if(!sid)throw new Error('Select the related installment.');task=Object.assign({},task,{schedule_id:sid});}
+        if((!task.schedule_id||linkedPaymentIds(task).length>1)&&outcome!=='cancel_task'){
+          var sid=Number(val('saRelatedSchedule'));if(!sid)throw new Error('Select which installment this outcome concerns.');
+          if(linkedPaymentIds(task).length>1&&!linkedPaymentIds(task).includes(sid))
+            throw new Error('Select a payment linked to this task.');
+          if(linkedPaymentIds(task).length>1){
+            var originalGroup=text(task.note).split('\n\n[Related payments]')[1];
+            if(originalGroup)note=(note||'')+'\n\n[Related payments]'+originalGroup;
+            if(outcome==='payment_reported')task=Object.assign({},task,{schedule_id:sid});
+          }else task=Object.assign({},task,{schedule_id:sid});
+        }
         if(['extension_request','payment_issue','cancel_task','query_resolved'].indexOf(outcome)>=0&&!note)throw new Error('Enter the reason or details.');
         if(['will_pay_later','no_response','extension_request','payment_issue','query_resolved'].indexOf(outcome)>=0&&!nextDate)throw new Error('Select the next date.');
         var result=await resolveCollectionOutcome(task,outcome,note,nextDate);
