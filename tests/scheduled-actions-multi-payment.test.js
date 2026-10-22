@@ -62,11 +62,16 @@ test('manual tasks store one linked payment through FK or multiple through a gro
  assert.match(src,/loadRelatedPaymentChoices\(c,task,p\)/);
  assert.match(src,/selectedPaymentNote\(note,chosen\)/);
 });
-test('grouped outcome selects exactly one linked installment without detaching the other IDs',()=>{
- assert.match(src,/linkedPaymentIds\(task\)\.length>1/);
- assert.match(src,/Select a payment linked to this task/);
- assert.match(src,/Select which installment this outcome concerns/);
- assert.match(src,/if\(outcome==='payment_reported'\)task=Object\.assign/);
+test('grouped follow-up supports one or many linked installments and allocates promises by installment',()=>{
+ assert.match(src,/saGroupedPaymentList/);
+ assert.match(src,/name="saGroupPay"/);
+ assert.match(src,/groupedSelectedIds\(panel\)/);
+ assert.match(src,/groupedAllocations\(panel\)/);
+ assert.match(src,/p_schedule_ids:selected/);
+ assert.match(src,/p_method:method/);
+ assert.match(src,/p_allocations:allocations/);
+ assert.match(src,/loadGroupedContactHistory\(task,panel\)/);
+ assert.match(src,/Choose one installment for this specific payment action/);
 });
 test('database outcome procedure validates grouped payment IDs and preserves the multi-payment task relationship',()=>{
  const migration=fs.readFileSync('supabase/migrations/20261022170000_grouped_manual_scheduled_outcomes.sql','utf8');
