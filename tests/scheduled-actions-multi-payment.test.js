@@ -23,7 +23,7 @@ function setup({selectedTask=null}={}){
     querySelector(q){return q==='#saPaymentList'?list:q==='#saPaymentSelectorSummary'?summary:total;},
     querySelectorAll(q){assert.match(q,/saPaymentIds/);return chosen.map(value=>({value:String(value)}));}
   };
-  const sb={from(table){assert(Object.hasOwn(data,table),'bad DB table '+table);return {select(){return {eq(){return Promise.resolve({data:data[table],error:null})}}}}}};
+  const sb={from(table){assert(Object.hasOwn(data,table),'bad DB table '+table);const q={eq(){return q},then(ok){return Promise.resolve({data:data[table],error:null}).then(ok)}};return {select(){return q}}}};
   const ctx={sb,document:{querySelectorAll:()=>[]},window:{},
     text:x=>x==null?'':String(x),
     safe:x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;'),
