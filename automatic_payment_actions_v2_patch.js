@@ -50,7 +50,8 @@ async function run(){
  units.forEach(function(x){activeUnits[String(x)]=1});
  schedules.forEach(function(r){schedulesById[String(r.id)]=r});
  tasks.forEach(function(t){
-   var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
+   var keyIds=idsFromKey(t.auto_key);
+   var ids=keyIds.length?keyIds:(t.schedule_id!=null?[String(t.schedule_id)]:[]);
    if(manualPaymentTask(t))ids.forEach(function(id){manualSchedule[String(id)]=1});
    if(t.status==='pending'&&/^booking_balance\|unit:\d+\|schedule:\d+$/.test(text(t.auto_key))&&t.schedule_id!=null)
      bookingBalanceByDp[String(t.schedule_id)]=1;
