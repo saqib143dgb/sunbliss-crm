@@ -242,7 +242,7 @@
       '<div class="installment-edit-meta"><span>Matching transaction history</span><strong>'+safe(tx.count+' transaction'+(tx.count===1?'':'s')+' · '+money(tx.total))+'</strong></div>'+
       (mismatch?'<div class="installment-edit-warning">The schedule paid amount differs from the matching transaction total. Verify the payment record before changing any amount. Editing here does not update transaction history.</div>':'')+
       '<button class="btn-paper" type="button" id="ieUseTx" style="width:100%;justify-content:center;margin-bottom:12px">Use transaction total ('+safe(money(tx.total))+')</button>'+
-      (syncDate?'<p class="installment-edit-help"><b>DLD rule:</b> the DLD and 1st Installment due dates are linked. Changing either one updates the other to the same date.</p>':'')+
+      (syncDate?'<p class="installment-edit-help"><b>DLD rule:</b> Changing the 1st Installment due date also updates DLD + Admin Fees. You can edit the DLD date independently without changing the 1st Installment.</p>':'')+
       '<label class="brand-field">Remarks<textarea id="ieRemarks" placeholder="Optional installment note">'+safe(remarks)+'</textarea></label>'+
       '<p class="installment-edit-help">Editing an installment changes the payment schedule only. It does not create, delete, or rewrite transaction-history entries.</p>'+
       '</div>'+
