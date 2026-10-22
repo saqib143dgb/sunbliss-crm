@@ -105,6 +105,25 @@
       '.scheduled-next-check input{width:auto!important;margin:1px 0 0!important}',
       '.scheduled-outcome-help{margin:0 0 10px;font-size:11.5px;line-height:1.45;color:var(--muted)}',
       '.scheduled-outcome-current{margin:0 0 12px;padding:10px 11px;border:1px solid var(--paper-line);border-radius:9px;background:var(--paper-dim);font-size:11.5px;line-height:1.45;color:var(--ink)}',
+
+      '#scheduledActionPanel .sa-receipt-summary{background:transparent;border:0;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:4px;color:var(--ink)}',
+      '#scheduledActionPanel .sa-receipt-customer{font:600 13px/1.45 Inter,sans-serif;overflow-wrap:anywhere}',
+      '#scheduledActionPanel .sa-receipt-taskdue{font:400 11px/1.4 Inter,sans-serif;color:var(--muted)}',
+      '#scheduledActionPanel .sa-receipt-card{background:var(--paper-dim);border:1px solid var(--paper-line);border-radius:11px;padding:13px 14px;margin:4px 0 14px}',
+      '#scheduledActionPanel .sa-receipt-top{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap}',
+      '#scheduledActionPanel .sa-receipt-kicker{font:500 11px/1.4 Inter,sans-serif;color:var(--muted)}',
+      '#scheduledActionPanel .sa-receipt-status{font:600 10px/1.35 Inter,sans-serif;color:var(--sage,#4c715c)}',
+      '#scheduledActionPanel .sa-receipt-warning-label{font:600 10px/1.35 Inter,sans-serif;color:var(--rust)}',
+      '#scheduledActionPanel .sa-receipt-amount{display:block;font:700 22px/1.4 Inter,sans-serif;color:var(--ink);margin:7px 0 13px}',
+      '#scheduledActionPanel .sa-receipt-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;font:400 11px/1.5 Inter,sans-serif;border-top:1px solid var(--paper-line);padding:8px 0}',
+      '#scheduledActionPanel .sa-receipt-meta:last-child{padding-bottom:0}',
+      '#scheduledActionPanel .sa-receipt-meta span{color:var(--muted);flex:none}',
+      '#scheduledActionPanel .sa-receipt-meta strong{font-weight:600;text-align:right;overflow-wrap:anywhere}',
+      '#scheduledActionPanel .sa-receipt-note{margin:6px 0 14px}',
+      '#scheduledActionPanel .sa-receipt-note summary{cursor:pointer;font:500 12px/1.5 Inter,sans-serif;color:var(--ink);padding:5px 0}',
+      '#scheduledActionPanel .sa-receipt-note textarea{min-height:72px}',
+      '#scheduledActionPanel .sa-receipt-loading{font:400 12px/1.5 Inter,sans-serif;color:var(--muted);padding:12px 0}',
+      '#scheduledActionPanel .sa-receipt-alert{font:500 11.5px/1.5 Inter,sans-serif;color:var(--rust);margin:8px 0 14px}',
       '@media(max-width:520px){.scheduled-task-actions{flex-direction:column}.scheduled-task-actions button{width:100%}.scheduled-overview-row{grid-template-columns:1fr}.scheduled-overview-done{width:100%}.scheduled-overview-head{align-items:flex-start}.scheduled-overview-select{max-width:155px}}'
     ].join('');
     s.textContent+="@media(max-width:1023px){\nbody.crm-scheduled-ui-open{overflow:hidden!important;overscroll-behavior:none!important}\nbody.crm-scheduled-ui-open #app>.topbar,body.crm-scheduled-ui-open>.tabs,body.crm-scheduled-ui-open #sunblissPersistentBackDock,body.crm-scheduled-ui-open #sunblissDockSearchPanel{visibility:hidden!important;pointer-events:none!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel,body.crm-scheduled-ui-open>#scheduledActionPanel.crm-full-page-inline{position:fixed!important;inset:auto!important;top:var(--crm-vtop,0px)!important;left:0!important;right:0!important;bottom:auto!important;z-index:30090!important;display:flex!important;flex-direction:column!important;gap:0!important;width:100%!important;max-width:100%!important;height:var(--crm-vh,100dvh)!important;max-height:var(--crm-vh,100dvh)!important;min-height:0!important;margin:0!important;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom))!important;border:0!important;border-radius:0!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel>.section-label{display:none!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel>.crm-scheduled-head{display:flex!important;align-items:center!important;gap:15px!important;flex:0 0 auto!important;margin:0 0 22px!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-back{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:none!important;width:30px!important;height:42px!important;padding:0!important;margin:0!important;border:0!important;background:transparent!important;color:var(--ink,#102333)!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-title{margin:0!important;font:700 24px/1.25 CRMInter,Inter,Arial,sans-serif!important;letter-spacing:-.025em!important;color:var(--ink,#102333)!important;overflow-wrap:anywhere!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel>.crm-scheduled-scroll{display:block!important;flex:1 1 auto!important;min-height:0!important;width:100%!important;margin:0!important;padding:18px 15px 21px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-bottom:0!important;border-radius:14px 14px 0 0!important;background:transparent!important;box-sizing:border-box!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-scroll .brand-field{display:block!important;min-width:0!important;margin:0 0 18px!important;font:400 11.5px/1.4 CRMInter,Inter,Arial,sans-serif!important;color:var(--muted,#66635c)!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-scroll .brand-field :is(input:not([type=\"checkbox\"]),textarea,select){display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:46px!important;margin:7px 0 0!important;padding:10px 12px!important;border:1px solid var(--paper-line,#ded7c8)!important;border-radius:8px!important;background:var(--paper-dim,#efe9d9)!important;color:var(--ink,#102333)!important;font:500 16px/1.25 CRMInter,Inter,Arial,sans-serif!important;box-sizing:border-box!important;box-shadow:none!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .scheduled-form-summary{margin:0 0 16px!important;padding:10px 11px!important;font:400 11.5px/1.5 CRMInter,Inter,Arial,sans-serif!important;color:var(--muted,#66635c)!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-scroll .scheduled-next-check input[type=\"checkbox\"]{width:18px!important;height:18px!important;flex:none!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel>.crm-scheduled-actions,body.crm-scheduled-ui-open>#scheduledActionPanel.crm-full-page-inline>.crm-scheduled-actions{position:relative!important;bottom:auto!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;gap:10px!important;flex:0 0 auto!important;margin:0 -16px calc(-14px - env(safe-area-inset-bottom))!important;padding:12px 16px calc(32px + env(safe-area-inset-bottom))!important;border-top:1px solid var(--paper-line,#ded7c8)!important;background:var(--paper,#faf7ef)!important;box-shadow:none!important;z-index:9!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel>.crm-scheduled-actions>button,body.crm-scheduled-ui-open>#scheduledActionPanel.crm-full-page-inline>.crm-scheduled-actions>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:1 1 0%!important;min-width:0!important;width:auto!important;min-height:48px!important;height:auto!important;margin:0!important;padding:10px 8px!important;border-radius:999px!important;font:600 14px/1.3 CRMInter,Inter,Arial,sans-serif!important;white-space:nowrap!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-scroll .scheduled-danger{display:flex!important;width:100%!important;min-height:42px!important;justify-content:center!important;margin:12px 0 0!important}\nbody.crm-scheduled-ui-open>#scheduledActionPanel .crm-scheduled-scroll .task-next-preview{margin:12px 0!important}\n}";
@@ -395,10 +414,67 @@
     }catch(e){fail(e&&e.message?e.message:'Could not save this scheduled action.');if(save){save.disabled=false;save.textContent=task?'Save Changes':'Schedule Action';}}
   }
 
+
+  function receiptAmountLabel(amount){
+    var n=Number(amount);
+    return Number.isFinite(n)&&n>0?'AED '+n.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+  }
+  function receiptNeedsWelcome(task,transaction){
+    // Only an initial booking payment depends on the Welcome Letter.
+    if(!/booking|down payment|(?:1st|first) instal?lment/i.test(text(transaction.payment_type)))return false;
+    return cache.rows.some(function(row){
+      return Number(row.unit_id)===Number(task.unit_id)&&row.status==='pending'&&isBookingWelcome(row);
+    });
+  }
+  async function loadReceiptDetails(task,panel){
+    var host=panel.querySelector('#saReceiptInfo'),save=panel.querySelector('#saComplete');
+    if(!host||!save)return;
+    save.disabled=true;
+    try{
+      if(!task.transaction_id)throw new Error('Missing linked payment transaction.');
+      var result=await sb.from('payment_transactions')
+        .select('id,unit_id,amount,payment_type,payment_schedule_id,accounts_confirmation_status')
+        .eq('id',Number(task.transaction_id)).single();
+      if(result.error)throw result.error;
+      if(!panel.isConnected)return;
+      var tx=result.data||{},amount=receiptAmountLabel(tx.amount);
+      if(Number(tx.unit_id)!==Number(task.unit_id)||!amount)throw new Error('Payment allocation must be checked.');
+      var scheduleId=Number(tx.payment_schedule_id||task.schedule_id),stage=null;
+      if(scheduleId){
+        var schedule=await sb.from('current_payment_schedule')
+          .select('id,stage_name,due_date,revised_due_date').eq('id',scheduleId).maybeSingle();
+        if(!panel.isConnected)return;
+        if(!schedule.error)stage=schedule.data;
+      }
+      var confirmed=text(tx.accounts_confirmation_status).toLowerCase()==='confirmed';
+      var waitingWelcome=receiptNeedsWelcome(task,tx);
+      var stageName=text(stage&&stage.stage_name||tx.payment_type||'Payment');
+      var due=stage&&formatDate(stage.revised_due_date||stage.due_date);
+      host.innerHTML='<div class="sa-receipt-card">'+
+        '<div class="sa-receipt-top"><span class="sa-receipt-kicker">Receipt amount</span>'+
+        (confirmed?'<span class="sa-receipt-status">Accounts confirmed</span>':'<span class="sa-receipt-warning-label">Accounts confirmation pending</span>')+'</div>'+
+        '<strong class="sa-receipt-amount">'+safe(amount)+'</strong>'+
+        '<div class="sa-receipt-meta"><span>Related payment</span><strong>'+safe(stageName)+'</strong></div>'+
+        (due?'<div class="sa-receipt-meta"><span>Instalment due</span><strong>'+safe(due)+'</strong></div>':'')+
+        '</div>'+
+        (waitingWelcome?'<p class="sa-receipt-alert">Complete the pending Welcome Letter before sending this initial-payment receipt.</p>':'')+
+        (!confirmed?'<p class="sa-receipt-alert">Wait for Accounts confirmation before marking this receipt sent.</p>':'');
+      save.disabled=!confirmed||waitingWelcome;
+    }catch(error){
+      if(!panel.isConnected)return;
+      host.innerHTML='<p class="sa-receipt-alert">Could not verify the linked payment. Please reopen the task after checking the transaction.</p>';
+      save.disabled=true;
+      console.warn('Receipt task verification failed',error);
+    }
+  }
+
   function openComplete(task){
     if(task&&task.workflow_kind==='modification_request'&&typeof window.__sunblissOpenModificationTask==='function'){window.__sunblissOpenModificationTask(task);return;}
     removePanel();var c=customerForUnit(task.unit_id),p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode','complete');
-    var summary=safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+' · due '+safe(formatDate(task.due_date));
+    var receiptView=task.workflow_kind==='payment_receipt';
+    var summary=receiptView
+      ?'<strong class="sa-receipt-customer">'+safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+'</strong><span class="sa-receipt-taskdue">Task due: '+safe(formatDate(task.due_date))+'</span>'
+      :safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+' · due '+safe(formatDate(task.due_date));
     var body='',button='Mark Done';p.dataset.taskId=task.id;
     if(task.auto_kind==='credit_note_send'){
       body='<p class="scheduled-outcome-current">Send the issued credit note to the customer. Mark this task as sent only after delivery.</p><label class="brand-field">Email reference / sending note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email, include thread reference"></textarea></label>';
@@ -419,8 +495,10 @@
       body='<label class="brand-field">Cheque status<select id="saOutcome"><option value="">Select outcome</option><option value="cleared">Cleared</option><option value="still_pending">Still Pending</option><option value="returned">Returned</option></select></label><label class="brand-field" id="saNextDateWrap" style="display:none">Next clearance check<input type="date" id="saNextDate" value="'+safe(addDaysIso(1))+'" /></label><label class="brand-field">Note (optional)<textarea id="saCompletionNote" placeholder="Clearance reference or issue"></textarea></label>';
       button='Save Outcome';
     }else if(task.workflow_kind==='payment_receipt'){
-      body='<p class="scheduled-outcome-current">Accounts confirmation is complete. Send and complete the Welcome Letter task first, then send the payment receipt and mark this task done.</p><label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="e.g. sent by email or WhatsApp"></textarea></label><input type="hidden" id="saOutcome" value="sent">';
-      button='Mark Done';
+      body='<div id="saReceiptInfo" aria-live="polite"><p class="sa-receipt-loading">Verifying payment details…</p></div>'+
+        '<details class="sa-receipt-note"><summary>Completion note (optional)</summary><label class="brand-field"><textarea id="saCompletionNote" placeholder="Add a short reference or note"></textarea></label></details>'+
+        '<input type="hidden" id="saOutcome" value="sent">';
+      button='Mark Receipt Sent';
     }else if(task.workflow_kind==='payment_reported'){
       body='<p class="scheduled-outcome-current">The customer reported that payment has been made. Record the actual payment before closing this action.</p><input type="hidden" id="saOutcome" value="record_payment">';
       button='Record Payment';
@@ -467,12 +545,13 @@
       body='<label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="What happened or what did the customer confirm?"></textarea></label>'+(task.auto_kind==='demand_letter'||task.auto_kind==='gentle_reminder'?'':'<label class="scheduled-next-check"><input type="checkbox" id="saScheduleNext" /><span>Schedule the next action after marking this one done</span></label>');
       button=task.auto_kind==='demand_letter'||task.auto_kind==='gentle_reminder'?'Mark Sent':'Mark Done';
     }
-    p.innerHTML='<p class="section-label" style="margin-top:0">'+safe(task.action_label)+'</p><p class="scheduled-form-summary">'+summary+'</p><p class="brand-error" id="saError" style="display:none"></p>'+body+'<div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saComplete">'+safe(button)+'</button><button type="button" class="btn-paper" id="saClose">Back</button></div>';
+    p.innerHTML='<p class="section-label" style="margin-top:0">'+safe(task.action_label)+'</p><p class="scheduled-form-summary'+(receiptView?' sa-receipt-summary':'')+'">'+summary+'</p><p class="brand-error" id="saError" style="display:none"></p>'+body+'<div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saComplete">'+safe(button)+'</button><button type="button" class="btn-paper" id="saClose">Back</button></div>';
     document.body.appendChild(p);
     var context=taskPaymentContext(task),origin=taskOriginText(task);
-    if(context||origin){var taskDetails=document.createElement('p');taskDetails.className='scheduled-outcome-current';taskDetails.textContent=[context,origin].filter(Boolean).join(' · ');p.querySelector('.scheduled-form-summary').after(taskDetails);}
-    if(task.note){var prior=document.createElement('details');prior.className='task-prior-note';var label=document.createElement('summary');var amount=String(task.note).match(/AED\s+[\d,]+(?:\.\d{1,2})?/i);label.textContent=amount&&['accounts_confirmation','cheque_clearance','payment_receipt'].indexOf(task.workflow_kind)>=0?'Payment details · '+amount[0]:'Previous note';var note=document.createElement('p');note.textContent=task.note;prior.append(label,note);p.querySelector('.scheduled-form-summary').after(prior);}
+    if(!receiptView&&(context||origin)){var taskDetails=document.createElement('p');taskDetails.className='scheduled-outcome-current';taskDetails.textContent=[context,origin].filter(Boolean).join(' · ');p.querySelector('.scheduled-form-summary').after(taskDetails);}
+    if(task.note&&!receiptView){var prior=document.createElement('details');prior.className='task-prior-note';var label=document.createElement('summary');var amount=String(task.note).match(/AED\s+[\d,]+(?:\.\d{1,2})?/i);label.textContent=amount&&['accounts_confirmation','cheque_clearance','payment_receipt'].indexOf(task.workflow_kind)>=0?'Payment details · '+amount[0]:'Previous note';var note=document.createElement('p');note.textContent=task.note;prior.append(label,note);p.querySelector('.scheduled-form-summary').after(prior);}
     scheduledRootUi(p);
+    if(receiptView)loadReceiptDetails(task,p);
     if(collectionOutcomeTask(task)){
       var contactLog=document.createElement('details');contactLog.id='saContactActivity';contactLog.className='task-prior-note';
       contactLog.innerHTML='<summary>Customer contact history</summary>';

@@ -32,6 +32,8 @@ function preview(task,value,panel,pendingPaymentSteps){
  return map[value]||'Choose an outcome to see the next step.';
 }
 window.__sunblissEnhanceTaskOutcome=function(panel,config){
+ // Receipt completion is a single verified action; no generic next step.
+ if(config.task&&config.task.workflow_kind==='payment_receipt')return;
  if(panel.dataset.outcomeEnhanced)return;panel.dataset.outcomeEnhanced='true';
  const select=panel.querySelector('#'+config.selectId),save=panel.querySelector('#'+config.saveId);
  if(!select&&!String(config.task.auto_key||'').startsWith('booking_welcome|'))return;
