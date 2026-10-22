@@ -46,12 +46,13 @@ async function run(){
  var schedules=q[0].data||[],tasks=q[1].data||[],credits=q[2].data||[],extensions=q[3].data||[],credit={},extended={};
  credits.forEach(function(c){if(c.payment_schedule_id!=null){var k=String(c.payment_schedule_id);credit[k]=Math.round(((credit[k]||0)+(Number(c.amount)||0))*100)/100}});
  extensions.forEach(function(e){if(e.payment_schedule_id!=null&&iso(e.extended_due_date)>=iso(new Date().toISOString()))extended[String(e.payment_schedule_id)]=1});
- var managed=carryManaged(),manualSchedule={},pendingDemand={},recentDemand={},finishedDemand={},activeUnits={},schedulesById={};
+ var managed=carryManaged(),manualSchedule={},manualGentleBySchedule={},pendingDemand={},recentDemand={},finishedDemand={},activeUnits={},schedulesById={};
  units.forEach(function(x){activeUnits[String(x)]=1});
  schedules.forEach(function(r){schedulesById[String(r.id)]=r});
  tasks.forEach(function(t){
    var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
    if(manualPaymentTask(t))ids.forEach(function(id){manualSchedule[String(id)]=1});
+   if(t.status==='pending'&&(t.source==='manual'||!t.source)&&/\bgentle reminder\b/i.test(text(t.action_label)))ids.forEach(function(id){manualGentleBySchedule[String(id)]=1});
    if(t.auto_kind!=='demand_letter')return;
    if(t.status==='pending')ids.forEach(function(id){pendingDemand[String(id)]=1});
    if(t.status==='completed'){
@@ -85,7 +86,22 @@ async function run(){
    });
  });
  var desired=[],desiredKeys={};
- function addDesired(kind,uid,rows,due,keyRows){if(!rows.length)return;var total=Math.round(rows.reduce(function(s,x){return s+x.remaining},0)*100)/100,links=keyRows||rows,k=kind==='overdue_follow_up'?overdueKey(uid,links):groupKey(kind,uid,links,due),p={unit_id:Number(uid),action_label:label(kind,total),due_date:kind==='overdue_follow_up'?rows[0].due:actionDue(kind,due),priority:priority(kind),note:kind==='overdue_follow_up'?overdueNote(rows,total):groupedNote(rows,total),status:'pending',owner_id:user.id,source:'automatic',auto_kind:kind,auto_key:k,schedule_id:links.length===1?Number(links[0].row.id):null,updated_at:new Date().toISOString()};desired.push(p);desiredKeys[k]=1}
+ function addDesired(kind,uid,rows,due,keyRows){
+   if(!rows.length)return;
+   var total=Math.round(rows.reduce(function(s,x){return s+x.remaining},0)*100)/100,
+     links=keyRows||rows,
+     k=kind==='overdue_follow_up'?overdueKey(uid,links):groupKey(kind,uid,links,due),
+     existing=byKey[k],
+     isDownPaymentReminder=kind==='gentle_reminder'&&rows.length===1&&rows[0].kind==='dp',
+     dueForTask=isDownPaymentReminder?(existing&&existing.status==='pending'&&iso(existing.due_date)||dubaiToday()):
+       kind==='overdue_follow_up'?rows[0].due:actionDue(kind,due),
+     p={unit_id:Number(uid),action_label:label(kind,total),due_date:dueForTask,
+       priority:priority(kind),note:groupedNote(rows,total),status:'pending',owner_id:user.id,
+       source:'automatic',auto_kind:kind,auto_key:k,
+       schedule_id:links.length===1?Number(links[0].row.id):null,updated_at:new Date().toISOString()};
+   if(kind==='overdue_follow_up')p.note=overdueNote(rows,total);
+   desired.push(p);desiredKeys[k]=1;
+ }
  // A previous overdue stage or a manual payment follow-up must not hide the next installment.
  Object.keys(byUnit).forEach(function(uid){
    var rows=byUnit[uid].slice().sort(function(a,b){return a.due.localeCompare(b.due)||Number(a.row.id)-Number(b.row.id)});
@@ -97,6 +113,14 @@ async function run(){
    // Create only one scheduled task for the shared payment obligation.
    var seen={};
    rows.forEach(function(x){
+     if(x.kind==='dp'){
+       // Down Payment is a booking-stage balance: never issue a Demand Letter.
+       // Send one gentle reminder as soon as an unpaid balance enters the 10-day window.
+       // When created inside that window, its action date is today (not a date in the past).
+       if(x.delta>=0&&x.delta<=10&&!x.extended&&!manualGentleBySchedule[String(x.row.id)])
+         addDesired('gentle_reminder',uid,[x],x.due);
+       return;
+     }
      if(x.delta<0||x.delta>10||x.extended)return;
      var links=pairedBySchedule[String(x.row.id)]||[x],key=groupKey('demand_letter',uid,links,x.due);
      if(seen[key])return;seen[key]=1;
@@ -146,13 +170,19 @@ async function run(){
      if(byKey[duplicate.auto_key]===duplicate)delete byKey[duplicate.auto_key];
    }
  }
- var dead=[];
+ var dead=[],obsoleteDownPaymentDemands=[];
  auto.forEach(function(t){
    if(t.status!=='pending')return;
    if(t.auto_kind==='demand_letter'){
-     // Unfinished demand letters remain actionable even after due date or subsequent payment.
-     // Only retire an outdated one when the contractual/revised due date changes.
      var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
+     // Never preserve an unsent Down Payment Demand Letter. Audit-trail the cancellation;
+     // do not alter already sent/completed Demand Letters.
+     if(ids.length&&ids.every(function(id){return !!schedulesById[id]})&&
+        ids.some(function(id){return stageKind(schedulesById[id])==='dp'})){
+       obsoleteDownPaymentDemands.push(t.id);
+       return;
+     }
+     // Other unsent Demand Letters remain actionable unless their due date changed.
      var oldDue=(text(t.auto_key).match(/[|]due:(\d{4}-\d{2}-\d{2})/)||[])[1];
      if(oldDue&&ids.length&&ids.every(function(id){return !!schedulesById[id]})&&
        ids.some(function(id){return effectiveDue(schedulesById[id])!==oldDue}))
@@ -161,7 +191,16 @@ async function run(){
    }
    if(!activeUnits[String(t.unit_id)]||!desiredKeys[t.auto_key])dead.push(t.id);
  });
- var changed=await cancel(dead);for(var i=0;i<desired.length;i++){var p=desired[i],old=byKey[p.auto_key];if(old){if(old.status==='completed'||(old.status==='cancelled'&&text(old.completion_note).trim()))continue;var fieldsChanged=text(old.action_label)!==p.action_label||text(old.due_date)!==p.due_date||text(old.priority)!==p.priority||text(old.note)!==p.note;if(old.status!=='pending'||fieldsChanged){var update={action_label:p.action_label,due_date:p.due_date,priority:p.priority,note:p.note,status:'pending',completed_at:null,completion_note:null,cancelled_at:null,updated_at:p.updated_at},u=await sb.from('scheduled_actions').update(update).eq('id',old.id);if(u.error)throw u.error;changed=true}continue}var ins=await sb.from('scheduled_actions').insert(p);if(ins.error&&ins.error.code!=='23505')throw ins.error;if(!ins.error)changed=true}
+ var changed=await cancel(dead);
+ if(obsoleteDownPaymentDemands.length){
+   var retiredAt=new Date().toISOString(),retired=await sb.from('scheduled_actions')
+     .update({status:'cancelled',cancelled_at:retiredAt,updated_at:retiredAt,
+       completion_note:'Automatically replaced: Down Payment requires Gentle Reminder, not Demand Letter.'})
+     .in('id',obsoleteDownPaymentDemands);
+   if(retired.error)throw retired.error;
+   changed=true;
+ }
+ for(var i=0;i<desired.length;i++){var p=desired[i],old=byKey[p.auto_key];if(old){if(old.status==='completed'||(old.status==='cancelled'&&text(old.completion_note).trim()))continue;var fieldsChanged=text(old.action_label)!==p.action_label||text(old.due_date)!==p.due_date||text(old.priority)!==p.priority||text(old.note)!==p.note;if(old.status!=='pending'||fieldsChanged){var update={action_label:p.action_label,due_date:p.due_date,priority:p.priority,note:p.note,status:'pending',completed_at:null,completion_note:null,cancelled_at:null,updated_at:p.updated_at},u=await sb.from('scheduled_actions').update(update).eq('id',old.id);if(u.error)throw u.error;changed=true}continue}var ins=await sb.from('scheduled_actions').insert(p);if(ins.error&&ins.error.code!=='23505')throw ins.error;if(!ins.error)changed=true}
  await refreshMeta();if(changed&&typeof window.__sunblissRefreshScheduledActions==='function')await window.__sunblissRefreshScheduledActions();return changed
 }
 function sync(force){if(syncing)return syncing;if(!force&&Date.now()-lastSyncAt<5000){decorate();return Promise.resolve(false)}syncing=run().catch(function(e){console.warn('Automatic payment actions v2 could not sync',e);return false}).then(function(v){lastSyncAt=Date.now();syncing=null;return v});return syncing}
