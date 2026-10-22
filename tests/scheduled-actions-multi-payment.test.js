@@ -74,5 +74,5 @@ test('database outcome procedure validates grouped payment IDs and preserves the
  assert.match(migration,/p_schedule_id=any\(v_ids\)/);
  assert.match(migration,/and not v_is_group/);
  assert.match(migration,/case when v_is_group then p_schedule_id/);
- assert.match(migration,/not modify/);
+ assert.match(migration,/No data is changed/);
 });
