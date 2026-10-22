@@ -1,3 +1,26 @@
+-- Also keep initial DLD defaulting scoped to the current customer. A previously
+-- cancelled booking on the same unit must never supply this buyer's due date.
+CREATE OR REPLACE FUNCTION public.crm_sync_first_and_dld_due_dates()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $insert$
+BEGIN
+  IF NEW.due_date IS NULL
+     AND (lower(coalesce(NEW.stage_name,'')) LIKE '%dld%'
+          OR lower(coalesce(NEW.stage_name,'')) LIKE '%admin fee%') THEN
+    SELECT ps.due_date INTO NEW.due_date
+      FROM public.payment_schedule ps
+     WHERE ps.unit_id = NEW.unit_id
+       AND ps.customer_id = NEW.customer_id
+       AND lower(coalesce(ps.stage_name,'')) LIKE '%installment%'
+       AND lower(coalesce(ps.stage_name,'')) ~ '(^|[^a-z0-9])(1st|first)([^a-z0-9]|$)'
+     ORDER BY ps.id DESC LIMIT 1;
+  END IF;
+  RETURN NEW;
+END;
+$insert$;
+
 -- Link 1st Installment due-date changes to the same customer/unit DLD obligation.
 -- Existing records are NOT backfilled; only future changes trigger synchronization.
 CREATE OR REPLACE FUNCTION public.crm_sync_first_dld_on_date_change()
