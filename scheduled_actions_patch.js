@@ -54,6 +54,13 @@
       '.scheduled-actions-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 9px}',
       '.scheduled-actions-heading .section-label{margin:0}',
       '.scheduled-actions-count{font:600 10px/1 IBM Plex Mono,monospace;color:var(--muted)}',
+      '.sa-grouped-payment-list{border:1px solid var(--paper-line);border-radius:9px;overflow:hidden;margin-top:7px}',
+      '.sa-group-pay-row{display:flex!important;align-items:center;gap:10px;padding:11px;border-bottom:1px solid var(--paper-line);font:500 12px/1.4 Inter,sans-serif;color:var(--ink)}',
+      '.sa-group-pay-row:last-child{border-bottom:0}.sa-group-pay-row input{width:18px!important;min-width:18px;max-width:18px;margin:0!important}.sa-group-pay-row span{flex:1}.sa-group-pay-row small{display:block;color:var(--muted);margin-top:2px}.sa-group-pay-row strong{font-size:12px;white-space:nowrap}',
+      '.sa-grouped-totals{font:600 11px/1.4 Inter,sans-serif;text-align:right;padding:9px 2px;color:var(--ink)}',
+      '.sa-group-promise-line{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:11px 0;border-bottom:1px solid var(--paper-line)}',
+      '.sa-group-promise-line .saRemovePromise{grid-column:1/-1;justify-self:end}.sa-contact-line{font-size:11px;line-height:1.5;margin:7px 0}',
+      '@media(max-width:640px){.sa-group-promise-line{grid-template-columns:1fr}.sa-group-pay-row{flex-wrap:wrap}.sa-group-pay-row strong{margin-left:28px}}',
       '.scheduled-task-card{border:1px solid var(--paper-line);border-left:4px solid var(--slate);border-radius:12px;padding:12px 13px;margin:0 0 9px;background:var(--paper)}',
       '.scheduled-task-card[data-priority="High"]{border-left-color:var(--rust)}',
       '.scheduled-task-card[data-priority="Low"]{border-left-color:var(--sage)}',
@@ -442,15 +449,19 @@
       button='Return to Management';
     }else if(collectionOutcomeTask(task)){
       var txReview=!!task.transaction_id;
-      var partialOption=!txReview&&!task.commitment_part_id&&linkedPaymentIds(task).length<2?'<option value="partial_payment_commitment">Payment in parts</option>':'';
-      body='<p class="scheduled-outcome-help">Choose what happened. Review the next step before saving.</p>'+(!task.schedule_id||linkedPaymentIds(task).length>1?'<label class="brand-field">Related installment *<select id="saRelatedSchedule"><option value="">Loading installments…</option></select></label>':'<div id="saPaymentSummary" class="scheduled-outcome-current">Loading payment balance…</div>')+
+      var partialOption=!txReview&&!task.commitment_part_id?'<option value="partial_payment_commitment">Partial payment commitment</option>':'';
+      body='<p class="scheduled-outcome-help">Select every installment covered by this contact. Promises can have different amounts and dates.</p>'+
+        '<div class="brand-field" id="saGroupedPayments"><span>Related installments</span><div id="saGroupedPaymentList" class="sa-grouped-payment-list">Loading payments…</div>'+
+        '<div class="sa-grouped-totals" id="saGroupedPaymentTotal"></div></div>'+
+        '<select id="saRelatedSchedule" aria-label="Single installment for payment recording" style="display:none"></select>'+
         '<label class="brand-field">What happened?<select id="saOutcome"><option value="">Select outcome</option>'+
         (txReview?'<option value="recheck_accounts">Recheck with Accounts</option>':'<option value="payment_reported">Payment received / reported</option><option value="will_pay_later">Payment promised</option>'+partialOption+'<option value="extension_request">Extension requested</option>')+
         '<option value="payment_issue">Payment query</option>'+(task.workflow_kind==='payment_query'?'<option value="query_resolved">Query resolved</option>':'')+
         '<option value="no_response">No response</option>'+(!txReview?'<option value="cancel_task">Cancel task</option>':'')+'</select></label>'+
+        '<label class="brand-field" id="saContactMethodWrap" style="display:none">Contact method<select id="saContactMethod"><option value="">Select method</option><option value="email">Email</option><option value="call">Call</option><option value="whatsapp">WhatsApp</option></select></label>'+
         '<label class="brand-field" id="saNextDateWrap" style="display:none"><span id="saNextDateLabel">Next follow-up date</span><input type="date" id="saNextDate" value="'+safe(addDaysIso(3))+'" /></label>'+
-        '<div id="saPartialCommitmentWrap" style="display:none"><p class="scheduled-outcome-help">Split the full outstanding balance into two or more amounts. The installment and its contractual date stay unchanged.</p><div id="saCommitmentParts">'+[1,2].map(function(n){return '<div class="sa-commitment-part"><label class="brand-field">Part '+n+' amount (AED)<input type="number" min="0.01" step="0.01" class="saCommitmentAmount" /></label><label class="brand-field">Promised date<input type="date" class="saCommitmentDate" /></label></div>';}).join('')+'</div><button type="button" class="btn-paper" id="saAddCommitmentPart">+ Add part</button></div>'+
-        '<label class="brand-field"><span id="saNoteLabel">Note (optional)</span><textarea id="saCompletionNote" placeholder="Short customer response or reason"></textarea></label>';
+        '<div id="saPartialCommitmentWrap" style="display:none"><p class="scheduled-outcome-help">Allocate the promised amount to each installment. You may add more dates. These promises do not mark any payments as paid or revise contractual due dates.</p><div id="saCommitmentParts"></div><button type="button" class="btn-paper" id="saAddCommitmentPart">+ Add promised payment</button></div>'+
+        '<label class="brand-field"><span id="saNoteLabel">Customer response / reason (optional)</span><textarea id="saCompletionNote" placeholder="Brief customer response or contact reference"></textarea></label>';
       button='Save Outcome';
     }else{
       body='<label class="brand-field">Completion note (optional)<textarea id="saCompletionNote" placeholder="What happened or what did the customer confirm?"></textarea></label>'+(task.auto_kind==='demand_letter'||task.auto_kind==='gentle_reminder'?'':'<label class="scheduled-next-check"><input type="checkbox" id="saScheduleNext" /><span>Schedule the next action after marking this one done</span></label>');
@@ -462,30 +473,135 @@
     if(context||origin){var taskDetails=document.createElement('p');taskDetails.className='scheduled-outcome-current';taskDetails.textContent=[context,origin].filter(Boolean).join(' · ');p.querySelector('.scheduled-form-summary').after(taskDetails);}
     if(task.note){var prior=document.createElement('details');prior.className='task-prior-note';var label=document.createElement('summary');var amount=String(task.note).match(/AED\s+[\d,]+(?:\.\d{1,2})?/i);label.textContent=amount&&['accounts_confirmation','cheque_clearance','payment_receipt'].indexOf(task.workflow_kind)>=0?'Payment details · '+amount[0]:'Previous note';var note=document.createElement('p');note.textContent=task.note;prior.append(label,note);p.querySelector('.scheduled-form-summary').after(prior);}
     scheduledRootUi(p);
-    if(collectionOutcomeTask(task))loadOutcomePayment(task,p);
+    if(collectionOutcomeTask(task)){
+      var contactLog=document.createElement('details');contactLog.id='saContactActivity';contactLog.className='task-prior-note';
+      contactLog.innerHTML='<summary>Customer contact history</summary>';
+      p.querySelector('.scheduled-form-summary').after(contactLog);
+      loadOutcomePayment(task,p);
+    }
     document.getElementById('saClose').onclick=removePanel;
     var outcome=document.getElementById('saOutcome');
     if(task.auto_kind==='demand_letter'&&outcome){outcome.onchange=function(){var wrap=document.getElementById('saConfirmationSourceWrap');if(wrap)wrap.style.display=this.value==='customer_confirmed_payment'?'block':'none';};}
-    if(outcome&&document.getElementById('saNextDateWrap'))outcome.onchange=function(){var needs=['still_pending','will_pay_later','no_response','extension_request','payment_issue','query_resolved'].indexOf(this.value)>=0,partial=this.value==='partial_payment_commitment',nextWrap=document.getElementById('saNextDateWrap'),partialWrap=document.getElementById('saPartialCommitmentWrap');nextWrap.style.display=needs?'block':'none';if(partialWrap)partialWrap.style.display=partial?'block':'none';var label=document.getElementById('saNextDateLabel');if(label)label.textContent=this.value==='extension_request'?'Requested extension date':this.value==='will_pay_later'?'Promised payment date':this.value==='payment_issue'?'Review by':'Next follow-up date';var noteLabel=document.getElementById('saNoteLabel');if(noteLabel)noteLabel.textContent=['extension_request','payment_issue','cancel_task','query_resolved'].indexOf(this.value)>=0?'Reason / details *':'Note (optional)';};
+    if(outcome&&document.getElementById('saNextDateWrap'))outcome.onchange=function(){
+      var kind=this.value,needs=['no_response','extension_request','payment_issue','query_resolved'].indexOf(kind)>=0,
+        promise=['will_pay_later','partial_payment_commitment'].indexOf(kind)>=0,
+        nextWrap=document.getElementById('saNextDateWrap'),partialWrap=document.getElementById('saPartialCommitmentWrap'),
+        methodWrap=document.getElementById('saContactMethodWrap');
+      nextWrap.style.display=needs?'block':'none';
+      if(partialWrap)partialWrap.style.display=promise?'block':'none';
+      if(methodWrap)methodWrap.style.display=['no_response','will_pay_later','partial_payment_commitment','extension_request','payment_issue'].indexOf(kind)>=0?'block':'none';
+      var label=document.getElementById('saNextDateLabel');
+      if(label)label.textContent=kind==='extension_request'?'Requested extension until':kind==='payment_issue'?'Review by':'Next follow-up date';
+      var noteLabel=document.getElementById('saNoteLabel');
+      if(noteLabel)noteLabel.textContent=['extension_request','payment_issue','cancel_task','query_resolved'].indexOf(kind)>=0?'Reason / details *':'Customer response / note (optional)';
+      if(promise)refreshGroupedPromiseRows(document.getElementById('scheduledActionPanel'),true);
+    };
     if(task.workflow_kind==='extension_approval'&&outcome){outcome.onchange=function(){var box=document.getElementById('saExtensionApprovalFields');if(box)box.style.display=/^approved/.test(this.value)?'block':'none';};}
     if(task.workflow_kind==='extension_customer_confirmation'&&outcome){outcome.onchange=function(){var rereq=document.getElementById('saExtensionReRequestWrap'),followup=document.getElementById('saExtensionFollowupWrap');if(rereq)rereq.style.display=this.value==='rerequest'?'block':'none';if(followup)followup.style.display=this.value==='no_response'?'block':'none';};}
     if(['extension_approval','extension_customer_confirmation','extension_clarification'].indexOf(task.workflow_kind)>=0)loadExtensionApproval(task);
-    var addPart=document.getElementById('saAddCommitmentPart');if(addPart)addPart.onclick=function(){var host=document.getElementById('saCommitmentParts'),n=host?host.querySelectorAll('.sa-commitment-part').length+1:0;if(!host||!n)return;var row=document.createElement('div');row.className='sa-commitment-part';row.setAttribute('data-part',n);row.innerHTML='<label class="brand-field">Part '+n+' amount (AED)<input type="number" min="0.01" step="0.01" inputmode="decimal" class="saCommitmentAmount" /></label><label class="brand-field">Commitment date<input type="date" class="saCommitmentDate" /></label><button type="button" class="btn-paper saRemoveCommitmentPart" style="width:100%;justify-content:center;margin:0 0 10px">Remove part</button>';host.appendChild(row);var remove=row.querySelector('.saRemoveCommitmentPart');if(remove)remove.onclick=function(){row.remove();};};
+    var addPart=document.getElementById('saAddCommitmentPart');
+    if(addPart)addPart.onclick=function(){appendGroupedPromiseRow(document.getElementById('scheduledActionPanel'),null,false);};
     document.getElementById('saComplete').onclick=function(){completeTask(task);};
     if(window.__sunblissEnhanceTaskOutcome)window.__sunblissEnhanceTaskOutcome(p,{task:task,selectId:'saOutcome',saveId:'saComplete',pendingPaymentSteps:cache.rows.filter(function(t){return t.unit_id===task.unit_id&&t.status==='pending';}).map(function(t){return t.workflow_kind;})});
   }
 
+  function groupedSelectedIds(panel){
+    return Array.from(panel.querySelectorAll('#saGroupedPaymentList input[name="saGroupPay"]:checked'))
+      .map(function(x){return Number(x.value);}).filter(function(x){return x>0;}).sort(function(a,b){return a-b;});
+  }
+  function groupedMoney(n){return Number(n||0).toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function appendGroupedPromiseRow(panel,id,fillFull){
+    var host=panel.querySelector('#saCommitmentParts'),rows=panel.__saGroupRows||[],selected=groupedSelectedIds(panel);
+    if(!host||!selected.length)return;
+    var chosen=selected.indexOf(Number(id))>=0?Number(id):selected[0],stage=rows.find(function(x){return x.id===chosen;});
+    var el=document.createElement('div');el.className='sa-group-promise-line';
+    el.innerHTML='<label class="brand-field">Installment<select class="saCommitmentSchedule">'+
+      rows.filter(function(x){return selected.indexOf(x.id)>=0;}).map(function(x){return '<option value="'+x.id+'"'+(x.id===chosen?' selected':'')+'>'+safe(x.stage_name)+'</option>';}).join('')+
+      '</select></label><label class="brand-field">Amount (AED)<input class="saCommitmentAmount" type="number" min="0.01" step="0.01" inputmode="decimal" value="'+(fillFull&&stage?stage.remaining.toFixed(2):'')+'" /></label>'+
+      '<label class="brand-field">Promise date<input class="saCommitmentDate" type="date" value="'+safe(document.getElementById('saNextDate')?.value||addDaysIso(3))+'" /></label>'+
+      '<button type="button" class="btn-paper saRemovePromise" aria-label="Remove this promised payment">Remove</button>';
+    el.querySelector('.saRemovePromise').onclick=function(){el.remove();};
+    host.appendChild(el);
+  }
+  function refreshGroupedPromiseRows(panel,reset){
+    if(!panel||!panel.querySelector('#saPartialCommitmentWrap'))return;
+    var selected=groupedSelectedIds(panel),host=panel.querySelector('#saCommitmentParts');
+    if(!host)return;
+    if(reset)host.innerHTML='';
+    Array.from(host.querySelectorAll('.sa-group-promise-line')).forEach(function(row){
+      var select=row.querySelector('.saCommitmentSchedule'),value=Number(select&&select.value);
+      if(!selected.includes(value)){row.remove();return;}
+      var current=value,valid=panel.__saGroupRows.filter(function(x){return selected.includes(x.id);});
+      select.innerHTML=valid.map(function(x){return '<option value="'+x.id+'"'+(x.id===current?' selected':'')+'>'+safe(x.stage_name)+'</option>';}).join('');
+    });
+    var present=Array.from(host.querySelectorAll('.saCommitmentSchedule')).map(function(x){return Number(x.value);});
+    selected.forEach(function(id){if(!present.includes(id))appendGroupedPromiseRow(panel,id,panel.querySelector('#saOutcome')?.value==='will_pay_later');});
+  }
+  function groupedAllocations(panel){
+    return Array.from(panel.querySelectorAll('#saCommitmentParts .sa-group-promise-line')).map(function(row){
+      return {schedule_id:Number(row.querySelector('.saCommitmentSchedule').value),
+        amount:Number(row.querySelector('.saCommitmentAmount').value),
+        date:row.querySelector('.saCommitmentDate').value};
+    });
+  }
+  async function loadGroupedContactHistory(task,panel){
+    var history=panel.querySelector('#saContactActivity');if(!history)return;
+    try{
+      var r=await sb.from('crm_collection_contacts').select('id,contact_method,outcome,schedule_ids,followup_date,note,created_at')
+        .eq('source_task_id',Number(task.id)).order('created_at',{ascending:false}).limit(25);
+      if(r.error)throw r.error;
+      var events=r.data||[];
+      if(!events.length){history.remove();return;}
+      var promises=await sb.from('crm_collection_promises').select('contact_id,payment_schedule_id,promised_amount,promised_date')
+        .in('contact_id',events.map(function(x){return x.id;})).order('promised_date',{ascending:true});
+      if(promises.error)throw promises.error;
+      var all=panel.__saAllPaymentRows||[],names={};
+      all.forEach(function(p){names[p.id]=p.stage_name;});
+      var eventsHtml=events.map(function(c){
+        var date=new Date(c.created_at).toLocaleString('en-GB'),
+          payments=(c.schedule_ids||[]).map(function(id){return names[id]||'Payment #'+id;}).join(' + '),
+          allocations=(promises.data||[]).filter(function(p){return Number(p.contact_id)===Number(c.id);}),
+          label={no_response:'No response',promise:'Payment promised',partial_payment_commitment:'Partial payment promised',
+                 payment_issue:'Payment query',extension_request:'Extension requested'}[c.outcome]||c.outcome;
+        return '<div class="sa-contact-line"><strong>'+safe(date)+' · '+safe(c.contact_method)+' · '+safe(label)+'</strong>'+
+          '<div>'+safe(payments)+(c.followup_date?' · Next date '+safe(formatDate(c.followup_date)):'')+'</div>'+
+          (allocations.length?'<div>'+allocations.map(function(p){return safe(names[p.payment_schedule_id]||'Payment #'+p.payment_schedule_id)+
+            ' · AED '+safe(groupedMoney(p.promised_amount))+' on '+safe(formatDate(p.promised_date));}).join('<div></div>')+'</div>':'')+
+          (c.note?'<div>'+safe(c.note)+'</div>':'')+'</div>';
+      }).join('');
+      history.innerHTML='<summary>Customer contact history · '+events.length+'</summary>'+eventsHtml;
+    }catch(e){history.innerHTML='<summary>Customer contact history unavailable</summary>';}
+  }
   async function loadOutcomePayment(task,panel){
     try{
-      var q=await Promise.all([sb.from('current_payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,paid_amount,due_date,revised_due_date').eq('unit_id',Number(task.unit_id)),sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',Number(task.unit_id))]);
+      var q=await Promise.all([sb.from('current_payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,paid_amount,due_date,revised_due_date').eq('unit_id',Number(task.unit_id)),
+        sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',Number(task.unit_id))]);
       q.forEach(function(r){if(r.error)throw r.error;});if(!panel.isConnected)return;
-      var credits={};(q[1].data||[]).forEach(function(c){credits[c.payment_schedule_id]=(credits[c.payment_schedule_id]||0)+Number(c.amount||0);});
-      function remaining(r){return Math.max(0,Number(r.revised_due_amount==null?r.due_amount:r.revised_due_amount)-Number(r.paid_amount||0)-(credits[r.id]||0));}
-      function describe(r){return r.stage_name+' · AED '+remaining(r).toLocaleString('en-AE',{maximumFractionDigits:2})+' outstanding';}
-      var select=panel.querySelector('#saRelatedSchedule'),summary=panel.querySelector('#saPaymentSummary');
-      if(select){var linked=linkedPaymentIds(task);select.innerHTML='<option value="">Select installment</option>'+(q[0].data||[]).filter(function(r){return remaining(r)>.01&&!/booking/i.test(r.stage_name)&&(linked.length<2||linked.indexOf(Number(r.id))>=0);}).map(function(r){return '<option value="'+Number(r.id)+'">'+safe(describe(r))+'</option>';}).join('');}
-      if(summary){var row=(q[0].data||[]).find(function(r){return Number(r.id)===Number(task.schedule_id);});summary.textContent=row?describe(row):'Linked installment could not be found. Reopen the task after syncing.';}
-    }catch(e){var host=panel.querySelector('#saPaymentSummary');if(host)host.textContent='Balance unavailable. Sync and reopen to check the current amount.';var select=panel.querySelector('#saRelatedSchedule');if(select)select.innerHTML='<option value="">Could not load installments. Go back and retry.</option>';}
+      var credit={};(q[1].data||[]).forEach(function(x){credit[x.payment_schedule_id]=(credit[x.payment_schedule_id]||0)+Number(x.amount||0);});
+      var linked=linkedPaymentIds(task);
+      var rows=(q[0].data||[]).map(function(x){return Object.assign({},x,{remaining:Math.round(Math.max(0,Number(x.revised_due_amount==null?x.due_amount:x.revised_due_amount)-Number(x.paid_amount||0)-(credit[x.id]||0))*100)/100});})
+        .filter(function(x){return x.remaining>.01&&!/booking/i.test(x.stage_name)&&(linked.length===0||linked.includes(Number(x.id)));})
+        .sort(function(a,b){return text(a.due_date).localeCompare(text(b.due_date))||a.id-b.id;});
+      panel.__saAllPaymentRows=q[0].data||[];
+      panel.__saGroupRows=rows;
+      var list=panel.querySelector('#saGroupedPaymentList'),total=panel.querySelector('#saGroupedPaymentTotal'),
+        select=panel.querySelector('#saRelatedSchedule');
+      if(list){
+        list.innerHTML=rows.length?rows.map(function(x){return '<label class="sa-group-pay-row"><input type="checkbox" name="saGroupPay" value="'+x.id+'" checked /><span>'+
+          safe(x.stage_name)+'<small>Due '+safe(formatDate(x.revised_due_date||x.due_date))+'</small></span><strong>AED '+groupedMoney(x.remaining)+'</strong></label>';}).join(''):'No outstanding linked installments.';
+        function onGroupChange(){
+          var ids=groupedSelectedIds(panel),chosen=rows.filter(function(x){return ids.includes(x.id);});
+          total.textContent=ids.length+' selected · AED '+groupedMoney(chosen.reduce(function(n,x){return n+x.remaining;},0))+' outstanding';
+          if(select){select.innerHTML='<option value="">Select installment</option>'+chosen.map(function(x){return '<option value="'+x.id+'">'+safe(x.stage_name)+'</option>';}).join('');
+            if(ids.length===1)select.value=String(ids[0]);}
+          if(['will_pay_later','partial_payment_commitment'].includes(panel.querySelector('#saOutcome')?.value))refreshGroupedPromiseRows(panel,false);
+        }
+        list.addEventListener('change',onGroupChange);onGroupChange();
+      }
+      loadGroupedContactHistory(task,panel);
+    }catch(e){
+      var host=panel.querySelector('#saGroupedPaymentList');if(host)host.textContent='Could not load linked payments. Reopen the task.';
+    }
   }
 
   async function loadExtensionApproval(task){
@@ -653,18 +769,34 @@
       }
       if(collectionOutcomeTask(task)){
         if(!outcome)throw new Error('Select an outcome.');
-        if((!task.schedule_id||linkedPaymentIds(task).length>1)&&outcome!=='cancel_task'){
-          var sid=Number(val('saRelatedSchedule'));if(!sid)throw new Error('Select which installment this outcome concerns.');
-          if(linkedPaymentIds(task).length>1&&!linkedPaymentIds(task).includes(sid))
-            throw new Error('Select a payment linked to this task.');
-          if(linkedPaymentIds(task).length>1){
-            var originalGroup=text(task.note).split('\n\n[Related payments]')[1];
-            if(originalGroup)note=(note||'')+'\n\n[Related payments]'+originalGroup;
-            if(outcome==='payment_reported')task=Object.assign({},task,{schedule_id:sid});
-          }else task=Object.assign({},task,{schedule_id:sid});
+        var panel=document.getElementById('scheduledActionPanel'),selected=groupedSelectedIds(panel);
+        if(outcome!=='cancel_task'&&!selected.length)throw new Error('Select at least one related installment.');
+        if(['no_response','will_pay_later','partial_payment_commitment','payment_issue','extension_request'].includes(outcome)){
+          var method=val('saContactMethod');
+          if(!method)throw new Error('Select Email, Call or WhatsApp.');
+          var allocations=['will_pay_later','partial_payment_commitment'].includes(outcome)?groupedAllocations(panel):[];
+          if(allocations.length){
+            if(allocations.some(function(x){return !selected.includes(x.schedule_id)||!Number.isFinite(x.amount)||x.amount<=0||!x.date; }))
+              throw new Error('Enter valid installment amounts and promise dates.');
+            selected.forEach(function(id){if(!allocations.some(function(a){return a.schedule_id===id;}))
+              throw new Error('Enter a promised payment for each selected installment.');});
+          }else if(['will_pay_later','partial_payment_commitment'].includes(outcome))
+            throw new Error('Add at least one promised amount and date.');
+          if(['no_response','payment_issue','extension_request'].includes(outcome)&&!nextDate)throw new Error('Select the next date.');
+          if(['payment_issue','extension_request'].includes(outcome)&&!note)throw new Error('Enter the customer request details.');
+          var rpc=await sb.rpc('crm_record_grouped_collection_contact',{
+            p_task_id:Number(task.id),p_expected_updated_at:task.updated_at,p_outcome:outcome,
+            p_schedule_ids:selected,p_method:method,p_note:note||null,
+            p_next_date:nextDate||null,p_allocations:allocations
+          });
+          if(rpc.error)throw rpc.error;
+          removePanel();await refreshAfterChange();return;
         }
-        if(['extension_request','payment_issue','cancel_task','query_resolved'].indexOf(outcome)>=0&&!note)throw new Error('Enter the reason or details.');
-        if(['will_pay_later','no_response','extension_request','payment_issue','query_resolved'].indexOf(outcome)>=0&&!nextDate)throw new Error('Select the next date.');
+        if(outcome!=='cancel_task'&&selected.length!==1)
+          throw new Error('Choose one installment for this specific payment action.');
+        if(selected.length===1)task=Object.assign({},task,{schedule_id:selected[0]});
+        if(['cancel_task','query_resolved'].includes(outcome)&&!note)throw new Error('Enter the reason or details.');
+        if(outcome==='query_resolved'&&!nextDate)throw new Error('Select the next follow-up date.');
         var result=await resolveCollectionOutcome(task,outcome,note,nextDate);
         removePanel();await refreshAfterChange();
         if(result==='payment')await openPaymentFromTask(task);

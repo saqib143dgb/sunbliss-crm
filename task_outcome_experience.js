@@ -2,7 +2,9 @@
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function preview(task,value,panel,pendingPaymentSteps){
- const date=panel.querySelector('#saNextDate,#spaDate')?.value;
+ const promiseDates=['will_pay_later','partial_payment_commitment'].includes(value)?
+   Array.from(panel.querySelectorAll('.saCommitmentDate')).map(function(x){return x.value;}).filter(Boolean).sort():[];
+ const date=promiseDates[0]||panel.querySelector('#saNextDate,#spaDate')?.value;
  const when=date?' · '+new Date(date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
  if(task.workflow_kind==='spa'){
   const step=task.spa_step;
