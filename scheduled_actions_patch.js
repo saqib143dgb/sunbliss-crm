@@ -316,6 +316,15 @@
         var duplicate=cache.rows.find(function(t){return Number(t.unit_id)===Number(c.sno)&&t.status==='pending'&&
           t.source==='manual'&&t.action_label===action&&t.auto_key===autoKey;});
         if(duplicate)throw new Error('A follow-up for these selected payments already exists. Open that task instead.');
+        // Protect existing booking-balance follow-ups such as B3-605.
+        if(action==='Payment follow-up'){
+          var bookingDuplicate=cache.rows.find(function(t){
+            if(Number(t.unit_id)!==Number(c.sno)||t.status!=='pending'||!/^booking_balance\|/.test(text(t.auto_key)))return false;
+            var note=text(t.note);
+            return ids.every(function(id){return note.indexOf('(schedule #'+id+')')>=0;});
+          });
+          if(bookingDuplicate)throw new Error('These payments are already covered by an existing booking follow-up. Open that task instead of scheduling a duplicate.');
+        }
       }
       if(task)r=await sb.from('scheduled_actions').update(payload).eq('id',task.id).select().single();
       else{payload.unit_id=Number(c.sno);r=await sb.from('scheduled_actions').insert(payload).select().single();}
