@@ -141,7 +141,7 @@ function receiptScene(measure){
  const txRows=txs.map((tx,i)=>{
    const date=tx.payment_date?String(tx.payment_date).slice(0,10).split('-').reverse().join('.'):'';
    const bank=val('receipt-bank-'+tx.id)||val('bank')||'----------';
-   const ref=val('receipt-reference-'+tx.id)||(txs.length===1?val('reference'):'')||tx.payment_reference||'----------------';
+   const ref=(txs.length===1?val('reference'):val('receipt-reference-'+tx.id))||tx.payment_reference||'----------------';
    return [String(i+1),receiptInstrumentType(tx,txs.length>1),ref,date,bank,money(Number(tx.amount))+'/-'];
  });
  // One table and receipt number, but a distinct instrument/reference/date/amount row for each payment.
