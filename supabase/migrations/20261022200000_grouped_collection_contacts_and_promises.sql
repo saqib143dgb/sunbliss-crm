@@ -165,7 +165,7 @@ BEGIN
     UPDATE public.scheduled_actions SET action_label=CASE WHEN p_outcome='partial_payment_commitment' THEN 'Follow up for Partial Payment' ELSE 'Follow up on Promised Payment' END,
       due_date=v_group.d,priority='Medium',note=v_note,source='manual',auto_kind=NULL,
       workflow_kind='promise_follow_up',auto_key=v_group_key,
-      schedule_id=CASE WHEN cardinality(v_group.ids)=1 THEN v_group.ids[1] ELSE NULL END,
+      schedule_id=NULL, -- group key is canonical; multiple promise dates must not collide with the pending manual-schedule uniqueness rule
       updated_at=now() WHERE id=t.id;
     v_new_task:=t.id;
    ELSE
@@ -176,7 +176,7 @@ BEGIN
     INSERT INTO public.scheduled_actions(unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,workflow_kind,created_at,updated_at)
     VALUES(t.unit_id,CASE WHEN p_outcome='partial_payment_commitment' THEN 'Follow up for Partial Payment' ELSE 'Follow up on Promised Payment' END,
       v_group.d,'Medium',v_note,'pending',coalesce(t.owner_id,auth.uid()),'manual',NULL,v_group_key,
-      CASE WHEN cardinality(v_group.ids)=1 THEN v_group.ids[1] ELSE NULL END,'promise_follow_up',now(),now())
+      NULL,'promise_follow_up',now(),now())
     RETURNING id INTO v_new_task;
    END IF;
    UPDATE public.crm_collection_promises SET reminder_task_id=v_new_task WHERE contact_id=v_event AND promised_date=v_group.d;
