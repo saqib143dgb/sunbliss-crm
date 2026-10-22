@@ -3,7 +3,7 @@
   'use strict';
   var projects = [
     {id:'sunbliss',name:'Sunbliss Residences',status:'active'},
-    {id:'triana',name:'Triana Residences',status:'setup',inventoryReady:false,paymentPlan:null,bankDetails:null,documentSettings:null}
+    {id:'triana',name:'Triana Residences',status:'active',inventoryReady:false,paymentPlan:null,bankDetails:null,documentSettings:null}
   ];
   window.CRMProjects = projects;
   function mount() {
@@ -17,7 +17,8 @@
     select.id='crm-project-selector';select.setAttribute('aria-label','Select project');
     select.style.cssText='font:inherit;color:var(--ink,#183547);background:var(--paper,#fff);border:1px solid var(--paper-line,#dce2e5);border-radius:12px;padding:9px 12px;max-width:75%';
     projects.forEach(function(project){var option=document.createElement('option');option.value=project.id;option.textContent=project.name;select.appendChild(option);});
-    select.addEventListener('change',function(){if(select.value==='triana')location.assign('triana.html');});
+    select.value=window.__crmProject&&window.__crmProject.id==='triana'?'triana':'sunbliss';
+    select.addEventListener('change',function(){location.assign(select.value==='triana'?'triana.html':'index.html');});
     label.appendChild(select);header.insertAdjacentElement('afterend',label);
   }
   if(typeof window.render==='function'){
