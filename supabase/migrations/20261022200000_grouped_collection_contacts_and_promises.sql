@@ -93,6 +93,7 @@ BEGIN
  IF (SELECT count(*) FROM public.payment_schedule WHERE unit_id=t.unit_id AND id=ANY(v_ids))<>cardinality(v_ids) THEN
   RAISE EXCEPTION 'One of the selected installments does not belong to this unit.';
  END IF;
+ PERFORM set_config('crm.task_outcome',p_outcome,true);
  IF p_outcome IN ('promise','partial_payment_commitment') AND
     (p_allocations IS NULL OR jsonb_typeof(p_allocations)<>'array' OR jsonb_array_length(p_allocations) NOT BETWEEN 1 AND 30) THEN
   RAISE EXCEPTION 'Enter at least one amount and promise date.';
