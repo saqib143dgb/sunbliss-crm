@@ -45,12 +45,14 @@ test('manual payment follow-up never suppresses future demand letter',async()=>{
  const w=await simulate({rows:[payable(10,10)],tasks:[{id:5,unit_id:2,status:'pending',source:'manual',auto_kind:null,action_label:'Payment Follow-up with Customer',schedule_id:10,note:''}]});
  assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'&&x.val.schedule_id===10));
 });
-test('same-date first installment and DLD create one shared task; down payment remains independent',async()=>{
+test('same-date first installment and DLD share one Demand Letter while Down Payment only has a Gentle Reminder',async()=>{
  const w=await simulate({rows:[payable(10,6,'1st Installment'),payable(11,6,'DLD + Admin Fees (SPA)'),payable(12,6,'Down Payment')]});
  const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
- assert.equal(d.length,2);
- assert(d.some(x=>x.val.schedule_id===null&&x.val.auto_key.includes('schedules:10,11')&&x.val.note.includes('1st Installment')&&x.val.note.includes('DLD + Admin Fees')));
- assert(d.some(x=>x.val.schedule_id===12));
+ const reminders=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder');
+ assert.equal(d.length,1);
+ assert(d[0].val.auto_key.includes('schedules:10,11'));
+ assert(d[0].val.note.includes('1st Installment')&&d[0].val.note.includes('DLD + Admin Fees'));
+ assert(reminders.some(x=>x.val.schedule_id===12&&x.val.action_label==='Send Gentle Reminder'));
 });
 test('shared due date keeps one demand letter when first installment is paid',async()=>{
  const first=payable(10,6,'1st Installment');first.paid_amount=first.due_amount;
@@ -105,4 +107,62 @@ test('revised due date cancels an obsolete demand task but does not issue a new 
  const w=await simulate({rows:[payable(10,20)],tasks:[task(30,10)]});
  assert(w.some(x=>x.op==='update'&&x.val.status==='cancelled'));
  assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+
+test('B2-808 partial Down Payment generates one Gentle Reminder with AED 191335 outstanding',async()=>{
+ const down={...payable(1481,5,'Down Payment'),due_amount:206335,paid_amount:15000};
+ const w=await simulate({rows:[down]});
+ const d=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter');
+ const g=w.filter(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder');
+ assert.equal(d.length,0);
+ assert.equal(g.length,1);
+ assert.equal(g[0].val.schedule_id,1481);
+ assert.equal(g[0].val.due_date,datePlus(0));
+ assert(g[0].val.note.includes('191,335'));
+ assert(g[0].val.note.includes('Down Payment'));
+});
+test('Down Payment without any payment also uses only Gentle Reminder',async()=>{
+ const w=await simulate({rows:[payable(80,10,'Down Payment')]});
+ assert.equal(w.filter(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder').length,1);
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+test('Down Payment outside the reminder window is not contacted early',async()=>{
+ const w=await simulate({rows:[payable(80,25,'Down Payment')]});
+ assert(!w.some(x=>x.op==='insert'&&(x.val.auto_kind==='gentle_reminder'||x.val.auto_kind==='demand_letter')));
+});
+test('Down Payment fully settled has no Demand Letter or Gentle Reminder',async()=>{
+ const row=payable(80,5,'Down Payment');row.paid_amount=row.due_amount;
+ const w=await simulate({rows:[row]});
+ assert(!w.some(x=>x.op==='insert'&&['gentle_reminder','demand_letter'].includes(x.val.auto_kind)));
+});
+test('overdue Down Payment retains overdue follow-up, not an improper Demand Letter',async()=>{
+ const w=await simulate({rows:[payable(80,-2,'Down Payment')]});
+ assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='overdue_follow_up'));
+ assert(!w.some(x=>x.op==='insert'&&['gentle_reminder','demand_letter'].includes(x.val.auto_kind)));
+});
+test('unsent legacy Down Payment Demand Letter is cancelled with a clear audit reason',async()=>{
+ const old=task(17,80,'pending','demand_letter',{auto_key:'demand_letter|schedule:80|due:'+datePlus(5)});
+ const w=await simulate({rows:[payable(80,5,'Down Payment')],tasks:[old]});
+ const cancelled=w.filter(x=>x.op==='update'&&x.val.status==='cancelled');
+ assert.equal(cancelled.length,1);
+ assert.match(cancelled[0].val.completion_note,/Down Payment requires Gentle Reminder/);
+ assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder'));
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='demand_letter'));
+});
+test('completed historical Down Payment Demand Letter is retained without changing history',async()=>{
+ const old=task(17,80,'completed','demand_letter',{auto_key:'demand_letter|schedule:80|due:'+datePlus(5)});
+ const w=await simulate({rows:[payable(80,5,'Down Payment')],tasks:[old]});
+ assert(!w.some(x=>x.op==='update'&&x.val.status==='cancelled'));
+ assert(w.some(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder'));
+});
+test('manual gentle reminder for the same Down Payment prevents duplicate automatic gentle reminder',async()=>{
+ const manual={id:55,unit_id:2,status:'pending',source:'manual',auto_kind:null,action_label:'Send Gentle Reminder',schedule_id:80,note:'DP pending'};
+ const w=await simulate({rows:[payable(80,5,'Down Payment')],tasks:[manual]});
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder'));
+});
+test('existing pending Down Payment Gentle Reminder is not duplicated',async()=>{
+ const old=task(17,80,'pending','gentle_reminder',{auto_key:'gentle_reminder|schedule:80|due:'+datePlus(5),action_label:'Send Gentle Reminder',due_date:datePlus(0)});
+ const w=await simulate({rows:[payable(80,5,'Down Payment')],tasks:[old]});
+ assert(!w.some(x=>x.op==='insert'&&x.val.auto_kind==='gentle_reminder'));
+ assert(!w.some(x=>x.op==='update'&&x.val.status==='cancelled'));
 });
