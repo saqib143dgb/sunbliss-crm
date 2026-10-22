@@ -545,18 +545,30 @@
     });
   }
   async function loadGroupedContactHistory(task,panel){
-    var history=panel.querySelector('#saContactActivity');
-    if(!history)return;
+    var history=panel.querySelector('#saContactActivity');if(!history)return;
     try{
       var r=await sb.from('crm_collection_contacts').select('id,contact_method,outcome,schedule_ids,followup_date,note,created_at')
         .eq('source_task_id',Number(task.id)).order('created_at',{ascending:false}).limit(25);
       if(r.error)throw r.error;
       var events=r.data||[];
       if(!events.length){history.remove();return;}
-      var eventsHtml=events.map(function(c){var date=new Date(c.created_at).toLocaleString('en-GB');
-        return '<div class="sa-contact-line">'+safe(date)+' · '+safe(c.contact_method)+' · '+
-          safe(c.outcome.replace(/_/g,' '))+' · Payment IDs '+safe((c.schedule_ids||[]).join(', '))+
-          (c.followup_date?' · '+safe(formatDate(c.followup_date)):'')+(c.note?' · '+safe(c.note):'')+'</div>';}).join('');
+      var promises=await sb.from('crm_collection_promises').select('contact_id,payment_schedule_id,promised_amount,promised_date')
+        .in('contact_id',events.map(function(x){return x.id;})).order('promised_date',{ascending:true});
+      if(promises.error)throw promises.error;
+      var all=panel.__saAllPaymentRows||[],names={};
+      all.forEach(function(p){names[p.id]=p.stage_name;});
+      var eventsHtml=events.map(function(c){
+        var date=new Date(c.created_at).toLocaleString('en-GB'),
+          payments=(c.schedule_ids||[]).map(function(id){return names[id]||'Payment #'+id;}).join(' + '),
+          allocations=(promises.data||[]).filter(function(p){return Number(p.contact_id)===Number(c.id);}),
+          label={no_response:'No response',promise:'Payment promised',partial_payment_commitment:'Partial payment promised',
+                 payment_issue:'Payment query',extension_request:'Extension requested'}[c.outcome]||c.outcome;
+        return '<div class="sa-contact-line"><strong>'+safe(date)+' · '+safe(c.contact_method)+' · '+safe(label)+'</strong>'+
+          '<div>'+safe(payments)+(c.followup_date?' · Next date '+safe(formatDate(c.followup_date)):'')+'</div>'+
+          (allocations.length?'<div>'+allocations.map(function(p){return safe(names[p.payment_schedule_id]||'Payment #'+p.payment_schedule_id)+
+            ' · AED '+safe(groupedMoney(p.promised_amount))+' on '+safe(formatDate(p.promised_date));}).join('<div></div>')+'</div>':'')+
+          (c.note?'<div>'+safe(c.note)+'</div>':'')+'</div>';
+      }).join('');
       history.innerHTML='<summary>Customer contact history · '+events.length+'</summary>'+eventsHtml;
     }catch(e){history.innerHTML='<summary>Customer contact history unavailable</summary>';}
   }
@@ -570,6 +582,7 @@
       var rows=(q[0].data||[]).map(function(x){return Object.assign({},x,{remaining:Math.round(Math.max(0,Number(x.revised_due_amount==null?x.due_amount:x.revised_due_amount)-Number(x.paid_amount||0)-(credit[x.id]||0))*100)/100});})
         .filter(function(x){return x.remaining>.01&&!/booking/i.test(x.stage_name)&&(linked.length===0||linked.includes(Number(x.id)));})
         .sort(function(a,b){return text(a.due_date).localeCompare(text(b.due_date))||a.id-b.id;});
+      panel.__saAllPaymentRows=q[0].data||[];
       panel.__saGroupRows=rows;
       var list=panel.querySelector('#saGroupedPaymentList'),total=panel.querySelector('#saGroupedPaymentTotal'),
         select=panel.querySelector('#saRelatedSchedule');
