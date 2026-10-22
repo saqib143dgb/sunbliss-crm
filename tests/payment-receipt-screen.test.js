@@ -17,11 +17,15 @@ async function render(tx,stage,welcome){
  vm.createContext(ctx);vm.runInContext(helpers+';globalThis.renderReceipt=loadReceiptDetails;',ctx);
  await ctx.renderReceipt(task,panel);return {host,button};
 }
-const tx={id:80,unit_id:703,amount:97150,payment_type:'2nd Installment',payment_schedule_id:90,accounts_confirmation_status:'confirmed'};
+const tx={id:80,unit_id:703,amount:97150,payment_type:'2nd Installment',payment_date:'2026-10-15',remarks:'Card',payment_schedule_id:90,accounts_confirmation_status:'confirmed'};
 const stage={id:90,stage_name:'2nd Installment',due_date:'2026-08-31'};
 test('later instalment uses verified transaction value, independent of outstanding balance and welcome',async()=>{
  const v=await render(tx,stage,true);assert.match(v.host.innerHTML,/AED 97,150/);
  assert.match(v.host.innerHTML,/2nd Installment/);assert.equal(v.button.disabled,false);
+ assert.match(v.host.innerHTML,/Paid on/);
+ assert.match(v.host.innerHTML,/2026-10-15/);
+ assert.match(v.host.innerHTML,/Payment method/);
+ assert.match(v.host.innerHTML,/Card/);
  assert.doesNotMatch(v.host.innerHTML,/outstanding|WhatsApp|Created manually/i);
 });
 test('initial booking receipt pauses for an unsent Welcome Letter',async()=>{
