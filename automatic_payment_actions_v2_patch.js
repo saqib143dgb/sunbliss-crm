@@ -156,7 +156,18 @@ async function run(){
        }
        return;
      }
-     if(coveredBookingDld[String(x.row.id)]||bookingPairBySchedule[String(x.row.id)])return;
+     if(coveredBookingDld[String(x.row.id)])return;
+     if(bookingPairBySchedule[String(x.row.id)]){
+       // If the Down Payment is already paid but DLD remains outstanding,
+       // this DLD row becomes the group's single gentle-reminder owner.
+       var bookingLinks=bookingPairBySchedule[String(x.row.id)],
+         bookingDp=bookingLinks.find(function(y){return y.kind==='dp'});
+       if(bookingDp&&bookingDp.remaining<=1000&&x.delta>=0&&x.delta<=10&&!x.extended){
+         var bookingOpen=bookingLinks.filter(function(y){return y.remaining>1000&&!y.extended});
+         if(bookingOpen.length)addDesired('gentle_reminder',uid,bookingOpen,x.due,bookingLinks);
+       }
+       return;
+     }
      if(x.delta<0||x.delta>10||x.extended)return;
      var links=pairedBySchedule[String(x.row.id)]||[x],key=groupKey('demand_letter',uid,links,x.due);
      if(seen[key])return;seen[key]=1;
@@ -206,11 +217,16 @@ async function run(){
      if(byKey[duplicate.auto_key]===duplicate)delete byKey[duplicate.auto_key];
    }
  }
- var dead=[],obsoleteDownPaymentDemands=[];
+ var dead=[],obsoleteDownPaymentDemands=[],obsoleteBookingDldDemands=[];
  auto.forEach(function(t){
    if(t.status!=='pending')return;
    if(t.auto_kind==='demand_letter'){
      var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
+     if(ids.length===1&&schedulesById[ids[0]]&&stageKind(schedulesById[ids[0]])==='dld'&&
+        (coveredBookingDld[ids[0]]||bookingPairBySchedule[ids[0]])){
+       obsoleteBookingDldDemands.push(t.id);
+       return;
+     }
      // Never preserve an unsent Down Payment Demand Letter. Audit-trail the cancellation;
      // do not alter already sent/completed Demand Letters.
      if(ids.length&&ids.every(function(id){return !!schedulesById[id]})&&
@@ -233,6 +249,14 @@ async function run(){
      .update({status:'cancelled',cancelled_at:retiredAt,updated_at:retiredAt,
        completion_note:'Automatically replaced: Down Payment requires Gentle Reminder, not Demand Letter.'})
      .in('id',obsoleteDownPaymentDemands);
+   if(retired.error)throw retired.error;
+   changed=true;
+ }
+ if(obsoleteBookingDldDemands.length){
+   var retiredAt=new Date().toISOString(),retired=await sb.from('scheduled_actions')
+     .update({status:'cancelled',cancelled_at:retiredAt,updated_at:retiredAt,
+       completion_note:'Consolidated into the same-date Down Payment and DLD follow-up; no separate Demand Letter.'})
+     .in('id',obsoleteBookingDldDemands);
    if(retired.error)throw retired.error;
    changed=true;
  }
