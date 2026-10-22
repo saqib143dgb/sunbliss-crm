@@ -13,7 +13,7 @@ function setup({selectedTask=null}={}){
     {id:1508,unit_id:556,stage_name:'Down Payment',due_amount:199665,paid_amount:50000,due_date:'2026-10-13'},
     {id:1510,unit_id:556,stage_name:'DLD + Admin Fees (SPA)',due_amount:84966,paid_amount:0,due_date:'2026-10-13'},
     {id:1509,unit_id:556,stage_name:'1st Installment',due_amount:199665,paid_amount:0,due_date:'2026-12-31'},
-    {id:1511,unit_id:556,stage_name:'2nd Installment',due_amount:199665,paid_amount:199665,due_date:'2027-04-30'},
+    {id:1511,unit_id:556,stage_name:'2nd Installment',due_amount:199665,paid_amount:0,due_date:'2027-04-30'},
     {id:1512,unit_id:556,stage_name:'Final Installment (Handover)',due_amount:1397655,paid_amount:0,due_date:'2027-10-31'}
   ];
   const data={current_payment_schedule:payment,credit_notes:[],payment_extensions:[]};
@@ -38,9 +38,8 @@ function setup({selectedTask=null}={}){
 test('B3-605 selector lists Down Payment, DLD, 1st and future installment instead of only DP',async()=>{
  const x=setup();
  await x.fn.loadRelatedPaymentChoices({sno:556},null,x.panel);
- assert.equal(x.panel.__saPaymentRows.length,4,'exclude only fully paid stage');
- for(const id of [1508,1510,1509,1512])assert.match(x.list.innerHTML,new RegExp('value="'+id+'"'));
- assert.doesNotMatch(x.list.innerHTML,/value="1511"/);
+ assert.equal(x.panel.__saPaymentRows.length,5,'all five outstanding B3-605 stages should be available');
+ for(const id of [1508,1510,1509,1511,1512])assert.match(x.list.innerHTML,new RegExp('value="'+id+'"'));
  assert.equal(x.summary.textContent,'Select payment(s)');
 });
 test('multi-payment task retains selected links and calculates combined outstanding without changing account records',async()=>{
