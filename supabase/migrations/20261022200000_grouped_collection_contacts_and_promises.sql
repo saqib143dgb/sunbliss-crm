@@ -189,9 +189,11 @@ BEGIN
    v_extension_count:=v_extension_count+1;
   END LOOP;
  ELSE
+  -- Only the payments actually discussed remain on this follow-up;
+  -- other unpaid installments remain eligible for their own automatic actions.
   v_group_key:='manual_payment|unit:'||t.unit_id||
-    CASE WHEN cardinality(v_existing_ids)=1 THEN '|schedule:'||v_existing_ids[1]
-         ELSE '|schedules:'||(SELECT string_agg(id::text,',' ORDER BY id) FROM unnest(v_existing_ids) id) END;
+    CASE WHEN cardinality(v_ids)=1 THEN '|schedule:'||v_ids[1]
+         ELSE '|schedules:'||array_to_string(v_ids,',') END;
   IF EXISTS(SELECT 1 FROM public.scheduled_actions z WHERE z.id<>t.id AND z.unit_id=t.unit_id
     AND z.status='pending' AND z.source='manual' AND z.auto_kind IS NULL AND z.auto_key=v_group_key
     AND z.due_date=p_next_date AND z.workflow_kind IN ('payment_follow_up','payment_query')) THEN
@@ -203,7 +205,7 @@ BEGIN
       CASE WHEN p_outcome='no_response' THEN 'No response' ELSE 'Payment query' END||
       CASE WHEN nullif(btrim(p_note),'') IS NULL THEN '' ELSE '. '||btrim(p_note) END,
     source='manual',auto_kind=NULL,auto_key=v_group_key,
-    schedule_id=CASE WHEN cardinality(v_existing_ids)=1 THEN v_existing_ids[1] ELSE NULL END,
+    schedule_id=CASE WHEN cardinality(v_ids)=1 THEN v_ids[1] ELSE NULL END,
     workflow_kind=CASE WHEN p_outcome='payment_issue' THEN 'payment_query' ELSE 'payment_follow_up' END,
     updated_at=now() WHERE id=t.id;
  END IF;
