@@ -38,7 +38,7 @@ async function run(){
  var units=activeUnitIds();if(!units.length){await refreshMeta();return false}
  var ur=await sb.auth.getUser(),user=ur&&ur.data&&ur.data.user;if(!user)return false;
  var q=await Promise.all([
-   sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',units),
+   sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',units),
    sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,created_at,updated_at,completion_note'),
    sb.from('credit_notes').select('payment_schedule_id,unit_id,amount').in('unit_id',units),
    sb.from('payment_extensions').select('payment_schedule_id,status,extended_due_date').in('unit_id',units).eq('status','active')
@@ -46,12 +46,14 @@ async function run(){
  var schedules=q[0].data||[],tasks=q[1].data||[],credits=q[2].data||[],extensions=q[3].data||[],credit={},extended={};
  credits.forEach(function(c){if(c.payment_schedule_id!=null){var k=String(c.payment_schedule_id);credit[k]=Math.round(((credit[k]||0)+(Number(c.amount)||0))*100)/100}});
  extensions.forEach(function(e){if(e.payment_schedule_id!=null&&iso(e.extended_due_date)>=iso(new Date().toISOString()))extended[String(e.payment_schedule_id)]=1});
- var managed=carryManaged(),manualSchedule={},manualGentleBySchedule={},pendingDemand={},recentDemand={},finishedDemand={},activeUnits={},schedulesById={};
+ var managed=carryManaged(),manualSchedule={},manualGentleBySchedule={},bookingBalanceByDp={},pendingDemand={},recentDemand={},finishedDemand={},activeUnits={},schedulesById={};
  units.forEach(function(x){activeUnits[String(x)]=1});
  schedules.forEach(function(r){schedulesById[String(r.id)]=r});
  tasks.forEach(function(t){
    var ids=t.schedule_id!=null?[String(t.schedule_id)]:idsFromKey(t.auto_key);
    if(manualPaymentTask(t))ids.forEach(function(id){manualSchedule[String(id)]=1});
+   if(t.status==='pending'&&/^booking_balance\|unit:\d+\|schedule:\d+$/.test(text(t.auto_key))&&t.schedule_id!=null)
+     bookingBalanceByDp[String(t.schedule_id)]=1;
    if(t.status==='pending'&&(t.source==='manual'||!t.source)&&/\bgentle reminder\b/i.test(text(t.action_label)))ids.forEach(function(id){manualGentleBySchedule[String(id)]=1});
    if(t.auto_kind!=='demand_letter')return;
    if(t.status==='pending')ids.forEach(function(id){pendingDemand[String(id)]=1});
@@ -85,6 +87,25 @@ async function run(){
      group.forEach(function(x){pairedBySchedule[String(x.row.id)]=group});
    });
  });
+ // A Down Payment + DLD shared date is a single gentle/booking follow-up,
+ // unless DLD already belongs to a first-installment Demand Letter.
+ var bookingPairBySchedule={},coveredBookingDld={};
+ Object.keys(allByUnit).forEach(function(uid){
+   var dpList=allByUnit[uid].filter(function(x){return x.kind==='dp'&&!x.extended});
+   var dldList=allByUnit[uid].filter(function(x){return x.kind==='dld'&&!x.extended});
+   dpList.forEach(function(dp){
+     var dld=dldList.find(function(x){
+       return x.due===dp.due&&String(x.row.customer_id)===String(dp.row.customer_id)&&
+         !pairedBySchedule[String(x.row.id)];
+     });
+     if(!dld)return;
+     if(bookingBalanceByDp[String(dp.row.id)])coveredBookingDld[String(dld.row.id)]=1;
+     else{
+       var both=[dp,dld];
+       both.forEach(function(x){bookingPairBySchedule[String(x.row.id)]=both});
+     }
+   });
+ });
  var desired=[],desiredKeys={};
  function addDesired(kind,uid,rows,due,keyRows){
    if(!rows.length)return;
@@ -92,7 +113,7 @@ async function run(){
      links=keyRows||rows,
      k=kind==='overdue_follow_up'?overdueKey(uid,links):groupKey(kind,uid,links,due),
      existing=byKey[k],
-     isDownPaymentReminder=kind==='gentle_reminder'&&rows.length===1&&rows[0].kind==='dp',
+     isDownPaymentReminder=kind==='gentle_reminder'&&rows.some(function(x){return x.kind==='dp'}),
      dueForTask=isDownPaymentReminder?(existing&&existing.status==='pending'&&iso(existing.due_date)||dubaiToday()):
        kind==='overdue_follow_up'?rows[0].due:actionDue(kind,due),
      p={unit_id:Number(uid),action_label:label(kind,total),due_date:dueForTask,
@@ -109,18 +130,33 @@ async function run(){
    // Retain the established single overdue-follow-up priority without blocking future demands.
    var current=dp.length?dp:pre.length?pre:rows.filter(function(x){return x.kind==='later'});
    var overdue=current.filter(function(x){return x.delta<0&&!x.extended&&!x.manual&&!pendingDemand[String(x.row.id)]});
+   if(dp.length&&!bookingBalanceByDp[String(dp[0].row.id)]){
+     var dpOverdue=overdue.filter(function(x){return x.kind==='dp'});
+     dpOverdue.forEach(function(x){
+       (bookingPairBySchedule[String(x.row.id)]||[]).forEach(function(link){
+         if(link.kind==='dld'&&link.delta<0&&link.remaining>1000&&!link.manual&&!link.extended&&
+            !overdue.some(function(o){return String(o.row.id)===String(link.row.id)}))overdue.push(link);
+       });
+     });
+   }
    if(overdue.length)addDesired('overdue_follow_up',uid,overdue,overdue[0].due);
    // Create only one scheduled task for the shared payment obligation.
    var seen={};
    rows.forEach(function(x){
      if(x.kind==='dp'){
-       // Down Payment is a booking-stage balance: never issue a Demand Letter.
-       // Send one gentle reminder as soon as an unpaid balance enters the 10-day window.
-       // When created inside that window, its action date is today (not a date in the past).
-       if(x.delta>=0&&x.delta<=10&&!x.extended&&!manualGentleBySchedule[String(x.row.id)])
-         addDesired('gentle_reminder',uid,[x],x.due);
+       // An existing booking commitment task is the single owner of the
+       // same-date Down Payment + DLD follow-up.
+       if(bookingBalanceByDp[String(x.row.id)])return;
+       // The auto fallback also groups Down Payment + DLD into one gentle
+       // reminder; it never creates a Down Payment Demand Letter.
+       if(x.delta>=0&&x.delta<=10&&!x.extended&&!manualGentleBySchedule[String(x.row.id)]){
+         var bookingLinks=bookingPairBySchedule[String(x.row.id)]||[x],
+           bookingOpen=bookingLinks.filter(function(y){return y.remaining>1000&&!y.extended});
+         if(bookingOpen.length)addDesired('gentle_reminder',uid,bookingOpen,x.due,bookingLinks);
+       }
        return;
      }
+     if(coveredBookingDld[String(x.row.id)]||bookingPairBySchedule[String(x.row.id)])return;
      if(x.delta<0||x.delta>10||x.extended)return;
      var links=pairedBySchedule[String(x.row.id)]||[x],key=groupKey('demand_letter',uid,links,x.due);
      if(seen[key])return;seen[key]=1;
