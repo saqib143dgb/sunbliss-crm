@@ -208,7 +208,38 @@ const displayDate=d=>d?dateText(String(d).slice(0,10)):'-';
 const clean=s=>String(s??'').replace(/[\u2010-\u2015]/g,'-').replace(/\u00a0/g,' ');
 function amountWords(amount){const ones=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'],tens=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];function w(n){if(n<20)return ones[n];if(n<100)return tens[Math.floor(n/10)]+(n%10?' '+w(n%10):'');if(n<1000)return w(Math.floor(n/100))+' hundred'+(n%100?' and '+w(n%100):'');for(const [v,l] of [[1e9,'billion'],[1e6,'million'],[1000,'thousand']])if(n>=v)return w(Math.floor(n/v))+' '+l+(n%v?' '+w(n%v):'')}const fils=Math.round(Number(amount)*100),s=w(Math.floor(fils/100))+' UAE dirhams'+(fils%100?' and '+w(fils%100)+' fils':'')+' only';return s[0].toUpperCase()+s.slice(1)}
 function selectedTx(){return crmContext?.documentType==='receipt'?selectedReceiptTransactions()[0]||null:crmContext.transactions.find(t=>String(t.id)===val('payment'))}
-function selectedStage(){return val('stage')===''?null:(crmContext.account.stages||[])[Number(val('stage'))]}
+function demandRemaining(stage){
+ if(!stage)return 0;
+ return Math.round(Math.max(0,(Number(stage.due)||0)-(Number(stage.settledAmount??stage.paid)||0))*100)/100;
+}
+function demandEffectiveDueDate(stage){
+ const date=stage?.revisedDueDate||stage?.dueDate;
+ return date?String(date).slice(0,10):'';
+}
+function demandEligibleStage(stage){
+ return !!stage&&!/down\s*payment|booking(?:\s+amount|\s+balance)?/i.test(String(stage.label||''))&&demandRemaining(stage)>0;
+}
+function demandFirstDldPair(stages){
+ const first=stages.findIndex(s=>demandEligibleStage(s)&&/\b(1st|first)\b.*installment/i.test(String(s.label||'')));
+ if(first<0)return null;
+ const due=demandEffectiveDueDate(stages[first]);
+ if(!due)return null;
+ const dld=stages.findIndex((s,i)=>i!==first&&demandEligibleStage(s)&&/dld|admin\s*fees?/i.test(String(s.label||''))&&demandEffectiveDueDate(s)===due);
+ return dld<0?null:[first,dld];
+}
+function selectedStage(){
+ const value=val('stage'),stages=crmContext?.account?.stages||[];
+ if(value.startsWith('pair:')){
+   const parts=value.slice(5).split(',').map(Number),pair=demandFirstDldPair(stages);
+   if(!pair||parts.length!==2||parts.some((id,i)=>id!==pair[i]))return null;
+   const selected=pair.map(i=>stages[i]);
+   return {label:selected.map(s=>s.label).join(' + '),due:selected.reduce((n,s)=>n+(Number(s.due)||0),0),
+     settledAmount:selected.reduce((n,s)=>n+(Number(s.settledAmount??s.paid)||0),0),dueDate:demandEffectiveDueDate(selected[0])};
+ }
+ if(!/^\d+$/.test(value))return null;
+ const stage=stages[Number(value)];
+ return demandEligibleStage(stage)?stage:null;
+}
 function values(){const txs=crmContext.documentType==='receipt'?selectedReceiptTransactions():[];return {customer:crmContext.customer.customer_name,salutation:val('salutation'),unit:crmContext.unit.unit_no,type:crmContext.unit.unit_type,date:val('date'),amount:txs.length?txs.reduce((sum,t)=>sum+Math.round(Number(t.amount)*100),0)/100:Number(val('amount')),paymentId:val('payment')}}
 function blocks(){const v=values(),c=crmContext.account,kind=crmContext.documentType,tx=selectedTx(),b=[];const p=(text,bold=false)=>b.push({text:clean(text),bold});const table=(heads,rows,widths)=>b.push({heads,rows:rows.map(r=>r.map(clean)),widths});p('Date: '+displayDate(v.date));
 if(kind==='receipt'){
@@ -231,6 +262,13 @@ function documentValidation(){
    if(txs.some(tx=>!val('receipt-method-'+tx.id)&&!val('instrument')))return 'Choose a payment method for every selected payment.';
  }else if(kind==='welcome'){
    const tx=selectedTx();if(!tx||!(Number(tx.amount)>0))return 'Select a recorded payment to preview this document.';
+ }else if(kind==='demand'){
+   const stage=selectedStage(),amount=Number(val('demandAmount'));
+   if(!stage)return 'Select an unpaid installment other than the Down Payment.';
+   if(!Number.isFinite(amount)||amount<=0)return 'Enter a valid outstanding amount.';
+   if(amount>demandRemaining(stage)+0.01)return 'The requested amount cannot exceed the outstanding amount.';
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(val('dueDate')))return 'Select a valid installment due date.';
+   if(!val('accountDetails').trim())return 'Enter verified payment account details for this project.';
  }
  if(!val('date'))return 'Select the document date.';
  return '';
@@ -347,7 +385,16 @@ if(kind==='receipt'){
    '<input id="receipt-reference-'+escapeHtml(t.id)+'" aria-label="Reference for '+escapeHtml(t.payment_type||'payment')+'" placeholder="Reference (optional)" value="'+escapeHtml(t.payment_reference||'')+'">'+
    '<input id="receipt-bank-'+escapeHtml(t.id)+'" aria-label="Bank for '+escapeHtml(t.payment_type||'payment')+'" placeholder="Bank (optional)"></div></div></div>'
  ).join(''):'<p class="muted">No Accounts-confirmed payments are available for this unit.</p>')+'</fieldset><p id="receiptSelectionSummary" role="status" aria-live="polite">No payments selected</p>'+field('amount','Total selected amount (AED)','',true);
-};if(kind==='receipt')html+='<label>Official receipt number<span class="receipt-number-field"><span class="receipt-number-prefix">SPRED:</span><input id="receiptNo" aria-label="Official receipt number" inputmode="numeric" pattern="[0-9]+" maxlength="30" placeholder="100" required></span></label><label>Instrument / payment method<select id="instrument" required><option value="">Select payment method</option><option>Cheque</option><option>Online</option><option>Cash/Card</option></select></label>'+field('reference','Instrument / reference number')+field('bank','Drawn on / bank');if(kind==='demand'){html+=field('address','Customer address',info.address||'')+'<label>Installment<select id="stage" required><option value="">Select installment</option>'+(c.stages||[]).map((s,i)=>Number(s.due)-Number(s.settledAmount??s.paid)>0?'<option value="'+i+'">'+escapeHtml(s.label)+'</option>':'').join('')+'</select></label>'+field('demandAmount','Amount due (AED)','',true)+field('dueDate','Payment due date','',true)+'<p class="muted">Review the amount and due date against any approved extension before generating.</p><label>Payment account details<textarea id="accountDetails" required rows="7" placeholder="Enter the applicable, verified payment account details"></textarea></label>'}html+='<button class="primary" type="submit" id="generate">Generate PDF</button><a id="download" class="primary download-link" hidden>Download PDF</a><div id="notice" role="status" aria-live="polite"></div><p class="muted">Download for signing and stamping. Generated PDFs are not saved in the CRM.</p>';$('details').innerHTML=html;$('date').type='date';if($('dueDate'))$('dueDate').type='date';if($('amount'))$('amount').readOnly=true;if($('demandAmount')){$('demandAmount').type='number';$('demandAmount').min='.01';$('demandAmount').step='.01'}
+};if(kind==='receipt')html+='<label>Official receipt number<span class="receipt-number-field"><span class="receipt-number-prefix">SPRED:</span><input id="receiptNo" aria-label="Official receipt number" inputmode="numeric" pattern="[0-9]+" maxlength="30" placeholder="100" required></span></label><label>Instrument / payment method<select id="instrument" required><option value="">Select payment method</option><option>Cheque</option><option>Online</option><option>Cash/Card</option></select></label>'+field('reference','Instrument / reference number')+field('bank','Drawn on / bank');if(kind==='demand'){
+ const stages=c.stages||[],pair=demandFirstDldPair(stages);
+ const pairedOption=pair?'<option value="pair:'+pair.join(',')+'">1st Installment + DLD/Admin Fees (same due date)</option>':'';
+ html+=field('address','Customer address',ctx.customer.address||info.address||'')+
+ '<label>Installment<select id="stage" required><option value="">Select unpaid installment</option>'+pairedOption+
+ stages.map((s,i)=>demandEligibleStage(s)?'<option value="'+i+'">'+escapeHtml(s.label)+'</option>':'').join('')+
+ '</select></label>'+field('demandAmount','Outstanding amount (AED)','',true)+field('dueDate','Payment due date','',true)+
+ '<p class="muted">Due date includes an approved revision where recorded. Review the draft before downloading.</p>'+
+ '<label>Payment account details<textarea id="accountDetails" required rows="7" placeholder="Enter the verified bank details for this project. Bank details are not copied from another project."></textarea></label>';
+}html+='<button class="primary" type="submit" id="generate">Generate PDF</button><a id="download" class="primary download-link" hidden>Download PDF</a><div id="notice" role="status" aria-live="polite"></div><p class="muted">Download for signing and stamping. Generated PDFs are not saved in the CRM.</p>';$('details').innerHTML=html;$('date').type='date';if($('dueDate'))$('dueDate').type='date';if($('amount'))$('amount').readOnly=true;if($('demandAmount')){$('demandAmount').type='number';$('demandAmount').min='.01';$('demandAmount').step='.01'}
 if(kind==='welcome')$('payment')?.addEventListener('change',()=>{const t=selectedTx();$('amount').value=t?.amount||'';render()});
  if(kind==='receipt'){
    const refreshSelection=()=>{
@@ -365,7 +412,7 @@ if(kind==='welcome')$('payment')?.addEventListener('change',()=>{const t=selecte
    };
    $('receiptPaymentList').addEventListener('change',refreshSelection);
    refreshSelection();
- }$('stage')?.addEventListener('change',()=>{const s=selectedStage();$('demandAmount').value=s?Math.max(0,Number(s.due)-Number(s.settledAmount??s.paid)):'';$('dueDate').value=s?.dueDate?String(s.dueDate).slice(0,10):'';render()});$('details').addEventListener('input',()=>{$('download').hidden=true;render()});$('details').onsubmit=async e=>{e.preventDefault();const b=$('generate');b.disabled=true;try{if((kind==='welcome'||kind==='receipt')&&!selectedTx())throw Error('Select a recorded payment.');$('notice').textContent='Generating PDF…';const blob=await makeDocumentPdf();if(downloadUrl)URL.revokeObjectURL(downloadUrl);downloadUrl=URL.createObjectURL(blob);const a=$('download');a.href=downloadUrl;a.download=title.replace(/ /g,'-')+'-'+ctx.unit.unit_no.replace(/[^a-z0-9-]/gi,'-')+'-'+val('date')+'.pdf';a.hidden=false;$('notice').textContent='PDF ready. Select Download PDF.'}catch(err){$('notice').textContent=/WinAnsi/.test(err.message)?'This customer name contains unsupported characters. Please contact your CRM administrator.':err.message}finally{b.disabled=!!documentValidation()}};render()}
+ }$('stage')?.addEventListener('change',()=>{const s=selectedStage();$('demandAmount').value=s?demandRemaining(s).toFixed(2):'';$('dueDate').value=s?demandEffectiveDueDate(s):'';render()});$('details').addEventListener('input',()=>{$('download').hidden=true;render()});$('details').onsubmit=async e=>{e.preventDefault();const b=$('generate');b.disabled=true;try{if((kind==='welcome'||kind==='receipt')&&!selectedTx())throw Error('Select a recorded payment.');$('notice').textContent='Generating PDF…';const blob=await makeDocumentPdf();if(downloadUrl)URL.revokeObjectURL(downloadUrl);downloadUrl=URL.createObjectURL(blob);const a=$('download');a.href=downloadUrl;a.download=title.replace(/ /g,'-')+'-'+ctx.unit.unit_no.replace(/[^a-z0-9-]/gi,'-')+'-'+val('date')+'.pdf';a.hidden=false;$('notice').textContent='PDF ready. Select Download PDF.'}catch(err){$('notice').textContent=/WinAnsi/.test(err.message)?'This customer name contains unsupported characters. Please contact your CRM administrator.':err.message}finally{b.disabled=!!documentValidation()}};render()}
 window.addEventListener('message',e=>{if(e.source!==parent||e.origin!==location.origin||e.data?.channel!=='crm-welcome'||e.data.action!=='init'||crmContext)return;init(e.data.context)});
 if(parent===window){$('details').innerHTML='<p>Open a customer in the CRM and choose Generate Document.</p>'}else parent.postMessage({channel:'crm-welcome',action:'ready'},location.origin);
 

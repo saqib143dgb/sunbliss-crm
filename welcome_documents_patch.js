@@ -2,7 +2,7 @@
 'use strict';
 if(window.__sunblissWelcomeDocuments)return;window.__sunblissWelcomeDocuments=true;
 let dialog=null,opening=false;
-const TYPES={welcome:'Welcome Letter',receipt:'Payment Receipt',soa:'SOA',spa:'SPA'};
+const TYPES={welcome:'Welcome Letter',receipt:'Payment Receipt',demand:'Demand Letter',soa:'SOA',spa:'SPA'};
 const GENERATOR_STYLE_ID='crmDocumentGeneratorGlobalStyles';
 function current(){return window.state&&state.view==='detail'&&(state.dues||[]).find(c=>c.unit+'::'+c.sno===state.selectedUnit)}
 function unwrap(r){if(r.error)throw r.error;return r.data}
@@ -168,7 +168,7 @@ async function open(c){
     dialog.querySelector('.document-customer').textContent=ctx.customer.customer_name+' · '+ctx.unit.unit_no;
     const options=dialog.querySelector('.document-options');
     const back=dialog.querySelector('.document-back');
-    const descriptions={welcome:'Customer welcome and payment acknowledgement',receipt:'Receipt for a recorded payment',soa:'Statement of account and payment history',spa:'Bilingual SPA preparation, Arabic verification and unit-layout readiness'};
+    const descriptions={welcome:'Customer welcome and payment acknowledgement',receipt:'Receipt for a recorded payment',demand:'Payment request for outstanding installments',soa:'Statement of account and payment history',spa:'Bilingual SPA preparation, Arabic verification and unit-layout readiness'};
     back.onclick=()=>{frame?.remove();frame=null;kind=null;dialog.classList.remove('document-workspace');options.hidden=false;back.hidden=true;dialog.querySelector('.document-dialog-title').textContent='Generate Document';grid.querySelector('button')?.focus()};
     const grid=dialog.querySelector('.document-options-grid');
     for(const [key,label] of Object.entries(TYPES)){
