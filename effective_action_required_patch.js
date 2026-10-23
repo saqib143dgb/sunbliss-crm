@@ -25,13 +25,13 @@ function hydrate(){try{var raw=sessionStorage.getItem(STORE_KEY);if(!raw)return;
 function persist(){try{sessionStorage.setItem(STORE_KEY,JSON.stringify(cache))}catch(e){}}
 function assemble(rows,credits,extensions,tasks){var credit={},ext={};(credits||[]).forEach(function(c){if(c.payment_schedule_id==null)return;var id=String(c.payment_schedule_id);credit[id]=Math.round(((credit[id]||0)+(Number(c.amount)||0))*100)/100});(extensions||[]).forEach(function(e){if(e.status!=='active'||e.payment_schedule_id==null||!iso(e.extended_due_date))return;var id=String(e.payment_schedule_id),old=ext[id];if(!old||iso(e.extended_due_date)>iso(old.extended_due_date)||(iso(e.extended_due_date)===iso(old.extended_due_date)&&text(e.updated_at)>text(old.updated_at)))ext[id]=e});return{rows:rows||[],credit:credit,ext:ext,tasks:tasks||[]}}
 async function preloadAll(force){if(!window.sb)return false;if(preloading)return preloading;var ids=unitIds();if(!ids.length)return false;var now=Date.now(),allFresh=!force&&ids.every(function(id){var h=cache[String(id)];return h&&now-h.at<CACHE_TTL});if(allFresh)return true;preloading=(async function(){var q=await Promise.all([
- sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',ids),
+ sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').in('unit_id',ids),
  sb.from('credit_notes').select('unit_id,payment_schedule_id,amount').in('unit_id',ids),
  sb.from('payment_extensions').select('id,unit_id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').in('unit_id',ids).neq('status','cancelled'),
  sb.from('scheduled_actions').select('id,unit_id,action_label,note,status,source,auto_kind,auto_key,schedule_id').in('unit_id',ids).eq('status','pending')
 ]);q.forEach(function(r){if(r.error)throw r.error});var rows={},credits={},exts={},tasks={};(q[0].data||[]).forEach(function(r){var k=String(r.unit_id);(rows[k]||(rows[k]=[])).push(r)});(q[1].data||[]).forEach(function(r){var k=String(r.unit_id);(credits[k]||(credits[k]=[])).push(r)});(q[2].data||[]).forEach(function(r){var k=String(r.unit_id);(exts[k]||(exts[k]=[])).push(r)});(q[3].data||[]).forEach(function(r){var k=String(r.unit_id);(tasks[k]||(tasks[k]=[])).push(r)});var at=Date.now();ids.forEach(function(id){var k=String(id);cache[k]={at:at,data:assemble(rows[k]||[],credits[k]||[],exts[k]||[],tasks[k]||[])}});persist();return true})().catch(function(e){console.warn('Could not preload effective payment actions',e);return false}).then(function(v){preloading=null;if(v&&window.state&&state.view==='detail')prepare();return v});return preloading}
 async function load(uid,force){var k=String(uid),hit=cache[k];if(!force&&hit&&Date.now()-hit.at<CACHE_TTL)return hit.data;if(!force&&preloading){await preloading;hit=cache[k];if(hit&&Date.now()-hit.at<CACHE_TTL)return hit.data}if(loading[k])return loading[k];loading[k]=(async function(){var q=await Promise.all([
- sb.from('payment_schedule').select('id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',uid),
+ sb.from('payment_schedule').select('id,customer_id,unit_id,stage_name,due_amount,revised_due_amount,due_date,revised_due_date,paid_amount,status').eq('unit_id',uid),
  sb.from('credit_notes').select('payment_schedule_id,amount').eq('unit_id',uid),
  sb.from('payment_extensions').select('id,payment_schedule_id,extended_due_date,status,approved_on,updated_at').eq('unit_id',uid).neq('status','cancelled'),
  sb.from('scheduled_actions').select('id,unit_id,action_label,note,status,source,auto_kind,auto_key,schedule_id').eq('unit_id',uid).eq('status','pending')
@@ -43,6 +43,8 @@ function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.
 function build(data,c,selection){
  var rows=[],carry={},stages={};(c&&c.stages||[]).forEach(function(s){var id=String(s.id||s.scheduleId);carry[id]=Math.max(0,Number(s.carryApplied)||0);stages[id]=s});
  data.rows.forEach(function(r){
+  // The card and the document must both ignore a previous/cancelled buyer.
+  if(c&&c.customerId!=null&&String(r.customer_id)!==String(c.customerId))return;
   var kind=stageKind(r);if(!kind)return;
   var credit=data.credit[String(r.id)]||0,stage=stages[String(r.id)],due=Number(r.revised_due_amount)||Number(r.due_amount)||0;
   if(norm(r.status)==='paid'||(stage&&norm(stage.status)==='paid'))return;
@@ -61,6 +63,11 @@ function build(data,c,selection){
  if(selection)Object.assign(selection,{amount:sum,stage:stage,date:d,overdueCount:over.length});
  var status=over.length?'Overdue':first.e.kind==='extension'?'Extension Active':first.e.kind==='revised'?'Revised Schedule':delta===0?'Due today':delta!==null&&delta<=10?'Due soon':'Upcoming';
  var result={status:status,tone:over.length||delta===0?'danger':delta!==null&&delta<=10?'warn':'neutral',message:'',detail:'Stage: '+stage+' · '+sourceLine(first),meta:{stage:stage,by:first.e.date?date(first.e.date):'At handover',due:over.length?Math.abs(delta)+' day'+(Math.abs(delta)===1?'':'s'):delta===0?'Today':delta===null?'—':delta+' day'+(delta===1?'':'s'),overdue:!!over.length},upcoming:'',extension:''};
+ // The document consumes this very selection, not a separate installment heuristic.
+ result.documentFocus={scheduleIds:focusOrdered.map(function(x){return String(x.r.id)}),
+  kinds:focusOrdered.map(function(x){return x.kind}),stage:stage,
+  amount:sum,dueDate:first.e.date||'',customerId:c&&c.customerId!=null?String(c.customerId):''};
+
  if(focusOrdered.length===1)result.message=stage+' is '+money(sum)+(delta===null?', payable at handover.':'.');
  else if(focusOrdered.length===2&&focusOrdered.some(function(x){return x.kind==='dld'}))result.message=stage+' are '+money(sum)+(delta===null?', payable at handover.':'.');
  else result.message=stage+' are '+focusOrdered.map(function(x){return money(x.remaining)}).join(' & ')+' — total '+money(sum)+(delta===null?', payable at handover.':'.');
@@ -81,6 +88,16 @@ function setTextIfChanged(node,value){if(node&&text(node.textContent)!==text(val
 function apply(a,key){if(!window.state||state.view!=='detail'||text(state.selectedUnit)!==key)return;var card=document.getElementById('actionRequiredCard');if(!card)return;clearTimeout(guardTimer);card.dataset.effectiveReady='true';if(a.hidden){card.hidden=true;card.setAttribute('aria-hidden','true');card.dataset.scheduledCovered='true';return}card.hidden=false;card.removeAttribute('aria-hidden');delete card.dataset.scheduledCovered;card.dataset.actionMeta=JSON.stringify(a.meta||{});var messageNode=card.querySelector('.action-required-message'),ext=card.querySelector('.action-required-extension');if(a.extension){if(!ext){ext=document.createElement('p');ext.className='action-required-extension';if(messageNode)messageNode.after(ext);else card.appendChild(ext)}setTextIfChanged(ext,a.extension)}else if(ext){ext.remove();ext=null}var next=card.querySelector('.action-required-upcoming');if(a.upcoming){if(!next){next=document.createElement('p');next.className='action-required-upcoming';var anchor=ext&&ext.isConnected?ext:messageNode;if(anchor)anchor.after(next);else card.appendChild(next)}setTextIfChanged(next,a.upcoming)}else if(next)next.remove();var sig=[a.status,a.tone,a.message,a.detail,a.extension,a.upcoming].join('|');if(card.dataset.effectiveActionSig===sig||visibleMatches(card,a)){card.dataset.effectiveActionSig=sig;return}rendering=true;try{card.dataset.effectiveActionSig=sig;if(card.getAttribute('data-tone')!==a.tone)card.setAttribute('data-tone',a.tone);var status=card.querySelector('.action-required-status'),message=card.querySelector('.action-required-message'),detail=card.querySelector('.action-required-detail');if(status&&message){setTextIfChanged(status,a.status);setTextIfChanged(message,a.message);if(a.detail){if(!detail){detail=document.createElement('p');detail.className='action-required-detail';card.appendChild(detail)}setTextIfChanged(detail,a.detail)}else if(detail){detail.remove()}}else{card.innerHTML='<div class="action-required-head"><span class="action-required-title">Action Required</span><span class="action-required-status">'+safe(a.status)+'</span></div><p class="action-required-message">'+safe(a.message)+'</p>'+(a.detail?'<p class="action-required-detail">'+safe(a.detail)+'</p>':'')}}finally{rendering=false}}
 function prepare(){if(!window.state||state.view!=='detail')return false;var c=current();if(!c||!Number(c.sno))return false;var hit=fresh(Number(c.sno));if(hit){apply(build(hit.data,c),text(state.selectedUnit));return true}return false}
 async function render(force){if(!window.state||!window.sb||state.view!=='detail')return;var c=current();if(!c||!Number(c.sno))return;var key=text(state.selectedUnit);try{var data=await load(Number(c.sno),!!force);if(text(state.selectedUnit)!==key||state.view!=='detail')return;apply(build(data,c),key)}catch(e){revealFallback(key);console.warn('Effective Action Required could not load',e)}}
+window.__sunblissDemandActionForUnit=async function(unitId,customerId){
+ var c=current();
+ if(!c||Number(c.sno)!==Number(unitId)||!customerId||String(c.customerId)!==String(customerId))
+  throw Error('Current booking does not match this customer.');
+ var data=await load(unitId,true);
+ // Cancelled and previous buyers of the same unit must never enter a demand notice.
+ var ownerRows=(data.rows||[]).filter(function(r){return String(r.customer_id)===String(customerId)});
+ var action=build(Object.assign({},data,{rows:ownerRows}),c);
+ return action.documentFocus||null;
+};
 window.__sunblissEnsureEffectiveAction=async function(){var c=current(),key=text(state.selectedUnit);if(!c)return;var data=await load(Number(c.sno),false);if(state.view==='detail'&&text(state.selectedUnit)===key)apply(build(data,c),key);};
 function schedule(force,ms){clearTimeout(timer);if(ms===0){render(!!force);return}timer=setTimeout(function(){render(!!force)},ms==null?30:ms)}
 function invalidateCurrent(){var c=current();if(c&&Number(c.sno)){delete cache[String(Number(c.sno))];persist()}}

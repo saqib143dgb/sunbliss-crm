@@ -154,14 +154,23 @@ async function context(c){
     ?await window.SunblissSpaReconciliation.loadForUnit(sb,unit.id):null;
   return {testMode:!!(window.__crmTestMode&&window.__crmTestMode.active),unit,customer,transactions:transactions.filter(t=>Number(t.amount)>0),soaTransactions:transactions,paymentSchedule,sale,account:snapshot,priceRevision};
 }
+async function loadDemandContext(ctx){
+ const unit=ctx.unit;
+ // Fetch only when Demand Letter is selected; other documents stay independent.
+ const bankResult=await sb.from('branding').select('demand_account_details').limit(1).maybeSingle();
+ if(bankResult.error)throw bankResult.error;
+ const demandAction=typeof window.__sunblissDemandActionForUnit==='function'
+   ?await window.__sunblissDemandActionForUnit(unit.id,unit.customer_id):null;
+ return {...ctx,demandAction,demandAccountDetails:String(bankResult.data?.demand_account_details||'').trim()};
+}
 async function open(c){
   if(dialog||opening)return;opening=true;const opener=document.activeElement;
   try{
     if(!['crm_officer','manager'].includes(state.userRole))throw Error('Please sign in with an authorized CRM account.');
     const ctx=await context(c);styles();dialog=document.createElement('dialog');dialog.id='crmDocumentDialog';dialog.setAttribute('aria-label','Generate Document');
     dialog.innerHTML='<div class="document-dialog-bar"><button class="document-back" type="button" hidden aria-label="Back to document list">‹ Back</button><span class="document-dialog-title">Generate Document</span><button class="document-close" type="button">Close</button></div><div class="document-options"><p class="document-customer"></p><div class="document-options-grid"></div></div>';
-    document.body.append(dialog);let frame=null,kind=null;
-    const handle=e=>{if(e.origin!==location.origin||e.source!==frame?.contentWindow||e.data?.channel!=='crm-welcome')return;if(e.data.action==='ready')frame.contentWindow.postMessage({channel:'crm-welcome',action:'init',context:{...ctx,documentType:kind}},location.origin)};
+    document.body.append(dialog);let frame=null,kind=null,demandCtx=null;
+    const handle=e=>{if(e.origin!==location.origin||e.source!==frame?.contentWindow||e.data?.channel!=='crm-welcome')return;if(e.data.action==='ready')frame.contentWindow.postMessage({channel:'crm-welcome',action:'init',context:{...(kind==='demand'?demandCtx:ctx),documentType:kind}},location.origin)};
     window.addEventListener('message',handle);
     const close=()=>{window.removeEventListener('message',handle);dialog.close();dialog.remove();dialog=null;opener?.isConnected&&opener.focus()};
     dialog.querySelector('.document-close').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close()});
@@ -173,7 +182,7 @@ async function open(c){
     const grid=dialog.querySelector('.document-options-grid');
     for(const [key,label] of Object.entries(TYPES)){
       const b=document.createElement('button');b.type='button';b.innerHTML='<span><span class="document-option-label">'+label+'</span><span class="document-option-description">'+descriptions[key]+'</span></span>';
-      b.onclick=()=>{kind=key;dialog.querySelector('.document-dialog-title').textContent=key==='soa'?'Statement of Account':(key==='spa'?'Sale & Purchase Agreement':label);options.hidden=true;back.hidden=false;dialog.classList.add('document-workspace');back.focus();frame=document.createElement('iframe');frame.title=label+' generator';frame.src=key==='spa'?'spa-generator.html':'welcome-letter.html';if(key!=='spa')frame.addEventListener('load',()=>styleGeneratorFrame(frame));dialog.append(frame)};
+      b.onclick=async()=>{if(key==='demand'){b.disabled=true;try{demandCtx=await loadDemandContext(ctx)}catch(e){alert(e.message||'Could not load payment information.');return}finally{b.disabled=false}}if(!dialog?.isConnected)return;kind=key;dialog.querySelector('.document-dialog-title').textContent=key==='soa'?'Statement of Account':(key==='spa'?'Sale & Purchase Agreement':label);options.hidden=true;back.hidden=false;dialog.classList.add('document-workspace');back.focus();frame=document.createElement('iframe');frame.title=label+' generator';frame.src=key==='spa'?'spa-generator.html':'welcome-letter.html';if(key!=='spa')frame.addEventListener('load',()=>styleGeneratorFrame(frame));dialog.append(frame)};
       grid.append(b);
     }
     dialog.showModal();
