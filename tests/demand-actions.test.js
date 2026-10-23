@@ -20,11 +20,39 @@ test('Demand Letter appears inside the shared document menu used by both project
  assert.ok(build.includes('welcome-letter.html'));
  assert.ok(build.includes('brand(fs.readFileSync'));
 });
-test('Demand Letter excludes Down Payment, honors revised due dates and requires project bank details',()=>{
+test('Demand Letter retains only issue date as an editable field',()=>{
  const doc=fs.readFileSync('welcome-letter.html','utf8');
- assert.ok(doc.includes('function demandEligibleStage'));
- assert.ok(doc.includes('down\\s*payment'));
- assert.ok(doc.includes('stage?.revisedDueDate||stage?.dueDate'));
- assert.ok(doc.includes('function demandFirstDldPair'));
- assert.ok(doc.includes('Enter verified payment account details for this project'));
+ assert.ok(doc.includes("kind==='demand'?'Demand Letter date':'Document date'"));
+ assert.ok(doc.includes('demand-readonly'));
+ assert.ok(!doc.includes('<select id="stage"'));
+ assert.ok(!doc.includes("field('demandAmount'"));
+ assert.ok(!doc.includes("field('dueDate'"));
+ assert.ok(!doc.includes("field('address','Customer address'"));
+ assert.ok(!doc.includes('<textarea id="accountDetails"'));
+});
+test('Demand Letter inherits the Action Required payment selection and effective due date',()=>{
+ const action=fs.readFileSync('effective_action_required_patch.js','utf8');
+ const doc=fs.readFileSync('welcome-letter.html','utf8');
+ const bridge=fs.readFileSync('welcome_documents_patch.js','utf8');
+ assert.ok(action.includes('result.documentFocus='));
+ assert.ok(action.includes('window.__sunblissDemandActionForUnit=async function'));
+ assert.ok(action.includes('String(r.customer_id)===String(customerId)'));
+ assert.ok(bridge.includes('__sunblissDemandActionForUnit(unit.id,unit.customer_id)'));
+ assert.ok(doc.includes('crmContext.demandAction'));
+ assert.ok(doc.includes("action.kinds.includes('dp')"));
+ assert.ok(doc.includes('stage.dueDate'));
+});
+test('Bank details are isolated and loaded automatically, never manually entered on the document',()=>{
+ const doc=fs.readFileSync('welcome-letter.html','utf8');
+ const bridge=fs.readFileSync('welcome_documents_patch.js','utf8');
+ const ui=fs.readFileSync('demand_account_settings_patch.js','utf8');
+ const build=fs.readFileSync('build.js','utf8');
+ const migration=fs.readFileSync('supabase/migrations/20261023190000_demand_letter_project_payment_accounts.sql','utf8');
+ assert.ok(bridge.includes(".from('branding').select('demand_account_details')"));
+ assert.ok(doc.includes('crmContext.demandAccountDetails'));
+ assert.ok(doc.includes('Verified bank details are not configured for this project'));
+ assert.ok(ui.includes(".from('branding').update({demand_account_details:details})"));
+ assert.ok(build.includes("'demand_account_settings_patch.js'"));
+ for(const schema of ['public','crm_test','crm_triana','crm_triana_test'])
+  assert.ok(migration.includes('alter table '+schema+'.branding add column if not exists demand_account_details text;'));
 });
