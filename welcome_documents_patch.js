@@ -152,7 +152,13 @@ async function context(c){
   // the existing ledger or treats an unconfirmed payment as Accounts-cleared.
   const priceRevision=unit.unit_no==='B2-703'&&window.SunblissSpaReconciliation
     ?await window.SunblissSpaReconciliation.loadForUnit(sb,unit.id):null;
-  return {testMode:!!(window.__crmTestMode&&window.__crmTestMode.active),unit,customer,transactions:transactions.filter(t=>Number(t.amount)>0),soaTransactions:transactions,paymentSchedule,sale,account:snapshot,priceRevision};
+  // Read from this project's routed schema only. No account fallback to another project.
+  const bankResult=await sb.from('branding').select('demand_account_details').limit(1).maybeSingle();
+  if(bankResult.error)throw bankResult.error;
+  const demandAction=typeof window.__sunblissDemandActionForUnit==='function'
+    ?await window.__sunblissDemandActionForUnit(unit.id,unit.customer_id):null;
+  return {testMode:!!(window.__crmTestMode&&window.__crmTestMode.active),unit,customer,transactions:transactions.filter(t=>Number(t.amount)>0),soaTransactions:transactions,paymentSchedule,sale,account:snapshot,priceRevision,demandAction,
+    demandAccountDetails:String(bankResult.data?.demand_account_details||'').trim()};
 }
 async function open(c){
   if(dialog||opening)return;opening=true;const opener=document.activeElement;
