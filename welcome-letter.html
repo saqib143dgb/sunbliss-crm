@@ -411,7 +411,7 @@ if(kind==='receipt'){
  '<span>'+escapeHtml(r.label)+'</span></label>'
  ).join(''):'<p class="muted">No unpaid installments available.</p>')+'</div></details>'+
  field('dueDate','Payment due date','',true);
-}html+='<button class="primary" type="submit" id="generate">Generate PDF</button><a id="download" class="primary download-link" hidden>Download PDF</a><div id="notice" role="status" aria-live="polite"></div><p class="muted">Download for signing and stamping. Generated PDFs are not saved in the CRM.</p>';$('details').innerHTML=html;$('date').type='date';if($('dueDate'))$('dueDate').type='date';if($('amount'))$('amount').readOnly=true;if($('demandAmount')){$('demandAmount').type='number';$('demandAmount').min='.01';$('demandAmount').step='.01'}
+}html+='<button class="primary" type="submit" id="generate">Generate PDF</button><a id="download" class="primary download-link" hidden>Download PDF</a><div id="notice" role="status" aria-live="polite"></div>'+(kind==='demand'?'':'<p class="muted">Download for signing and stamping. Generated PDFs are not saved in the CRM.</p>')+'';$('details').innerHTML=html;$('date').type='date';if($('dueDate'))$('dueDate').type='date';if($('amount'))$('amount').readOnly=true;if($('demandAmount')){$('demandAmount').type='number';$('demandAmount').min='.01';$('demandAmount').step='.01'}
 if(kind==='welcome')$('payment')?.addEventListener('change',()=>{const t=selectedTx();$('amount').value=t?.amount||'';render()});
  if(kind==='receipt'){
    const refreshSelection=()=>{
