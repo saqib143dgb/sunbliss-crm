@@ -107,7 +107,7 @@ test('Action Required excludes cancelled buyer installments on the same unit',()
 test('Action Required offers all unpaid installment options while preserving its highlighted default',()=>{
  const source=fs.readFileSync('effective_action_required_patch.js','utf8').replace('install();\n})();','window.testBuild=build;\n})();');
  const context={window:null,console,Date,setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,sessionStorage:{},state:{},
-   document:{getElementById(){return null},addEventListener(){}}};
+   document:{getElementById(){return {}},addEventListener(){}}};
  context.window=context;
  vm.runInNewContext(source,context);
  const selection={};
