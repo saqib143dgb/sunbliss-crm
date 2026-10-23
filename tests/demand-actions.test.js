@@ -56,3 +56,37 @@ test('Bank details are isolated and loaded automatically, never manually entered
  for(const schema of ['public','crm_test','crm_triana','crm_triana_test'])
   assert.ok(migration.includes('alter table '+schema+'.branding add column if not exists demand_account_details text;'));
 });
+
+function paymentCardFocus(rows,{credits={},extensions={},stages=[]}={}){
+ const script=fs.readFileSync('effective_action_required_patch.js','utf8')
+  .replace('install();\n})();','window.__testFocus=build;\n})();');
+ const context={Date,Math,console,setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,
+  document:{getElementById:()=>({}),addEventListener(){}},
+  state:{},sessionStorage:{},window:null};
+ context.window=context;
+ vm.runInNewContext(script,context);
+ const result=context.__testFocus({rows,credit:credits,ext:extensions,tasks:[]},{customerId:27,stages});
+ return JSON.parse(JSON.stringify(result.documentFocus||null));
+}
+test('Action Required groups first installment and same-date DLD after partial payment',()=>{
+ const rows=[
+  {id:1,customer_id:27,stage_name:'1st Installment',due_amount:100000,paid_amount:49224.88,due_date:'2099-03-10',revised_due_date:'2099-05-20',status:'Pending'},
+  {id:2,customer_id:27,stage_name:'DLD + Admin Fees',due_amount:44000,paid_amount:0,due_date:'2099-05-20',status:'Pending'},
+  {id:3,customer_id:27,stage_name:'2nd Installment',due_amount:200000,paid_amount:0,due_date:'2099-10-01',status:'Pending'}
+ ];
+ const got=paymentCardFocus(rows);
+ assert.deepEqual(got.scheduleIds,['1','2']);
+ assert.equal(got.amount,94775.12);
+ assert.equal(got.dueDate,'2099-05-20');
+ assert.equal(got.stage,'1st Installment & DLD+Admin Fees');
+});
+test('Action Required respects approved extensions when selecting demand stage',()=>{
+ const rows=[
+  {id:1,customer_id:27,stage_name:'1st Installment',due_amount:100000,paid_amount:0,due_date:'2099-03-10',status:'Pending'},
+  {id:2,customer_id:27,stage_name:'DLD + Admin Fees',due_amount:44000,paid_amount:0,due_date:'2099-03-10',status:'Pending'}
+ ];
+ const got=paymentCardFocus(rows,{extensions:{1:{status:'active',extended_due_date:'2099-05-20'}}});
+ assert.deepEqual(got.scheduleIds,['2']);
+ assert.equal(got.dueDate,'2099-03-10');
+ assert.equal(got.amount,44000);
+});
