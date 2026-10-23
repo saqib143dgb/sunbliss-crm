@@ -217,14 +217,14 @@ function demandEffectiveDueDate(stage){
  return date?String(date).slice(0,10):'';
 }
 function demandEligibleStage(stage){
- return !!stage&&!/down\\s*payment|booking(?:\\s+amount|\\s+balance)?/i.test(String(stage.label||''))&&demandRemaining(stage)>0;
+ return !!stage&&!/down\s*payment|booking(?:\s+amount|\s+balance)?/i.test(String(stage.label||''))&&demandRemaining(stage)>0;
 }
 function demandFirstDldPair(stages){
- const first=stages.findIndex(s=>demandEligibleStage(s)&&/\\b(1st|first)\\b.*installment/i.test(String(s.label||'')));
+ const first=stages.findIndex(s=>demandEligibleStage(s)&&/\b(1st|first)\b.*installment/i.test(String(s.label||'')));
  if(first<0)return null;
  const due=demandEffectiveDueDate(stages[first]);
  if(!due)return null;
- const dld=stages.findIndex((s,i)=>i!==first&&demandEligibleStage(s)&&/dld|admin\\s*fees?/i.test(String(s.label||''))&&demandEffectiveDueDate(s)===due);
+ const dld=stages.findIndex((s,i)=>i!==first&&demandEligibleStage(s)&&/dld|admin\s*fees?/i.test(String(s.label||''))&&demandEffectiveDueDate(s)===due);
  return dld<0?null:[first,dld];
 }
 function selectedStage(){
@@ -236,7 +236,7 @@ function selectedStage(){
    return {label:selected.map(s=>s.label).join(' + '),due:selected.reduce((n,s)=>n+(Number(s.due)||0),0),
      settledAmount:selected.reduce((n,s)=>n+(Number(s.settledAmount??s.paid)||0),0),dueDate:demandEffectiveDueDate(selected[0])};
  }
- if(!/^\\d+$/.test(value))return null;
+ if(!/^\d+$/.test(value))return null;
  const stage=stages[Number(value)];
  return demandEligibleStage(stage)?stage:null;
 }
@@ -267,7 +267,7 @@ function documentValidation(){
    if(!stage)return 'Select an unpaid installment other than the Down Payment.';
    if(!Number.isFinite(amount)||amount<=0)return 'Enter a valid outstanding amount.';
    if(amount>demandRemaining(stage)+0.01)return 'The requested amount cannot exceed the outstanding amount.';
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(val('dueDate')))return 'Select a valid installment due date.';
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(val('dueDate')))return 'Select a valid installment due date.';
    if(!val('accountDetails').trim())return 'Enter verified payment account details for this project.';
  }
  if(!val('date'))return 'Select the document date.';
