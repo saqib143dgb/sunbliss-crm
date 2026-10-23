@@ -18,7 +18,7 @@ function mock(){
  const button={hidden:false,attributes:{},setAttribute(k,v){this.attributes[k]=v},querySelector(){return count}};
  const count={hidden:false,textContent:'0'};
  const sandbox={
-  rows:null,c:{sno:203,unit:'B2-203'},
+  rows:null,c:{sno:203,unit:'B2-203',customerId:42},
   document:{getElementById(k){return k==='crmCustomerTasksPill'?button:null}}
  };
  const active=section(pill,'  function activeTasks(c){','  function dateISO(){');
@@ -46,9 +46,9 @@ test('Task pill remains hidden until tasks are fetched, and hides when no action
  assert.equal(m.button.hidden,true);
  assert.equal(m.count.hidden,true);
  m.sandbox.rows=[
-  {id:1,unit_id:203,status:'pending',auto_kind:'extension_active',due_date:'2026-12-29'},
-  {id:2,unit_id:203,status:'completed',due_date:'2026-10-01'},
-  {id:3,unit_id:204,status:'pending',due_date:'2026-10-20'}
+  {id:1,unit_id:203,booking_customer_id:42,status:'pending',auto_kind:'extension_active',due_date:'2026-12-29'},
+  {id:2,unit_id:203,booking_customer_id:42,status:'completed',due_date:'2026-10-01'},
+  {id:3,unit_id:204,booking_customer_id:42,status:'pending',due_date:'2026-10-20'}
  ];
  m.refresh();
  assert.equal(m.button.hidden,true);
@@ -57,9 +57,10 @@ test('Task pill remains hidden until tasks are fetched, and hides when no action
 test('Task pill appears only for actionable pending customer tasks and disappears again when completed',()=>{
  const m=mock();
  m.sandbox.rows=[
-  {id:4,unit_id:203,status:'pending',action_label:'Send welcome letter',due_date:'2026-10-21'},
-  {id:5,unit_id:203,status:'pending',action_label:'Confirm payment',due_date:'2026-10-20'},
-  {id:6,unit_id:204,status:'pending',due_date:'2026-10-20'}
+  {id:4,unit_id:203,booking_customer_id:42,status:'pending',action_label:'Send welcome letter',due_date:'2026-10-21'},
+  {id:5,unit_id:203,booking_customer_id:42,status:'pending',action_label:'Confirm payment',due_date:'2026-10-20'},
+  {id:6,unit_id:204,booking_customer_id:42,status:'pending',due_date:'2026-10-20'},
+  {id:7,unit_id:203,booking_customer_id:99,status:'pending',due_date:'2026-10-20'}
  ];
  m.refresh();
  assert.equal(m.button.hidden,false);
