@@ -10,3 +10,20 @@ test('pending demand letter survives after its trigger day and after payment due
 test('paid installment does not silently remove the unfinished demand-letter task',async()=>{const writes=await run({paid:10000});assert(!writes.some(x=>x.value.status==='cancelled'));});
 test('completed demand letter is not reopened during automatic sync',async()=>{const writes=await run({status:'completed'});assert(!writes.some(x=>x.operation==='update'&&x.value.status==='pending'));});
 test('unsent pending demand letter does not create a premature gentle reminder',async()=>{const writes=await run({delta:2});assert(!writes.some(x=>x.operation==='insert'&&x.value.auto_kind==='gentle_reminder'));});
+
+test('Demand Letter appears inside the shared document menu used by both projects',()=>{
+ const menu=fs.readFileSync('welcome_documents_patch.js','utf8');
+ const build=fs.readFileSync('scripts/build-project-workspaces.js','utf8');
+ assert.match(menu,/demand:'Demand Letter'/);
+ assert.match(menu,/demand:'Payment request for outstanding installments'/);
+ assert.match(build,/welcome-letter\\.html/);
+ assert.match(build,/brand\\(fs\\.readFileSync/);
+});
+test('Demand Letter excludes Down Payment, honors revised due dates and requires project bank details',()=>{
+ const doc=fs.readFileSync('welcome-letter.html','utf8');
+ assert.match(doc,/function demandEligibleStage/);
+ assert.match(doc,/down\\\\s\*payment/);
+ assert.match(doc,/stage\\?\\.revisedDueDate\\|\\|stage\\?\\.dueDate/);
+ assert.match(doc,/function demandFirstDldPair/);
+ assert.match(doc,/Enter verified payment account details for this project/);
+});
