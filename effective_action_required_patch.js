@@ -55,6 +55,10 @@ function build(data,c,selection){
   rows.push({r:r,remaining:remaining,e:e,kind:kind});
  });
  rows.sort(function(a,b){return text(a.e.date||'9999-12-31').localeCompare(text(b.e.date||'9999-12-31'))||Number(a.r.id)-Number(b.r.id)});
+ if(selection)selection.available=rows.filter(function(x){return x.kind!=='dp'}).map(function(x){
+  return {id:String(x.r.id),label:x.kind==='dld'?'DLD+Admin Fees':text(x.r.stage_name).replace(/instalment/ig,'Installment'),
+   amount:x.remaining,dueDate:x.e.date||'',kind:x.kind};
+ });
  if(!rows.length)return{status:'Up to date',tone:'good',message:'No installment payment action is currently required.',detail:'The active payment schedule is fully settled.',meta:{stage:'No pending stage',by:'—',due:'—'}};
  var td=today(),over=rows.filter(function(x){var d=day(x.e.date);return d&&d<td}),focus=over.length?over:rows.filter(function(x){return x.e.date===rows[0].e.date}),first=focus[0],d=day(first.e.date),delta=d?Math.round((d-td)/86400000):null;
  function ordered(list){return list.slice().sort(function(a,b){return (a.kind==='dld'?1:0)-(b.kind==='dld'?1:0)})}
@@ -95,8 +99,11 @@ window.__sunblissDemandActionForUnit=async function(unitId,customerId){
  var data=await load(unitId,true);
  // Cancelled and previous buyers of the same unit must never enter a demand notice.
  var ownerRows=(data.rows||[]).filter(function(r){return String(r.customer_id)===String(customerId)});
- var action=build(Object.assign({},data,{rows:ownerRows}),c);
- return action.documentFocus||null;
+ var selection={};
+ var action=build(Object.assign({},data,{rows:ownerRows}),c,selection);
+ var focus=action.documentFocus;
+ return {scheduleIds:focus?focus.scheduleIds.filter(function(id){return (selection.available||[]).some(function(r){return r.id===id})}):[],
+  options:selection.available||[]};
 };
 window.__sunblissEnsureEffectiveAction=async function(){var c=current(),key=text(state.selectedUnit);if(!c)return;var data=await load(Number(c.sno),false);if(state.view==='detail'&&text(state.selectedUnit)===key)apply(build(data,c),key);};
 function schedule(force,ms){clearTimeout(timer);if(ms===0){render(!!force);return}timer=setTimeout(function(){render(!!force)},ms==null?30:ms)}
