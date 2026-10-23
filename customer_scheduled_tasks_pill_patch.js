@@ -22,7 +22,10 @@
     var rows=taskRows();
     if(!c||!Array.isArray(rows))return null;
     return rows.filter(function(t){
-      return Number(t.unit_id)===Number(c.sno)&&t.status==='pending'&&t.auto_kind!=='extension_active';
+      return Number(c.customerId||c.customer_id)>0
+        &&Number(t.unit_id)===Number(c.sno)
+        &&Number(t.booking_customer_id)===Number(c.customerId||c.customer_id)
+        &&t.status==='pending'&&t.auto_kind!=='extension_active';
     }).sort(function(a,b){
       return str(a.due_date).localeCompare(str(b.due_date))||Number(a.id)-Number(b.id);
     });

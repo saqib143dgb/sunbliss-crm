@@ -24,16 +24,25 @@
     return note.replace(/\s{2,}/g,' ').replace(/\s+[·•-]\s*$/,'').trim();
   }
   function currentCustomer(){if(!window.state||!state.selectedUnit||!Array.isArray(state.dues))return null;return state.dues.find(function(c){return c&&(text(c.unit)+'::'+text(c.sno))===text(state.selectedUnit);})||null;}
-  function customerForUnit(unitId){
+  function customerForUnit(unitId,bookingCustomerId){
     if(!window.state)return null;
-    var active=Array.isArray(state.dues)?state.dues.find(function(c){return Number(c&&c.sno)===Number(unitId);}):null;
+    var owner=bookingCustomerId==null?null:Number(bookingCustomerId);
+    var active=Array.isArray(state.dues)?state.dues.find(function(c){
+      return Number(c&&c.sno)===Number(unitId)&&(owner===null||Number(c.customerId||c.customer_id)===owner);
+    }):null;
     if(active)return active;
-    // Preserve task identity after the original booking moves to the cancelled archive.
-    var cancelled=Array.isArray(state.cancelled)?state.cancelled.find(function(c){return Number(c&&c.sno)===Number(unitId);}):null;
-    if(cancelled)return Object.assign({},cancelled,{status:'Cancelled'});
     var archive=window.__sunblissCancelledUnitArchive;
-    var record=archive&&Array.isArray(archive.records)?archive.records.find(function(r){return Number(r&&r.cancel&&r.cancel.unit_id)===Number(unitId);}):null;
-    return record?{sno:Number(unitId),unit:record.unitNo,name:record.customer&&record.customer.customer_name||'Former customer',status:'Cancelled'}:null;
+    var record=archive&&Array.isArray(archive.records)?archive.records.find(function(r){
+      return Number(r&&r.cancel&&r.cancel.unit_id)===Number(unitId)
+        &&(owner===null||Number(r.cancel.customer_id)===owner);
+    }):null;
+    if(record)return {sno:Number(unitId),unit:record.unitNo,name:record.customer&&record.customer.customer_name||'Former customer',customerId:record.cancel.customer_id,status:'Cancelled'};
+    var cancelled=Array.isArray(state.cancelled)?state.cancelled.find(function(c){
+      return Number(c&&c.sno)===Number(unitId)&&(owner===null||Number(c.customerId||c.customer_id)===owner);
+    }):null;
+    if(cancelled)return Object.assign({},cancelled,{status:'Cancelled'});
+    // Never fall back to a different booking just because the unit number matches.
+    return null;
   }
   function canUse(){return !!(window.state&&(state.userRole==='crm_officer'||state.userRole==='manager'));}
   function managerOnly(){return window.state&&state.userRole==='manager';}
@@ -136,7 +145,7 @@
     if(cache.loaded&&!force)return cache.rows;
     if(cache.loading)return cache.loading;
     cache.loading=(async function(){
-      var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,workflow_kind,spa_step,commitment_part_id,extension_request_id,modification_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
+      var r=await sb.from('scheduled_actions').select('id,unit_id,action_label,due_date,priority,note,status,owner_id,source,auto_kind,auto_key,schedule_id,transaction_id,booking_customer_id,workflow_kind,spa_step,commitment_part_id,extension_request_id,modification_request_id,created_at,updated_at,completed_at,completion_note,cancelled_at').order('due_date',{ascending:true}).order('id',{ascending:true});
       if(r.error)throw r.error;
       cache.rows=r.data||[];
       cache.payments={};cache.credits={};cache.outcomes={};
@@ -304,10 +313,11 @@
     var rows=filterRows(cache.overviewFilter);
     if(!rows.length&&managerOnly()){host.innerHTML='<div class="scheduled-empty">No tasks awaiting management approval.</div>';return;}
     if(!rows.length){host.innerHTML='<div class="scheduled-empty">No '+safe(cache.overviewFilter==='completed'?'completed':'pending')+' actions in this view.</div>';return;}
-    host.innerHTML=rows.map(function(t){var c=customerForUnit(t.unit_id),st=stateForTask(t),name=c?c.name:'Customer',unit=c?c.unit:'Unit '+t.unit_id;var completion=t.status==='completed'&&t.completion_note?'<div class="scheduled-overview-meta">Completed: '+safe(t.completion_note)+'</div>':'';return '<div class="scheduled-overview-row" data-task-id="'+t.id+'"><div class="scheduled-overview-main" data-open-unit="'+safe(t.unit_id)+'"><div class="scheduled-overview-unit">'+safe(unit)+' · '+safe(name)+'</div><div class="scheduled-overview-title">'+safe(t.action_label)+'</div><div class="scheduled-overview-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span> · '+safe(t.priority)+' · '+safe(formatDate(t.due_date))+(t.note?' · '+safe(t.note):'')+(taskPaymentContext(t)?' · '+safe(taskPaymentContext(t)):'')+' · '+safe(taskOriginText(t))+'</div>'+completion+'</div>'+(t.status==='pending'?'<button type="button" class="btn-paper scheduled-overview-done scheduled-mark-done" data-task-id="'+t.id+'">'+safe(taskButtonLabel(t))+'</button>':'')+'</div>';}).join('');
+    host.innerHTML=rows.map(function(t){var c=customerForUnit(t.unit_id,t.booking_customer_id),st=stateForTask(t),name=c?c.name:'Customer',unit=c?c.unit:'Unit '+t.unit_id;var completion=t.status==='completed'&&t.completion_note?'<div class="scheduled-overview-meta">Completed: '+safe(t.completion_note)+'</div>':'';return '<div class="scheduled-overview-row" data-task-id="'+t.id+'"><div class="scheduled-overview-main" data-open-unit="'+safe(t.unit_id)+'"><div class="scheduled-overview-unit">'+safe(unit)+' · '+safe(name)+'</div><div class="scheduled-overview-title">'+safe(t.action_label)+'</div><div class="scheduled-overview-meta"><span class="scheduled-task-state '+st.key+'">'+safe(st.label)+'</span> · '+safe(t.priority)+' · '+safe(formatDate(t.due_date))+(t.note?' · '+safe(t.note):'')+(taskPaymentContext(t)?' · '+safe(taskPaymentContext(t)):'')+' · '+safe(taskOriginText(t))+'</div>'+completion+'</div>'+(t.status==='pending'?'<button type="button" class="btn-paper scheduled-overview-done scheduled-mark-done" data-task-id="'+t.id+'">'+safe(taskButtonLabel(t))+'</button>':'')+'</div>';}).join('');
     host.querySelectorAll('[data-open-unit]').forEach(function(el){el.onclick=function(){
-      var id=Number(el.getAttribute('data-open-unit')),c=customerForUnit(id);
+      var id=Number(el.getAttribute('data-open-unit'));
       var wrapper=el.closest('[data-task-id]'),task=wrapper?taskById(wrapper.getAttribute('data-task-id')):null;
+      var c=customerForUnit(id,task&&task.booking_customer_id);
       // A cancelled booking has no active customer detail page. Open the existing task instead.
       if(!c||c.status==='Cancelled'){if(task&&task.status==='pending')openComplete(task);return;}
       if(typeof window.goToDetail==='function')window.goToDetail(c.unit,c.sno,'overview');
@@ -349,7 +359,7 @@
   }
 
   function openForm(task){
-    removePanel();closeActionMenu();var c=task?customerForUnit(task.unit_id):currentCustomer();if(!c)return;
+    removePanel();closeActionMenu();var c=task?customerForUnit(task.unit_id,task.booking_customer_id):currentCustomer();if(!c)return;
     var current=task?task.action_label:'Payment follow-up',isKnown=ACTIONS.indexOf(current)>=0,selectValue=isKnown?current:'Other';
     var p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode',task?'edit':'new');
     p.innerHTML='<p class="section-label" style="margin-top:0">'+(task?'Edit Scheduled Action':'Schedule Action')+'</p><p class="scheduled-form-summary">Unit '+safe(c.unit)+' · '+safe(c.name)+(task?' · update or reschedule this action.':' · this action will stay in Scheduled Actions on the overview until completed or cancelled.')+'</p><p class="brand-error" id="saError" style="display:none"></p><label class="brand-field">Action<select id="saAction">'+actionOptions(selectValue)+'</select></label><label class="brand-field" id="saCustomWrap"'+(selectValue==='Other'?'':' style="display:none"')+'>Custom action<input type="text" id="saCustom" maxlength="120" value="'+safe(isKnown?'':current)+'" placeholder="What needs to be done?" /></label>'+relatedPaymentField()+'<label class="brand-field">Due date<input type="date" id="saDate" value="'+safe(task?task.due_date:'')+'" /></label><label class="brand-field">Priority<select id="saPriority"><option'+((task?task.priority:'Medium')==='High'?' selected':'')+'>High</option><option'+((task?task.priority:'Medium')==='Medium'?' selected':'')+'>Medium</option><option'+((task?task.priority:'Medium')==='Low'?' selected':'')+'>Low</option></select></label><label class="brand-field">Note (optional)<textarea id="saNote" placeholder="Short instruction or customer commitment">'+safe(userNoteOnly(task&&task.note))+'</textarea></label><div class="brand-editor-actions"><button type="button" class="btn btn-gold" id="saSave">'+(task?'Save Changes':'Schedule Action')+'</button><button type="button" class="btn-paper" id="saClose">Cancel</button></div>'+(task?'<button type="button" class="btn-paper scheduled-danger" id="saCancelTask">Cancel Scheduled Action</button>':'');
@@ -485,7 +495,7 @@
 
   function openComplete(task){
     if(task&&task.workflow_kind==='modification_request'&&typeof window.__sunblissOpenModificationTask==='function'){window.__sunblissOpenModificationTask(task);return;}
-    removePanel();var c=customerForUnit(task.unit_id),p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode','complete');
+    removePanel();var c=customerForUnit(task.unit_id,task.booking_customer_id),p=document.createElement('div');p.id='scheduledActionPanel';p.className='brand-editor';p.setAttribute('data-mode','complete');
     var receiptView=task.workflow_kind==='payment_receipt';
     var summary=receiptView
       ?'<strong class="sa-receipt-customer">'+safe(c?('Unit '+c.unit+' · '+c.name):('Unit '+task.unit_id))+'</strong><span class="sa-receipt-taskdue">Task due: '+safe(formatDate(task.due_date))+'</span>'
@@ -793,7 +803,7 @@
   }
 
   async function openPaymentFromTask(task){
-    var c=customerForUnit(task.unit_id);if(!c||typeof window.__sunblissOpenRecordPayment!=='function')return;
+    var c=customerForUnit(task.unit_id,task.booking_customer_id);if(!c||c.status==='Cancelled'||typeof window.__sunblissOpenRecordPayment!=='function')return;
     state.selectedUnit=c.unit+'::'+c.sno;state.detailFrom='overview';state.view='detail';
     if(typeof window.renderMain==='function')window.renderMain();
     window.setTimeout(function(){try{window.__sunblissOpenRecordPayment({scheduleId:task.schedule_id||null,commitmentPartId:task.commitment_part_id||null,sourceTaskId:task.id});}catch(_e){}},60);
@@ -898,7 +908,7 @@
       }
       var now=new Date().toISOString(),r=await sb.from('scheduled_actions').update({status:'completed',completed_at:now,completion_note:note,updated_at:now}).eq('id',task.id).select().single();
       if(r.error)throw r.error;removePanel();await refreshAfterChange();
-      if(next){var c=customerForUnit(task.unit_id);if(c){state.selectedUnit=c.unit+'::'+c.sno;state.view='detail';window.setTimeout(function(){openForm(null);},0);}}
+      if(next){var c=customerForUnit(task.unit_id,task.booking_customer_id);if(c&&c.status!=='Cancelled'){state.selectedUnit=c.unit+'::'+c.sno;state.view='detail';window.setTimeout(function(){openForm(null);},0);}}
     }catch(e){if(err){err.textContent=e&&e.message?e.message:'Could not save this outcome.';err.style.display='block';err.setAttribute('role','alert');err.scrollIntoView({block:'center'});}if(save){save.disabled=false;save.textContent='Try Again';}}
   }
 
