@@ -43,6 +43,8 @@ function sourceLine(x){if(x.e.kind==='extension'){var p=[];if(x.e.contractual)p.
 function build(data,c,selection){
  var rows=[],carry={},stages={};(c&&c.stages||[]).forEach(function(s){var id=String(s.id||s.scheduleId);carry[id]=Math.max(0,Number(s.carryApplied)||0);stages[id]=s});
  data.rows.forEach(function(r){
+  // The card and the document must both ignore a previous/cancelled buyer.
+  if(c&&c.customerId!=null&&String(r.customer_id)!==String(c.customerId))return;
   var kind=stageKind(r);if(!kind)return;
   var credit=data.credit[String(r.id)]||0,stage=stages[String(r.id)],due=Number(r.revised_due_amount)||Number(r.due_amount)||0;
   if(norm(r.status)==='paid'||(stage&&norm(stage.status)==='paid'))return;
