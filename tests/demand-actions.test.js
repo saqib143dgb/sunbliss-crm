@@ -139,3 +139,16 @@ test('Demand helper totals selections and assigns escrow/developer instructions 
  assert.ok(accounts.includes('Escrow IBAN')&&accounts.includes('Developer IBAN'));
  assert.ok(!h.demandPaymentAccounts([{kind:'dld'}]).includes('Escrow IBAN'));
 });
+
+ test('Demand selection autofills the earliest valid due date and refreshes after changing installments',()=>{
+ const html=fs.readFileSync('welcome-letter.html','utf8');
+ const start=html.indexOf('const updateSelection=()=>{'),end=html.indexOf("$('demandStagePicker').addEventListener",start);
+ const nodes={dueDate:{value:''},demandStageSummary:{},download:{hidden:false}};
+ let rows=[{dueDate:'2026-11-22'},{dueDate:'2026-11-20'},{dueDate:null}];
+ let renders=0;
+ const refresh=new Function('selectedDemandRows','$','render',html.slice(start,end)+'return updateSelection;')(()=>rows,id=>nodes[id],()=>renders++);
+ refresh();assert.equal(nodes.dueDate.value,'2026-11-20');assert.equal(nodes.download.hidden,true);
+ nodes.dueDate.value='2026-12-01';assert.equal(nodes.dueDate.value,'2026-12-01');
+ rows=[{dueDate:'2026-11-22T00:00:00Z'}];refresh();assert.equal(nodes.dueDate.value,'2026-11-22');
+ rows=[];refresh();assert.equal(nodes.dueDate.value,'');assert.equal(renders,3);
+ });
