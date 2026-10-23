@@ -643,7 +643,9 @@
         return;
       }
       var unitTasks=rows.filter(function(t){
-        return Number(t&&t.unit_id)===Number(record.cancel.unit_id)&&t.auto_kind!=='extension_active';
+        return Number(t&&t.unit_id)===Number(record.cancel.unit_id)
+          &&Number(t.booking_customer_id)===Number(record.cancel.customer_id)
+          &&t.auto_kind!=='extension_active';
       });
       var tasks=unitTasks.filter(function(t){return t.status==='pending';})
         .sort(function(a,b){return String(a.due_date||'').localeCompare(String(b.due_date||''));});
