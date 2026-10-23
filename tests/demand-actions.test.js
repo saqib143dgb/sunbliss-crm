@@ -90,3 +90,14 @@ test('Action Required respects approved extensions when selecting demand stage',
  assert.equal(got.dueDate,'2099-03-10');
  assert.equal(got.amount,44000);
 });
+
+test('Action Required excludes cancelled buyer installments on the same unit',()=>{
+ const rows=[
+  {id:991,customer_id:13,stage_name:'2nd Installment',due_amount:800000,paid_amount:0,due_date:'2099-01-01',status:'Pending'},
+  {id:117,customer_id:27,stage_name:'1st Installment',due_amount:100000,paid_amount:0,due_date:'2099-05-20',status:'Pending'}
+ ];
+ const focus=paymentCardFocus(rows);
+ assert.deepEqual(focus.scheduleIds,['117']);
+ assert.equal(focus.amount,100000);
+ assert.equal(focus.stage,'1st Installment');
+});
