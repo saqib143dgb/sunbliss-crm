@@ -258,7 +258,7 @@ table(['Project Name','Type of Unit','Unit No.','Area (Sq. Ft.)'],[['Sunbliss Re
  p('Please quote your unit number when making the payment and share the payment confirmation with the CRM team.');
  p('For assistance: +971-542323683 | crm@purvanchaluae.ae');
  p('Thank you for your cooperation.');b.push({space:50});
- p('Manager & Authorised Signatory\\nFor and on behalf of\\nPurvanchal Real Estate Developers LLC',true);
+ p('Manager & Authorised Signatory\nFor and on behalf of\nPurvanchal Real Estate Developers LLC',true);
 }else if(kind==='soa'){
 const soaStages=(c.stages||[]).filter(s=>!soaFee(s)),feeStageIds=new Set((c.stages||[]).filter(s=>soaFee(s)).map(s=>String(s.id||s.scheduleId||''))),isFeeTx=t=>soaFee(t)||feeStageIds.has(String(t.payment_schedule_id||t.scheduleId||''));
 p(v.customer,true);p('Unit: '+v.unit+' | Type: '+v.type);table(['Total','Cash Received','Outstanding','Paid / Settled'],[[cash(c.total),cash(c.cashReceived??c.received),cash(c.outstanding),c.paidPercent===null?'-':c.paidPercent+'%']],[.25,.25,.25,.25]);p('Carry Forward: '+cash(c.carryForward));if(Number(c.creditNoteTotal)>0)p('Credit Notes: '+cash(c.creditNoteTotal));p('Installment Schedule',true);table(['Stage','Due','Due Date','Cash / Credit / Carry','Paid Date'],soaStages.map(s=>{const paid=s.cashPaid??s.paid;return [s.label,cash(s.due),displayDate(s.dueDate),[cash(paid),Number(s.creditNoteTotal)>0?'CN '+cash(s.creditNoteTotal):'',Number(s.carryApplied)>0?'Carry '+cash(s.carryApplied):''].filter(Boolean).join(' / '),Number(paid)>0?displayDate(s.paidDate):'-']}),[.23,.16,.17,.28,.16]);p('Transaction History',true);const rows=crmContext.transactions.filter(t=>!isFeeTx(t)).map(t=>({date:t.payment_date,text:t.payment_type||'Payment',amount:t.amount}));for(const n of c.creditNotes||[]){const linked=(c.stages||[]).find(s=>String(s.id||s.scheduleId||'')===String(n.scheduleId||n.payment_schedule_id||''));if(soaFee(linked||{label:n.stageLabel}))continue;rows.push({date:n.issueDate,text:'Credit note - '+(n.stageLabel||'Installment')+(n.reference?' (Ref '+n.reference+')':''),amount:n.amount})}rows.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));table(['Date','Towards','Amount'],rows.map(t=>[displayDate(t.date),t.text,cash(t.amount)]),[.2,.58,.22]);
@@ -278,7 +278,7 @@ function documentValidation(){
    const stage=selectedStage();
    if(!stage)return 'No unpaid non-Down Payment action is available for this customer.';
    if(!(Number(stage.amount)>0))return 'The Action Required amount must be greater than zero.';
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(stage.dueDate))return 'The payment due date is unavailable in the CRM.';
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(stage.dueDate))return 'The payment due date is unavailable in the CRM.';
    if(!crmContext.demandAccountDetails?.trim())return 'Verified bank details are not configured for this project. Set them in the company branding editor.';
 
  }
