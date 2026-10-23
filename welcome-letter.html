@@ -227,16 +227,25 @@ function demandFirstDldPair(stages){
  const dld=stages.findIndex((s,i)=>i!==first&&demandEligibleStage(s)&&/dld|admin\s*fees?/i.test(String(s.label||''))&&demandEffectiveDueDate(s)===due);
  return dld<0?null:[first,dld];
 }
+function selectedDemandRows(){
+ if(crmContext?.documentType!=='demand')return [];
+ const available=Array.isArray(crmContext.demandAction?.options)?crmContext.demandAction.options:[];
+ const ids=new Set(Array.from(document.querySelectorAll('input[name="demandStage"]:checked')).map(x=>String(x.value)));
+ return available.filter(r=>ids.has(String(r.id))&&r.kind!=='dp'&&Number(r.amount)>0);
+}
 function selectedStage(){
- // Use the current Action Required card's canonical installment focus.
- // Do not permit manual selection or a fallback to an unrelated schedule.
- if(crmContext?.documentType!=='demand')return null;
- const action=crmContext.demandAction;
- if(!action||!Array.isArray(action.scheduleIds)||!action.scheduleIds.length||
-    !Array.isArray(action.kinds)||action.kinds.includes('dp')||
-    !(Number(action.amount)>0)||!action.dueDate)return null;
- return {label:String(action.stage),due:Number(action.amount),paid:0,
-    amount:Number(action.amount),dueDate:String(action.dueDate).slice(0,10),scheduleIds:action.scheduleIds};
+ const rows=selectedDemandRows();
+ if(!rows.length)return null;
+ const cents=rows.reduce((sum,r)=>sum+Math.round(Number(r.amount)*100),0);
+ return {label:rows.map(r=>r.label).join(' + '),amount:cents/100,dueDate:val('dueDate'),items:rows};
+}
+function demandPaymentAccounts(rows){
+ const raw=String(crmContext?.demandAccountDetails||'');
+ const escrow=raw.match(/Escrow Account Details:\s*([\s\S]*?)(?=Developer Account Details:|$)/i);
+ const developer=raw.match(/Developer Account Details:\s*([\s\S]*?)$/i);
+ const needEscrow=rows.some(r=>r.kind!=='dld'),needDeveloper=rows.some(r=>r.kind==='dld');
+ if(needEscrow&&!(escrow&&escrow[1].trim())||needDeveloper&&!(developer&&developer[1].trim()))return '';
+ return [needEscrow?'Escrow Account Details:\n'+escrow[1].trim():'',needDeveloper?'Developer Account Details:\n'+developer[1].trim():''].filter(Boolean).join('\n\n');
 }
 function values(){const txs=crmContext.documentType==='receipt'?selectedReceiptTransactions():[];return {customer:crmContext.customer.customer_name,salutation:val('salutation'),unit:crmContext.unit.unit_no,type:crmContext.unit.unit_type,date:val('date'),amount:txs.length?txs.reduce((sum,t)=>sum+Math.round(Number(t.amount)*100),0)/100:Number(val('amount')),paymentId:val('payment')}}
 function blocks(){const v=values(),c=crmContext.account,kind=crmContext.documentType,tx=selectedTx(),b=[];const p=(text,bold=false)=>b.push({text:clean(text),bold});const table=(heads,rows,widths)=>b.push({heads,rows:rows.map(r=>r.map(clean)),widths});p('Date: '+displayDate(v.date));
@@ -249,12 +258,13 @@ table(['Project Name','Type of Unit','Unit No.','Area (Sq. Ft.)'],[['Sunbliss Re
  p('Ref: Flat No. '+v.unit+', '+String(crmContext.unit.project_name||'Sunbliss Residences')+' by Purvanchal Real Estate Developers.',true);
  p('Subject: Demand for Payment of Due Amount',true);p('Dear '+v.customer+',');
  p('As per the payment schedule outlined in your Booking Form / Sale and Purchase Agreement, we request you to settle '+(stage?.label||'the due installment')+'.');
- p('The amount of '+cash(stage?.amount||0)+' is payable on or before '+displayDate(stage?.dueDate)+'.',true);
+ p('The total amount of '+cash(stage?.amount||0)+' is payable on or before '+displayDate(stage?.dueDate)+'.',true);
+ table(['Installment','Amount (AED)','Payable to'],(stage?.items||[]).map(r=>[r.label,money(Number(r.amount)),r.kind==='dld'?'Developer Account':'Escrow Account']),[.5,.24,.26]);
  table(['Total Unit Value','Amount Received','Amount Due','Balance'],[[cash(c.total),cash(c.cashReceived??c.received),cash(stage?.amount||0),cash(c.outstanding)]],[.25,.25,.25,.25]);
  p('Payment Received to Date:',true);
  table(['Date','Towards','Amount'],crmContext.transactions.map(t=>[displayDate(t.payment_date),t.payment_type||'Payment',cash(t.amount)]),[.22,.53,.25]);
  b.push({pageBreak:true});p('Payment Account Information',true);
- p(crmContext.demandAccountDetails);
+ p(demandPaymentAccounts(stage?.items||[]));
  p('Please quote your unit number when making the payment and share the payment confirmation with the CRM team.');
  p('For assistance: +971-542323683 | crm@purvanchaluae.ae');
  p('Thank you for your cooperation.');b.push({space:50});
@@ -274,12 +284,12 @@ function documentValidation(){
    if(txs.some(tx=>!val('receipt-method-'+tx.id)&&!val('instrument')))return 'Choose a payment method for every selected payment.';
  }else if(kind==='welcome'){
    const tx=selectedTx();if(!tx||!(Number(tx.amount)>0))return 'Select a recorded payment to preview this document.';
- }else if(kind==='demand'){
+  }else if(kind==='demand'){
    const stage=selectedStage();
-   if(!stage)return 'No unpaid non-Down Payment action is available for this customer.';
-   if(!(Number(stage.amount)>0))return 'The Action Required amount must be greater than zero.';
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(stage.dueDate))return 'The payment due date is unavailable in the CRM.';
-   if(!crmContext.demandAccountDetails?.trim())return 'Verified bank details are not configured for this project. Set them in the company branding editor.';
+   if(!stage)return 'Select at least one unpaid installment.';
+   if(!(Number(stage.amount)>0))return 'The selected installment amount is invalid.';
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(stage.dueDate))return 'Select a valid payment due date.';
+   if(!demandPaymentAccounts(stage.items))return 'Verified payment account details are unavailable for the selected installment(s).';
 
  }
  if(!val('date'))return 'Select the document date.';
