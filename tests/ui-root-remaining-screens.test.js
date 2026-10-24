@@ -47,7 +47,9 @@ test('Edit Sale business input IDs, sale save fields and saved dates stay unchan
   for(const id of ['scBookingDate','scBookingAmount','scSoldBy','scSource','scBrokerName','scBrokerCompany','scBrokeragePct','scBrokerageAmount','scRemarks','scPartialBookingNote','scSave'])
     assert.ok(sale.includes(id),'Missing existing Sale field '+id);
   assert.match(sale,/booking_date:valueOf\('scBookingDate'\) \|\| null/);
-  assert.match(sale,/var result = await sb\.from\('sales'\)\.update\(payload\)\.eq\('unit_id',c\.sno\)/);
+  assert.match(sale,/var result = await sb\.from\('sales'\)\.update\(payload\)\.eq\('id',await currentSaleId\(c\.sno\)\)/);
+  assert.match(sale,/\.eq\('customer_id',unit\.data\.customer_id\)/);
+  assert.doesNotMatch(sale,/\.from\('sales'\)\.update\(payload\)\.eq\('unit_id'/);
   assert.match(sale,/await loadFromSupabase\(\)/);
   assert.match(sale,/function partialEligible\(bookingAmount,dpDue\)/);
   assert.match(sale,/if \(!partialNote && document\.getElementById/);
