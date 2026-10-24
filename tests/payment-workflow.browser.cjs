@@ -32,6 +32,16 @@ async function record(page){await page.locator('#pfMethod').selectOption('Online
   for(const width of [390,1440]){
    const {page,errors}=await fixture(browser,width);await openForm(page);
    assert.notEqual(await page.evaluate(()=>document.activeElement.id),'pfAmount','Opening does not force keyboard focus');
+   await page.locator('#pfMethod').selectOption('Cheque');
+   assert.equal(await page.locator('#pfMethodDetail').isVisible(),true,'Cheque number field is shown');
+   assert.equal(await page.locator('#pfRef').getAttribute('required'),'','Cheque number is mandatory');
+   await page.locator('#pfConfirmation').selectOption('cheque_pending_clearance');
+   await page.locator('#pfMethod').selectOption('Online');
+   assert.equal(await page.locator('#pfConfirmation').inputValue(),'','Changing away from cheque clears the clearance status');
+   assert.equal(await page.locator('#pfRef').getAttribute('required'),null,'Online reference is optional');
+   await page.locator('#pfMethod').selectOption('Cash');
+   assert.match(await page.locator('#pfReferenceLabel').innerText(),/voucher/i,'Cash voucher is optional');
+   await page.locator('#pfMethod').selectOption('');
    assert.equal(await page.locator('#recordPaymentReliablePanel.crm-full-page-inline').count(),0,'No generic editor relocation');
    const footerBefore=await page.locator('.record-payment-footer').boundingBox();if(width<1024)assert(Math.abs(footerBefore.y+footerBefore.height-844)<2);else assert(footerBefore.y+footerBefore.height<844,'Desktop form footer is placed immediately after the compact card');
    await page.locator('#recordPaymentReliablePanel #pfSave').click();assert.equal(await page.evaluate(()=>testCalls.length),0,'Empty amount is not saved');
