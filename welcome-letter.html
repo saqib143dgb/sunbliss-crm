@@ -90,8 +90,12 @@ function selectedReceiptTransactions(){
  const ids=new Set(Array.from(document.querySelectorAll('input[name="receiptPayment"]:checked')).map(x=>String(x.value)));
  return crmContext.transactions.filter(t=>ids.has(String(t.id))&&Number(t.amount)>0&&String(t.accounts_confirmation_status||'confirmed').toLowerCase()==='confirmed');
 }
+function receiptRecordedMethod(tx){
+ const method=String(tx?.payment_method||'').trim();
+ return ['Online','Cheque','Card','Cash'].includes(method)?method:'';
+}
 function receiptInstrumentType(tx,includePurpose=false){
- const method=val('receipt-method-'+tx.id)||val('instrument');
+ const method=receiptRecordedMethod(tx)||val('receipt-method-'+tx.id);
  if(!method)return '';
  const stageId=String(tx.payment_schedule_id||tx.scheduleId||'');
  const stage=(crmContext.paymentSchedule||[]).find(s=>String(s.id)===stageId)
@@ -154,8 +158,8 @@ function receiptScene(measure){
  const widths=[30,140,92,58,48,112],heads=['S. No.','Instrument Type','Instrument/Ref no','Dated','Drawn on','Total Amount (In AED)'],x=66;
  const txRows=txs.map((tx,i)=>{
    const date=tx.payment_date?String(tx.payment_date).slice(0,10).split('-').reverse().join('.'):'';
-   const bank=val('receipt-bank-'+tx.id)||val('bank')||'----------';
-   const ref=(txs.length===1?val('reference'):val('receipt-reference-'+tx.id))||tx.payment_reference||'----------------';
+   const bank=val('receipt-bank-'+tx.id)||String(tx.bank_name||'').trim()||'----------';
+   const ref=String(tx.payment_reference||'').trim()||val('receipt-reference-'+tx.id)||'----------------';
    return [String(i+1),receiptInstrumentType(tx,txs.length>1),ref,date,bank,money(Number(tx.amount))+'/-'];
  });
  // One table and receipt number, but a distinct instrument/reference/date/amount row for each payment.
@@ -276,7 +280,8 @@ function documentValidation(){
    if(!txs.length)return 'Select at least one Accounts-confirmed payment.';
    if(!txs.every(tx=>Number(tx.amount)>0))return 'A selected payment amount is invalid.';
    if(!/^[0-9]+$/.test(val('receiptNo')))return 'Enter the official receipt number.';
-   if(txs.some(tx=>!val('receipt-method-'+tx.id)&&!val('instrument')))return 'Choose a payment method for every selected payment.';
+   if(txs.some(tx=>!receiptRecordedMethod(tx)&&!val('receipt-method-'+tx.id)))return 'Choose a payment method for each older payment without a recorded method.';
+   if(txs.some(tx=>(receiptRecordedMethod(tx)||val('receipt-method-'+tx.id))==='Cheque'&&!String(tx.payment_reference||val('receipt-reference-'+tx.id)||'').trim()))return 'Enter the cheque number for each cheque payment.';
  }else if(kind==='welcome'){
    const tx=selectedTx();if(!tx||!(Number(tx.amount)>0))return 'Select a recorded payment to preview this document.';
   }else if(kind==='demand'){
@@ -398,11 +403,11 @@ if(kind==='receipt'){
  html+='<fieldset id="receiptPaymentList"><legend>Select payments</legend>'+(available.length?available.map(t=>
    '<div class="receipt-payment-item" data-receipt-row="'+escapeHtml(t.id)+'"><input type="checkbox" name="receiptPayment" id="receiptPayment-'+escapeHtml(t.id)+'" value="'+escapeHtml(t.id)+'" aria-label="Include '+escapeHtml(t.payment_type||'payment')+' of '+escapeHtml(cash(t.amount))+'"><div>'+
    '<label for="receiptPayment-'+escapeHtml(t.id)+'" style="margin:0;cursor:pointer"><span class="receipt-payment-name">'+escapeHtml(t.payment_type||'Payment')+' · '+escapeHtml(cash(t.amount))+'</span><span class="receipt-payment-meta">'+escapeHtml(displayDate(t.payment_date))+(t.payment_reference?' · Ref: '+escapeHtml(t.payment_reference):'')+'</span></label>'+
-   '<div class="receipt-payment-fields"><select id="receipt-method-'+escapeHtml(t.id)+'" aria-label="Payment method for '+escapeHtml(t.payment_type||'payment')+'"><option value="">Use default payment method</option><option>Cheque</option><option>Online</option><option>Cash/Card</option></select>'+
-   '<input id="receipt-reference-'+escapeHtml(t.id)+'" aria-label="Reference for '+escapeHtml(t.payment_type||'payment')+'" placeholder="Reference (optional)" value="'+escapeHtml(t.payment_reference||'')+'">'+
-   '<input id="receipt-bank-'+escapeHtml(t.id)+'" aria-label="Bank for '+escapeHtml(t.payment_type||'payment')+'" placeholder="Bank (optional)"></div></div></div>'
+   '<div class="receipt-payment-fields"><select id="receipt-method-'+escapeHtml(t.id)+'" aria-label="Payment method for '+escapeHtml(t.payment_type||'payment')+'"'+(receiptRecordedMethod(t)?' disabled':'')+'><option value="">Select payment method if not recorded</option>'+['Online','Cheque','Card','Cash'].map(method=>'<option value="'+method+'"'+(receiptRecordedMethod(t)===method?' selected':'')+'>'+method+'</option>').join('')+'</select>'+
+   '<input id="receipt-reference-'+escapeHtml(t.id)+'" aria-label="Reference for '+escapeHtml(t.payment_type||'payment')+'" placeholder="Reference (optional)" value="'+escapeHtml(t.payment_reference||'')+'"'+(t.payment_reference?' readonly':'')+'>'+
+   '<input id="receipt-bank-'+escapeHtml(t.id)+'" aria-label="Bank for '+escapeHtml(t.payment_type||'payment')+'" placeholder="Bank / Drawn on (optional)"></div></div></div>'
  ).join(''):'<p class="muted">No Accounts-confirmed payments are available for this unit.</p>')+'</fieldset><p id="receiptSelectionSummary" role="status" aria-live="polite">No payments selected</p>'+field('amount','Total selected amount (AED)','',true);
-};if(kind==='receipt')html+='<label>Official receipt number<span class="receipt-number-field"><span class="receipt-number-prefix">SPRED:</span><input id="receiptNo" aria-label="Official receipt number" inputmode="numeric" pattern="[0-9]+" maxlength="30" placeholder="100" required></span></label><label>Instrument / payment method<select id="instrument" required><option value="">Select payment method</option><option>Cheque</option><option>Online</option><option>Cash/Card</option></select></label>'+field('reference','Instrument / reference number')+field('bank','Drawn on / bank');if(kind==='demand'){
+};if(kind==='receipt')html+='<label>Official receipt number<span class="receipt-number-field"><span class="receipt-number-prefix">SPRED:</span><input id="receiptNo" aria-label="Official receipt number" inputmode="numeric" pattern="[0-9]+" maxlength="30" placeholder="100" required></span></label>';if(kind==='demand'){
  const options=Array.isArray(ctx.demandAction?.options)?ctx.demandAction.options:[];
  const focusIds=new Set((ctx.demandAction?.scheduleIds||[]).map(String));
  html+='<label class="demand-field-label">Installment</label>'+
@@ -423,10 +428,6 @@ if(kind==='welcome')$('payment')?.addEventListener('change',()=>{const t=selecte
      document.querySelectorAll('#receiptPaymentList .receipt-payment-item').forEach(row=>{
        row.classList.toggle('is-selected',!!row.querySelector('input[name="receiptPayment"]')?.checked);
      });
-     const single=txs.length===1;
-     $('reference').value=single?txs[0].payment_reference||'':'';
-     $('reference').disabled=!single;
-     $('reference').closest('label').hidden=!single;
      render();
    };
    $('receiptPaymentList').addEventListener('change',refreshSelection);
