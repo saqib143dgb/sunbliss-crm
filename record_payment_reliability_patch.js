@@ -127,6 +127,7 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
   #recordPaymentReliablePanel .record-payment-success{max-width:760px;margin:40px auto;padding:34px}
 }
 `;
+  style.textContent += "\n@media(min-width:1024px){\n#recordPaymentReliablePanel{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0;padding:20px!important;background:rgba(15,26,38,.5)!important;overflow-y:auto!important}\n#recordPaymentReliablePanel .record-payment-head,#recordPaymentReliablePanel .record-payment-body,#recordPaymentReliablePanel .record-payment-footer{width:min(880px,100%)!important;flex:0 0 auto!important}\n#recordPaymentReliablePanel .record-payment-head{padding:21px 28px 10px!important;border:1px solid var(--paper-line);border-bottom:0;border-radius:16px 16px 0 0}\n#recordPaymentReliablePanel .record-payment-head h2{font:650 23px/1.2 Inter,system-ui,sans-serif!important;margin:0 0 5px}\n#recordPaymentReliablePanel .record-payment-body{padding:9px 28px 0!important;max-height:calc(100dvh - 210px);overflow-y:auto!important;border-left:1px solid var(--paper-line);border-right:1px solid var(--paper-line);background:var(--paper)}\n#recordPaymentReliablePanel .record-payment-content{max-width:none!important}\n#recordPaymentReliablePanel #recordPaymentReliableForm{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px!important}\n#recordPaymentReliablePanel .brand-field{margin:0!important;font-size:12px!important}\n#recordPaymentReliablePanel input,#recordPaymentReliablePanel select{min-height:43px!important;margin-top:5px!important;padding:9px 11px!important;font-size:14px!important}\n#recordPaymentReliablePanel .payment-confirmation{grid-column:auto!important;margin:0!important}\n#recordPaymentReliablePanel .payment-next-action{margin:0!important;padding:9px 11px!important}\n#recordPaymentReliablePanel .credit-note-toggle{grid-column:1/-1;min-height:27px!important;margin:0!important}\n#recordPaymentReliablePanel .record-payment-footer{padding:10px 28px 21px!important;border:1px solid var(--paper-line);border-top:0;border-radius:0 0 16px 16px}\n#recordPaymentReliablePanel .record-payment-actions{max-width:none!important;gap:10px!important}\n#recordPaymentReliablePanel .record-payment-actions button{min-width:142px!important;min-height:42px!important;font-size:13px!important}\n}\n@media(min-width:1024px) and (max-height:690px){#recordPaymentReliablePanel{justify-content:flex-start!important}}\n#recordPaymentReliablePanel #pfMethodDetail[hidden]{display:none!important}\n#recordPaymentReliablePanel .payment-next-action{grid-column:1/-1}\n";
   document.head.appendChild(style);
 }
 function renderPanel(body,actions){
@@ -189,14 +190,12 @@ function renderForm(){
       '<label class="brand-field">Installment<select id="pfStage">'+options+'</select></label>'+ 
       '<label class="brand-field">Amount paid (AED)<input type="number" id="pfAmount" min="0" step="0.01" inputmode="decimal"'+(commitmentAmount>0?' value="'+safe(commitmentAmount)+'"':'')+' placeholder="e.g. 50000" /></label>'+ 
       '<label class="brand-field">Payment date<input type="date" id="pfDate" value="'+today()+'" /></label>'+ 
-      '<label class="brand-field">Reference (optional)<input type="text" id="pfRef" placeholder="e.g. cheque or transfer no." /></label>'+ 
+      '<label class="brand-field">Payment method<select id="pfMethod"><option value="">Select payment method</option><option value="Online">Online</option><option value="Cheque">Cheque</option><option value="Card">Card</option><option value="Cash">Cash</option></select></label>'+
+       '<label class="brand-field" id="pfMethodDetail" hidden><span id="pfReferenceLabel">Reference number (optional)</span><input type="text" id="pfRef" autocomplete="off" /></label>'+ 
       '<label class="brand-field">Remarks (optional)<input type="text" id="pfRemarks" placeholder="e.g. paid via bank transfer" /></label>'+ 
-      '<fieldset class="payment-confirmation"><legend>Payment Confirmation</legend><p class="payment-confirmation-help">Choose who has confirmed the payment. The CRM will create only the correct next action.</p><div class="payment-confirmation-options">'+
-      '<label class="payment-confirmation-card"><input type="radio" name="pfConfirmation" value="confirmed_by_accounts"><span class="payment-confirmation-title">Confirmed by Accounts</span><span class="payment-confirmation-copy">Receipt can be issued.</span></label>'+
-      '<label class="payment-confirmation-card"><input type="radio" name="pfConfirmation" value="confirmed_by_customer"><span class="payment-confirmation-title">Confirmed by Customer</span><span class="payment-confirmation-copy">Accounts verification is still required.</span></label>'+
-      '<label class="payment-confirmation-card"><input type="radio" name="pfConfirmation" value="cheque_pending_clearance"><span class="payment-confirmation-title">Cheque Pending Clearance</span><span class="payment-confirmation-copy">Receipt stays locked until clearance.</span></label>'+
-      '</div><div class="payment-next-action" id="pfNextAction">Next action: Select a confirmation status</div></fieldset>'+
-      '<button class="credit-note-toggle" type="button" id="pfCreditToggle" aria-expanded="false">+ Add credit note (optional)</button>'+ 
+      '<label class="brand-field payment-confirmation">Payment confirmation<select id="pfConfirmation"><option value="">Select confirmation status</option><option value="confirmed_by_accounts">Confirmed by Accounts</option><option value="confirmed_by_customer">Confirmed by Customer</option><option value="cheque_pending_clearance">Cheque Pending Clearance</option></select></label>'+
+       '<div class="payment-next-action" id="pfNextAction">Next action: Select a confirmation status</div>'+ 
+       '<button class="credit-note-toggle" type="button" id="pfCreditToggle" aria-expanded="false">+ Add credit note (optional)</button>'+ 
       '<div id="pfCreditFields" hidden style="display:none"><p class="credit-note-fields-title">Credit note</p><p class="credit-note-fields-help">Paperwork adjustment only. It settles this installment without being counted as cash received.</p>'+ 
       '<label class="brand-field">Credit note amount (AED)<input type="number" id="pfCreditAmount" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 25000" /></label>'+ 
       '<label class="brand-field">Issue date<input type="date" id="pfCreditDate" value="'+today()+'" /></label>'+ 
@@ -220,7 +219,9 @@ function renderForm(){
   }
   var stageSelect=p.querySelector('#pfStage');
   if(stageSelect)stageSelect.addEventListener('change',syncCreditAvailability);
-  p.querySelectorAll('input[name="pfConfirmation"]').forEach(function(input){input.addEventListener('change',syncConfirmationPreview);});
+  var methodSelect=p.querySelector('#pfMethod');if(methodSelect)methodSelect.addEventListener('change',syncPaymentMethodFields);
+   var confirmSelect=p.querySelector('#pfConfirmation');if(confirmSelect)confirmSelect.addEventListener('change',syncConfirmationPreview);
+   syncPaymentMethodFields();
   syncConfirmationPreview();
   syncCreditAvailability();
 }
@@ -259,7 +260,21 @@ async function openPanel(context){
   catch(e){if(session!==panelSession||!panel.isConnected)return;cache.loading=false;renderPanel('<p class="brand-error" role="alert">'+safe(errorText(e))+'</p>','<button class="btn-paper" type="button" id="pfCancel">Close</button>');}
 }
 function val(id){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('[id="'+id+'"]');return e?text(e.value).trim():''}
-function selectedConfirmation(){var panel=document.getElementById('recordPaymentReliablePanel'),e=panel&&panel.querySelector('input[name="pfConfirmation"]:checked');return e?text(e.value).trim():''}
+function selectedConfirmation(){return val('pfConfirmation')}
+function syncPaymentMethodFields(){
+  var p=document.getElementById('recordPaymentReliablePanel');if(!p)return;
+  var method=val('pfMethod'),row=p.querySelector('#pfMethodDetail'),label=p.querySelector('#pfReferenceLabel'),ref=p.querySelector('#pfRef'),confirm=p.querySelector('#pfConfirmation');
+  if(row&&label&&ref){
+    row.hidden=!method;
+    label.textContent=method==='Cheque'?'Cheque number *':method==='Cash'?'Cash receipt / voucher no. (optional)':'Reference number (optional)';
+    ref.placeholder=method==='Cheque'?'Enter cheque number':method==='Online'?'Transfer / transaction reference':method==='Card'?'Card transaction reference':'Cash voucher number, if available';
+    ref.required=method==='Cheque';ref.value='';
+  }
+  var pending=confirm&&confirm.querySelector('option[value="cheque_pending_clearance"]');
+  if(pending)pending.disabled=method!=='Cheque';
+  if(confirm&&method!=='Cheque'&&confirm.value==='cheque_pending_clearance')confirm.value='';
+  syncConfirmationPreview();
+}
 function syncConfirmationPreview(){var panel=document.getElementById('recordPaymentReliablePanel'),host=panel&&panel.querySelector('#pfNextAction');if(!host)return;var mode=selectedConfirmation(),label=mode==='confirmed_by_accounts'?'Send Payment Receipt':mode==='confirmed_by_customer'?'Confirm Payment with Accounts':mode==='cheque_pending_clearance'?'Confirm Cheque Clearance':'Select a confirmation status';host.textContent='Next action: '+label}
 
 function renderCurrentDetail(key,from){
@@ -341,7 +356,7 @@ async function savePayment(){
   if(cache.saving||cache.lastResult)return;
   clearError();
   var sid=Number(val('pfStage'))||0,row=cache.rows.find(function(r){return Number(r.id)===sid})||null,
-      cash=val('pfAmount')===''?0:Number(val('pfAmount')),date=val('pfDate'),ref=val('pfRef'),remarks=val('pfRemarks'),confirmation=selectedConfirmation(),
+      cash=val('pfAmount')===''?0:Number(val('pfAmount')),date=val('pfDate'),method=val('pfMethod'),ref=val('pfRef'),remarks=val('pfRemarks'),confirmation=selectedConfirmation(),
       panel=document.getElementById('recordPaymentReliablePanel'),box=panel&&panel.querySelector('#pfCreditFields'),creditOpen=!!(box&&!box.hidden&&window.getComputedStyle(box).display!=='none'),
       credit=creditOpen&&val('pfCreditAmount')!==''?Number(val('pfCreditAmount')):0,creditDate=creditOpen?val('pfCreditDate'):'',
       creditReason=creditOpen?val('pfCreditReason'):'',creditRef=creditOpen?val('pfCreditRef'):'';
@@ -351,7 +366,10 @@ async function savePayment(){
   if(!isFinite(credit)||credit<0){setError('Enter a valid credit note amount.');return}
   if(cash<=0&&credit<=0){setError('Enter a cash payment, a credit note, or both.');return}
   if(cash>0&&!date){setError('Select a payment date.');return}
-  if(cash>0&&!confirmation){setError('Select how the payment was confirmed.');return}
+  if(cash>0&&!method){setError('Select a payment method.');return}
+   if(cash>0&&method==='Cheque'&&!ref){setError('Enter the cheque number.');return}
+   if(cash>0&&confirmation==='cheque_pending_clearance'&&method!=='Cheque'){setError('Cheque Pending Clearance is only available for Cheque payments.');return}
+   if(cash>0&&!confirmation){setError('Select how the payment was confirmed.');return}
   if(credit>0&&!creditDate){setError('Select the credit note issue date.');return}
   if(credit>0&&!creditReason){setError('Enter the credit note reason.');return}
 
@@ -361,7 +379,8 @@ async function savePayment(){
   setBusy(true);
   if(btn){btn.disabled=true;btn.textContent='Recording…'}
   try{
-    var r=await sb.rpc('crm_record_payment_with_credit_note',{
+    var r=await sb.rpc('crm_record_payment_with_method',{
+       p_payment_method:cash>0?method:null,
       p_schedule_id:row.id,
       p_cash_amount:Math.round(cash*100)/100,
       p_payment_date:cash>0?date:null,
