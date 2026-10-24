@@ -76,8 +76,10 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
 #recordPaymentReliablePanel .credit-note-toggle{margin:0;padding:7px 0;min-height:36px}
 #recordPaymentReliablePanel #pfCreditFields{margin-top:12px;padding:14px;border:1px solid var(--paper-line);border-radius:10px}
 #recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:block!important}
-#recordPaymentReliablePanel .credit-note-fields-title{margin:0 0 4px;font:650 13px/1.35 Inter,system-ui,sans-serif;color:var(--ink)}
-#recordPaymentReliablePanel .credit-note-fields-help{margin:0 0 14px;font:500 11px/1.45 Inter,system-ui,sans-serif;color:var(--muted)}
+/* Keep heading and explanation in one flow block; never overlap at any viewport width. */
+#recordPaymentReliablePanel #pfCreditFields .credit-note-intro{display:flex;flex-direction:column;align-items:flex-start;gap:6px;grid-column:1/-1;min-width:0;margin:0 0 13px;padding:0}
+#recordPaymentReliablePanel #pfCreditFields .credit-note-intro>.credit-note-fields-title{position:static!important;display:block;margin:0!important;padding:0!important;font:650 13px/1.45 Inter,system-ui,sans-serif;color:var(--ink)}
+#recordPaymentReliablePanel #pfCreditFields .credit-note-intro>.credit-note-fields-help{position:static!important;display:block;margin:0!important;padding:0!important;font:500 11px/1.5 Inter,system-ui,sans-serif;color:var(--muted)}
 #recordPaymentReliablePanel .record-payment-footer{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--paper-line);background:var(--paper)}
 #recordPaymentReliablePanel .record-payment-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:680px;margin:0 auto}
 #recordPaymentReliablePanel .record-payment-actions:has(>button:only-child){grid-template-columns:1fr}
@@ -116,9 +118,7 @@ body.record-payment-open>.tabs,body.record-payment-open>#sunblissPersistentBack,
   #recordPaymentReliablePanel .credit-note-toggle{grid-column:1/-1;justify-self:start;margin:0;padding:4px 0;min-height:30px}
   #recordPaymentReliablePanel #pfCreditFields{grid-column:1/-1;margin:0;padding:20px}
   #recordPaymentReliablePanel #pfCreditFields:not([hidden]){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:16px;align-items:start}
-  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title,#recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{grid-column:1/-1}
-  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-title{margin:0 0 -8px;font-size:13px}
-  #recordPaymentReliablePanel #pfCreditFields>.credit-note-fields-help{margin:0 0 2px;font-size:11px}
+  #recordPaymentReliablePanel #pfCreditFields>.credit-note-intro{grid-column:1/-1;margin:0 0 1px}
   #recordPaymentReliablePanel #pfCreditFields>.brand-field{margin:0}
   #recordPaymentReliablePanel .record-payment-footer{padding:16px max(36px,calc((100vw - 1120px)/2))}
   #recordPaymentReliablePanel .record-payment-actions{display:flex;justify-content:flex-end;gap:12px;max-width:1120px}
@@ -196,7 +196,7 @@ function renderForm(){
       '<label class="brand-field payment-confirmation">Payment confirmation<select id="pfConfirmation"><option value="">Select confirmation status</option><option value="confirmed_by_accounts">Confirmed by Accounts</option><option value="confirmed_by_customer">Confirmed by Customer</option><option value="cheque_pending_clearance">Cheque Pending Clearance</option></select></label>'+
        '<div class="payment-next-action" id="pfNextAction">Next action: Select a confirmation status</div>'+ 
        '<button class="credit-note-toggle" type="button" id="pfCreditToggle" aria-expanded="false">+ Add credit note (optional)</button>'+ 
-      '<div id="pfCreditFields" hidden style="display:none"><p class="credit-note-fields-title">Credit note</p><p class="credit-note-fields-help">Paperwork adjustment only. It settles this installment without being counted as cash received.</p>'+ 
+      '<div id="pfCreditFields" hidden style="display:none"><div class="credit-note-intro"><div class="credit-note-fields-title">Credit note</div><div class="credit-note-fields-help">Paperwork adjustment only. It settles this installment without being counted as cash received.</div></div>'+ 
       '<label class="brand-field">Credit note amount (AED)<input type="number" id="pfCreditAmount" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 25000" /></label>'+ 
       '<label class="brand-field">Issue date<input type="date" id="pfCreditDate" value="'+today()+'" /></label>'+ 
       '<label class="brand-field">Reason<input type="text" id="pfCreditReason" placeholder="Reason for credit note" /></label>'+ 
