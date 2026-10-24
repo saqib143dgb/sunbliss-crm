@@ -169,3 +169,22 @@ test('desktop compact workspaces use the Record Payment proportions without chan
   assert.doesNotMatch(desktop,/#crmDocumentDialog|#newCustomerPanel|#recordPaymentReliablePanel\{/);
   assert.match(desktop,/\/\* Existing centered Installment and Payment Details dialogs remain source-owned/);
 });
+
+
+test('task opening uses compact Record Payment-style dialogs instead of full-page desktop padding',()=>{
+  const desktop=fs.readFileSync('desktop_deep_page_shell_patch.js','utf8');
+  const fullPageGuard=fs.readFileSync('scheduled_actions_full_page_guard.js','utf8');
+  const outcome=fs.readFileSync('task_outcome_experience.js','utf8');
+  for(const src of [desktop,fullPageGuard,outcome])new vm.Script(src);
+  assert.match(desktop,/#scheduledActionPanel\[data-mode="complete"\]:not\(:has\(#saGroupedPaymentList,#saExtensionApprovalFields,#saCommitmentParts\)\)/);
+  assert.match(desktop,/width:min\(660px,calc\(100vw - 48px\)\)!important/);
+  assert.match(desktop,/width:min\(760px,calc\(100vw - 48px\)\)!important/);
+  assert.match(desktop,/#scheduledActionPanel \.sa-grouped-payment-list/);
+  assert.match(fullPageGuard,/@media\(max-width:1023px\)\{body:not\(\.crm-scheduled-ui-open\) #scheduledActionPanel\{position:fixed/);
+  assert.doesNotMatch(fullPageGuard,/'body:not\(\.crm-scheduled-ui-open\) #scheduledActionPanel\{position:fixed/);
+  assert.doesNotMatch(outcome,/padding-left:max\(30px,calc\(\(100vw - 920px\)\/2\)\)/);
+  assert.match(tasks,/function openComplete\(task\)/);
+  assert.match(tasks,/scheduledRootUi\(p\)/);
+  assert.match(tasks,/document\.body\.appendChild\(p\)/);
+  assert.match(tasks,/document\.getElementById\('saComplete'\)\.onclick=function\(\)\{completeTask\(task\);\}/);
+});

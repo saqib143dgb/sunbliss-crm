@@ -206,6 +206,53 @@ function ensureStyle(){
     padding:13px var(--crm-form-workspace-padding) 18px!important;
     box-shadow:none!important;
   }
+
+  /* Task outcome windows follow the Record Payment proportions. Simple
+     tasks are narrower; grouped installments and management approval retain
+     an 880px workspace without creating a whole new page. */
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel[data-mode="complete"]:not(:has(#saGroupedPaymentList,#saExtensionApprovalFields,#saCommitmentParts)){
+    width:min(660px,calc(100vw - 48px))!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel[data-mode="edit"],
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel[data-mode="new"]{
+    width:min(760px,calc(100vw - 48px))!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .scheduled-form-summary{
+    margin:0 0 13px!important;
+    padding:10px 12px!important;
+    font:500 12px/1.5 CRMInter,Inter,system-ui,sans-serif!important;
+    color:var(--muted,#736C5C)!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .sa-receipt-summary{
+    background:transparent!important;
+    border:0!important;
+    padding:0!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .brand-field{
+    display:block!important;
+    margin:0 0 13px!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .brand-field :is(input,select,textarea){
+    min-height:43px!important;
+    margin-top:6px!important;
+    font:500 14px/1.35 CRMInter,Inter,system-ui,sans-serif!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .brand-field input[type="checkbox"]{
+    display:inline-block!important;
+    width:18px!important;
+    min-width:18px!important;
+    height:18px!important;
+    min-height:18px!important;
+    padding:0!important;
+    margin:0!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .scheduled-outcome-help{
+    font:400 12px/1.55 CRMInter,Inter,system-ui,sans-serif!important;
+  }
+  html body:not(.crm-scheduled-ui-open) #scheduledActionPanel .sa-grouped-payment-list{
+    max-height:min(34dvh,300px)!important;
+    overflow-y:auto!important;
+  }
   /* Response form: original header, scroll area, footer are kept. */
   #customerPaymentResponsePanel{
     display:grid!important;
