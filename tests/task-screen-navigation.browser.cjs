@@ -22,6 +22,19 @@ const root=path.resolve(__dirname,'../dist');
 
  const open=async()=>{await page.locator('.scheduled-mark-done[data-task-id="99001"]').waitFor();await page.waitForFunction(()=>!document.documentElement.classList.contains('sbx-loading'));await page.locator('.scheduled-mark-done[data-task-id="99001"]').click();await page.locator('.task-next-preview').waitFor();await page.waitForTimeout(350);};
  await open();
+ const geometry=await page.locator('#scheduledActionPanel').evaluate(panel=>{
+   const rect=panel.getBoundingClientRect(),css=getComputedStyle(panel),root=document.documentElement;
+   return {width:rect.width,left:rect.left,top:rect.top,bottom:rect.bottom,paddingLeft:parseFloat(css.paddingLeft),viewport:innerWidth,scrollWidth:root.scrollWidth};
+ });
+ if(width>=1024){
+   assert(geometry.width>=600&&geometry.width<=670,'Simple task opens as a compact desktop dialog');
+   assert(Math.abs(geometry.left+(geometry.width/2)-(width/2))<6,'Task opens centered in viewport');
+   assert(geometry.paddingLeft<=30,'No obsolete full-page task padding');
+   assert(geometry.top>=0&&geometry.bottom<=1000,'Task dialog fits viewport');
+ }else{
+   assert(geometry.width>=width-4,'Mobile task retains full-width layout');
+ }
+ assert(geometry.scrollWidth<=geometry.viewport+1,'Task dialog never causes horizontal page overflow');
  assert.match(await page.locator('.task-next-preview').innerText(),/Confirm payment with Accounts, then send/);
  assert.equal(await page.locator('.task-test-indicator').count(),testMode?1:0);
  if(testMode){assert(await page.locator('.task-test-indicator').isVisible());}
