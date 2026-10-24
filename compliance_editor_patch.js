@@ -1,6 +1,19 @@
 (function(){
   'use strict';
 
+  // Resolve the current customer's exact sale, never a previous cancelled booking.
+  async function currentSaleId(unitId){
+    var unit=await sb.from('units').select('customer_id').eq('id',Number(unitId)).single();
+    if(unit.error)throw unit.error;
+    if(!unit.data||!unit.data.customer_id)throw new Error('Current customer not found for this unit.');
+    var sale=await sb.from('sales').select('id').eq('unit_id',Number(unitId))
+      .eq('customer_id',unit.data.customer_id).order('id',{ascending:false}).limit(1).single();
+    if(sale.error)throw sale.error;
+    if(!sale.data||!sale.data.id)throw new Error('Current sale record not found for this customer.');
+    return sale.data.id;
+  }
+
+
   var saleNoteMetaCache = {};
 
   function normalize(value){
@@ -208,7 +221,7 @@
       save.textContent = 'Saving…';
       if (err) err.style.display = 'none';
 
-      var result = await sb.from('sales').update(payload).eq('unit_id',c.sno);
+      var result = await sb.from('sales').update(payload).eq('id',await currentSaleId(c.sno));
       if (result.error) throw result.error;
       delete saleNoteMetaCache[String(c.sno)];
 
@@ -381,7 +394,7 @@
 
       try{
         if (normalize(spa)==='signed' && normalize(c.spa)!=='signed') await assertSpaReady(c);
-        var result = await sb.from('sales').update({spa_status:spa,spa_date:spaDate || null,oqood_status:oqood,oqood_date:oqoodDate || null,furniture_status:furniture,updated_at:new Date().toISOString()}).eq('unit_id',c.sno);
+        var result = await sb.from('sales').update({spa_status:spa,spa_date:spaDate || null,oqood_status:oqood,oqood_date:oqoodDate || null,furniture_status:furniture,updated_at:new Date().toISOString()}).eq('id',await currentSaleId(c.sno));
         if (result.error) throw result.error;
 
         state.statusFormOpen = false;
