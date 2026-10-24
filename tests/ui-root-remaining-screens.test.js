@@ -142,3 +142,27 @@ test('Record Payment credit-note heading and help are separate rows without over
   assert.match(payment, /crm_record_payment_with_method/);
   assert.match(payment, /crm_set_payment_confirmation_mode/);
 });
+
+test('desktop compact workspaces use the Record Payment proportions without changing saved CRM data',()=>{
+  const desktop=fs.readFileSync('desktop_deep_page_shell_patch.js','utf8');
+  new vm.Script(desktop);
+  const begin=desktop.indexOf('/* Desktop form-workspace system.');
+  assert.ok(begin>0,'Desktop form-workspace rules should be source-owned');
+  const rules=desktop.slice(begin,desktop.indexOf("}${'\\n'}`;",begin)===-1?undefined:undefined);
+  assert.match(desktop,/--crm-form-workspace-width:880px/);
+  assert.match(desktop,/--crm-form-workspace-radius:16px/);
+  assert.match(desktop,/max-height:min\(90dvh,850px\)!important/);
+  assert.match(desktop,/overflow-y:auto!important/);
+  assert.match(desktop,/min-width:0!important/);
+  assert.match(desktop,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+  assert.match(desktop,/html body:not\(\.crm-scheduled-ui-open\) #scheduledActionPanel/);
+  for(const id of [
+    '#customerEditPanel','#unitEditPanel','#saleComplianceEditPanel',
+    '#inlineComplianceEditor','#customerNotesManagementPanel','#creditNoteEditPanel',
+    '#scheduledActionPanel','#customerPaymentResponsePanel',
+    '#modificationRequestPanel','#paymentPlanRevisionPanel','#paymentExtensionPanel'
+  ]) assert.ok(desktop.includes(id),'Missing desktop form '+id);
+  assert.doesNotMatch(desktop,/sb\.from\(|sb\.rpc\(|payment_date\s*=|due_date\s*=|receipt_sent_at\s*=/);
+  assert.doesNotMatch(desktop,/#crmDocumentDialog|#newCustomerPanel|#recordPaymentReliablePanel\{/);
+  assert.match(desktop,/\/\* Existing centered Installment and Payment Details dialogs remain source-owned/);
+});
