@@ -396,6 +396,20 @@ function ensureStyle(){
   #paymentExtensionPanel .ext-head{position:sticky!important;top:-22px!important;z-index:4!important;margin:-22px -26px 15px!important;padding:19px 26px 13px!important;background:var(--paper)!important;border-bottom:1px solid var(--paper-line)!important}
   #paymentPlanRevisionPanel .rpp-actions{bottom:-22px!important;margin:16px -26px -22px!important;padding:13px 26px 19px!important;box-shadow:none!important}
   #paymentExtensionPanel .ext-form-actions{bottom:-22px!important;margin:15px -14px -14px!important;padding:12px 14px!important;box-shadow:none!important}
+  /* Source-owned overlays share the same bounded desktop workspace. */
+  .crm-full-page-overlay{
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    padding:24px!important;background:var(--crm-form-workspace-overlay)!important;
+    z-index:30100!important;overflow:hidden!important;
+  }
+  .crm-full-page-overlay>.crm-full-page-dialog{
+    width:min(880px,100%)!important;max-width:100%!important;height:auto!important;
+    min-height:0!important;max-height:calc(100dvh - 48px)!important;
+    margin:0!important;padding:24px!important;border-radius:16px!important;
+    overflow:auto!important;overscroll-behavior:contain!important;box-sizing:border-box!important;
+  }
+  #paymentDetailDialog h3{font:700 23px/1.25 CRMInter,Inter,system-ui,sans-serif!important}
+  #paymentDetailDialog .payment-detail-actions{position:sticky;bottom:-24px;background:var(--paper);padding:12px 0;margin-bottom:0}
   /* Existing centered Installment and Payment Details dialogs remain source-owned.
      Do not force wider view pages or document/PDF generators into small dialogs. */
 }
