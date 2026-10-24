@@ -9,9 +9,10 @@ const end=html.indexOf('function renderReceipt(){',start);
 assert(start>0&&end>start,'receipt source functions are present');
 const source=html.slice(start,end);
 const mockRows=[
- {id:10,amount:10000,payment_date:'2026-10-20',payment_type:'1st Installment',payment_schedule_id:50,payment_reference:'TRF-A',accounts_confirmation_status:'confirmed'},
- {id:11,amount:4200,payment_date:'2026-10-21',payment_type:'DLD + Admin Fees',payment_schedule_id:51,payment_reference:'CHQ-B',accounts_confirmation_status:'confirmed'},
- {id:12,amount:3500,payment_date:'2026-10-21',payment_type:'2nd Installment',payment_schedule_id:52,payment_reference:'PENDING',accounts_confirmation_status:'pending'}
+ {id:10,amount:10000,payment_date:'2026-10-20',payment_type:'1st Installment',payment_schedule_id:50,payment_method:'Online',payment_reference:'TRF-A',accounts_confirmation_status:'confirmed'},
+ {id:11,amount:4200,payment_date:'2026-10-21',payment_type:'DLD + Admin Fees',payment_schedule_id:51,payment_method:'Cheque',payment_reference:'CHQ-B',accounts_confirmation_status:'confirmed'},
+ {id:12,amount:3500,payment_date:'2026-10-21',payment_type:'2nd Installment',payment_schedule_id:52,payment_reference:'PENDING',accounts_confirmation_status:'pending'},
+ {id:13,amount:4500,payment_date:'2026-10-22',payment_type:'2nd Installment',payment_schedule_id:52,payment_reference:null,accounts_confirmation_status:'confirmed'}
 ];
 function makeContext(ids=[10,11],changes={}){
  const values={receiptNo:'100',date:'2026-10-22',instrument:'Online',bank:'',reference:'TRF-A',...changes};
@@ -40,7 +41,7 @@ test('only Accounts-confirmed selected transactions are included',()=>{
  assert.deepEqual(Array.from(a.sandbox._selected(),x=>x.id),[10,11]);
 });
 test('multiple selected payments render separate instrument rows with distinct references and one combined total',()=>{
- const a=makeContext([10,11],{'receipt-method-10':'Online','receipt-method-11':'Cheque','receipt-bank-11':'Bank B'});
+ const a=makeContext([10,11],{'receipt-method-10':'Card','receipt-method-11':'Cash','receipt-bank-11':'Bank B'});
  const txt=sceneTexts(a.scene);
  assert.match(txt,/SPRED:100/);
  assert.match(txt,/TRF-A/);
@@ -54,12 +55,20 @@ test('multiple selected payments render separate instrument rows with distinct r
  assert.match(txt,/TOTAL/);
  assert.equal((txt.match(/PAYMENT RECEIPT/g)||[]).length,1);
 });
-test('one selected payment retains editable single receipt reference',()=>{
+test('single selected payment always uses its recorded reference, not a manual substitute',()=>{
  const a=makeContext([10],{reference:'MANUAL-REF','receipt-reference-10':'DO-NOT-USE'});
  const txt=sceneTexts(a.scene);
- assert.match(txt,/MANUAL-REF/);
- assert.doesNotMatch(txt,/DO-NOT-USE/);
+ assert.match(txt,/TRF-A/);
+ assert.doesNotMatch(txt,/MANUAL-REF|DO-NOT-USE/);
+ assert.match(txt,/Online/);
  assert.doesNotMatch(txt,/TOTAL/);
+});
+test('older confirmed payments can supply missing method and reference without guessing',()=>{
+ const a=makeContext([13],{'receipt-method-13':'Card','receipt-reference-13':'LEGACY-REF'});
+ const txt=sceneTexts(a.scene);
+ assert.match(txt,/Card \(In Escrow\)/);
+ assert.match(txt,/LEGACY-REF/);
+ assert.match(txt,/4,500/);
 });
 test('pending transaction cannot appear on a receipt',()=>{
  const a=makeContext([12]);
@@ -70,4 +79,14 @@ test('generator offers checkbox selection and shows a selected total',()=>{
  assert.match(html,/receiptSelectionSummary/);
  assert.match(html,/Total selected amount \(AED\)/);
  assert.match(html,/txs\.reduce\(\(sum,t\)=>sum\+Math\.round\(Number\(t\.amount\)\*100\),0\)\/100/);
+});
+test('receipt generator preselects saved tender data and has no duplicate global method/reference fields',()=>{
+ assert.match(html,/receiptRecordedMethod\(t\)===method\?' selected'/);
+ assert.match(html,/receiptRecordedMethod\(t\)\?' disabled'/);
+ assert.match(html,/t\.payment_reference\?' readonly'/);
+ assert.doesNotMatch(html,/Instrument \/ payment method<select id="instrument"/);
+ assert.doesNotMatch(html,/\$\('reference'\)\.value=single/);
+ assert.match(html,/Cheque number for each cheque payment|Enter the cheque number for each cheque payment/);
+ const taskSource=fs.readFileSync('scheduled_actions_patch.js','utf8');
+ assert.match(taskSource,/receiptPaymentMethod\(tx\.payment_method,tx\.remarks\)/);
 });

@@ -436,7 +436,9 @@
       return Number(row.unit_id)===Number(task.unit_id)&&row.status==='pending'&&isBookingWelcome(row);
     });
   }
-  function receiptPaymentMethod(remarks){
+  function receiptPaymentMethod(method,remarks){
+    var recorded=text(method).trim();
+    if(['Online','Cheque','Card','Cash'].indexOf(recorded)>=0)return recorded;
     var raw=text(remarks).trim();
     if(/^cash\s*(?:\/|-|or)\s*card\b/i.test(raw))return 'Cash/Card';
     if(/^cheque\b/i.test(raw))return 'Cheque';
@@ -454,7 +456,7 @@
     try{
       if(!task.transaction_id)throw new Error('Missing linked payment transaction.');
       var result=await sb.from('payment_transactions')
-        .select('id,unit_id,amount,payment_type,payment_date,remarks,payment_schedule_id,accounts_confirmation_status')
+        .select('id,unit_id,amount,payment_type,payment_date,payment_method,payment_reference,remarks,payment_schedule_id,accounts_confirmation_status')
         .eq('id',Number(task.transaction_id)).single();
       if(result.error)throw result.error;
       if(!panel.isConnected)return;
@@ -472,7 +474,7 @@
       var stageName=text(stage&&stage.stage_name||tx.payment_type||'Payment');
       var due=stage&&formatDate(stage.revised_due_date||stage.due_date);
       var paidOn=tx.payment_date?formatDate(tx.payment_date):'Not recorded';
-      var method=receiptPaymentMethod(tx.remarks);
+      var method=receiptPaymentMethod(tx.payment_method,tx.remarks);
       host.innerHTML='<div class="sa-receipt-card">'+
         '<div class="sa-receipt-top"><span class="sa-receipt-kicker">Receipt amount</span>'+
         (confirmed?'<span class="sa-receipt-status">Accounts confirmed</span>':'<span class="sa-receipt-warning-label">Accounts confirmation pending</span>')+'</div>'+
