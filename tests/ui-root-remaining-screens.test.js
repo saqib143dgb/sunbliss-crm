@@ -127,3 +127,18 @@ test('desktop styling is unmodified because source-scoped UI applies only to mob
   assert.match(tasks,/if\(!mobile\)return/);
   assert.match(notes,/if\(!window\.matchMedia\|\|!window\.matchMedia\('\(max-width:1023px\)'\)\.matches\)return/);
 });
+
+
+test('Record Payment credit-note heading and help are separate rows without overlap at desktop or mobile widths',()=>{
+  const payment=fs.readFileSync('record_payment_reliability_patch.js','utf8');
+  new vm.Script(payment);
+  assert.match(payment, /class="credit-note-intro"><div class="credit-note-fields-title">Credit note<\/div><div class="credit-note-fields-help">Paperwork adjustment only\./);
+  assert.match(payment, /#pfCreditFields \.credit-note-intro\{display:flex;flex-direction:column;align-items:flex-start;gap:6px/);
+  assert.match(payment, /#pfCreditFields>\.credit-note-intro\{grid-column:1\/-1;margin:0 0 1px/);
+  assert.doesNotMatch(payment, /credit-note-fields-title\{margin:0 0 -8px/);
+  for (const id of ['pfCreditAmount','pfCreditDate','pfCreditReason','pfCreditRef','pfCreditToggle']) {
+    assert.ok(payment.includes(id),'Existing credit-note input missing: '+id);
+  }
+  assert.match(payment, /crm_record_payment_with_method/);
+  assert.match(payment, /crm_set_payment_confirmation_mode/);
+});
