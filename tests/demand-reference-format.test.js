@@ -13,3 +13,17 @@ test('every demand page uses the payment receipt letterhead and protects header 
 test('demand letterhead is scaled uniformly in preview and PDF',()=>{const source=fs.readFileSync('demand-letter.js','utf8');assert(source.includes('preserveAspectRatio="xMidYMin meet"'));assert(source.includes('xScale:scale,yScale:scale'));assert(!source.includes('p.drawPage(letterhead,{x:0,y:0,width:'));});
 
 test('eleven receipt lines never strand payment instructions on an extra page',async()=>{const m=fixture();m.customer='AHMED KAMALELDIN MOHAMED HASSAN';m.payments=Array.from({length:11},(_,i)=>({amount:10000,payment_date:'2026-01-26',payment_type:'1st Installment Partial-'+(i+1)}));const {pages}=await scene(m);assert.equal(pages.length,2);const a=pages[0].map(x=>x.text||'').join(' '),b=pages[1].map(x=>x.text||'').join(' ');assert(a.includes('Partial-11'));assert(b.includes('Amount Due with Payment Account Information'));assert(b.includes('Account Details'));assert(b.includes('Imran Alam Khan'));});
+
+test('text following either table keeps clearance even when compact spacing is required',async()=>{
+ const m=fixture();m.customer='AHMED KAMALELDIN MOHAMED HASSAN';m.payments=Array.from({length:11},(_,i)=>({amount:10000,payment_date:'2026-01-26',payment_type:'1st Installment Partial-'+(i+1)}));
+ const {pages}=await scene(m);for(const [p,label] of [[0,'Payment Received'],[1,'We kindly']]){
+  const item=pages[p].find(x=>x.text?.startsWith(label));const bottom=Math.max(...pages[p].filter(x=>x.line&&x.line[1]===x.line[3]&&x.line[1]<item.y).map(x=>x.line[1]));
+  assert(item.y-item.size-bottom>=7,'Text ascenders must clear table borders');
+ }
+});
+test('multiple installments have separate amount rows and shared bank details only once',async()=>{
+ const m=fixture();m.rows=[15487.5,105487.5,105487.5].map((amount,i)=>({...m.rows[0],label:(i+2)+'th Installment',amount}));m.amount=226462.5;
+ const {pages}=await scene(m);const items=pages[1].filter(x=>x.text);for(const row of m.rows)assert(items.some(x=>x.text===row.label));
+ assert.equal(items.filter(x=>x.text==='105,487.50').length,2);assert.equal(items.filter(x=>x.text==='IBAN: DEMO ESCROW').length,1);
+ assert.equal(pages.length,2);
+});

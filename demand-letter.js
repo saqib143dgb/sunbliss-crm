@@ -41,12 +41,26 @@ function demandTwoPageLayout(model,measure,{fontScale,gapScale,summary}){
  function line(x,a,x2,b){page.push({line:[x,a,x2,b]});}
  function table(heads,rows,widths,{size=10,accountColumn=-1}={}){
   size*=fontScale;const ws=widths.map(w=>w*width),leading=size*1.2;
-  function draw(cells,header=false){const lines=cells.map((c,i)=>wrap(c,ws[i]-10,size,header));const h=Math.max(...lines.map(a=>a.length))*leading+12;
-   if(h+(header?0:Math.max(...heads.map((c,i)=>wrap(c,ws[i]-10,size,true).length))*leading+12)>contentBottom-contentTop)throw Error('DEMAND_PAGE_FULL');
-   ensure(h);
-   let x=left;const top=y;cells.forEach((c,i)=>{line(x,top,x+ws[i],top);line(x,top,x,top+h);line(x,top+h,x+ws[i],top+h);const isAccount=!header&&i===accountColumn;const at=top+(h-lines[i].length*leading)/2+size;lines[i].forEach((t,j)=>add(t,isAccount?x+5:x+ws[i]/2,at+j*leading,size,header,isAccount?'left':'center'));x+=ws[i];});line(right,top,right,top+h);y+=h;
-  }
-  draw(heads,true);rows.forEach(r=>draw(r));y+=12*gapScale;
+  // Measure merged account cells before drawing so each installment retains its own amount row.
+  const cells=[heads,...rows].map((row,r)=>row.map((cell,c)=>cell===null?null:{
+   lines:wrap(typeof cell==='object'?cell.text:cell,ws[c]-10,size,r===0),
+   span:typeof cell==='object'?cell.rowSpan||1:1
+  }));
+  const heights=cells.map(row=>Math.max(leading+12,...row.filter(c=>c&&c.span===1).map(c=>c.lines.length*leading+12)));
+  cells.forEach((row,r)=>row.forEach(cell=>{if(!cell||cell.span===1)return;
+   const extra=cell.lines.length*leading+12-heights.slice(r,r+cell.span).reduce((a,b)=>a+b,0);
+   if(extra>0)for(let j=r;j<r+cell.span;j++)heights[j]+=extra/cell.span;
+  }));
+  ensure(heights.reduce((a,b)=>a+b,0));
+  cells.forEach((row,r)=>{let x=left;row.forEach((cell,c)=>{
+   if(cell){const h=heights.slice(r,r+cell.span).reduce((a,b)=>a+b,0),top=y;
+    line(x,top,x+ws[c],top);line(x,top,x,top+h);line(x,top+h,x+ws[c],top+h);line(x+ws[c],top,x+ws[c],top+h);
+    const alignLeft=r>0&&c===accountColumn,at=top+(h-cell.lines.length*leading)/2+size;
+    cell.lines.forEach((t,j)=>add(t,alignLeft?x+5:x+ws[c]/2,at+j*leading,size,r===0,alignLeft?'left':'center'));
+   }x+=ws[c];
+  });y+=heights[r];});
+  // y is a text baseline. Preserve visible clearance even in the compact layout.
+  y+=10.5*fontScale+8;
  }
  add('DEMAND LETTER',W/2,164,12.3,true,'center');const titleWidth=measure('DEMAND LETTER',12.3,true);line(W/2-titleWidth/2,166,W/2+titleWidth/2,166);
  add(date(model.date),right,213,10.5,false,'right');
@@ -73,7 +87,13 @@ function demandTwoPageLayout(model,measure,{fontScale,gapScale,summary}){
  // Group repeated bank details once per account when many installments are selected.
  const accountRows=[];
  for(const r of model.rows){const key=r.kind==='dld'?'Developer Account':'Escrow Account';let row=accountRows.find(x=>x.key===key&&x.account===r.account);if(!row){row={key,account:r.account,items:[],cents:0};accountRows.push(row);}row.items.push(r);row.cents+=Math.round(Number(r.amount)*100);}
- table(['S.No','Description','Amount (AED)','Payable To','Account Details'],accountRows.map((r,i)=>[String(i+1),r.items.map(x=>x.label+(r.items.length>1?' - '+cash(x.amount):'')).join('\n'),money(r.cents/100),r.key,r.account]).concat([['','Total Amount Due',money(model.amount),'-','-']]),[.07,.23,.14,.13,.43],{size:9.5,accountColumn:4});
+ const paymentRows=[];let serial=0;
+ for(const group of accountRows)group.items.forEach((item,i)=>paymentRows.push([
+  String(++serial),item.label,money(item.amount),
+  i===0?{text:group.key,rowSpan:group.items.length}:null,
+  i===0?{text:group.account,rowSpan:group.items.length}:null
+ ]));
+ table(['S.No','Description','Amount (AED)','Payable To','Account Details'],paymentRows.concat([['','Total Amount Due',money(model.amount),'-','-']]),[.07,.23,.14,.13,.43],{size:9.5,accountColumn:4});
  para('We kindly request you to remit the above-mentioned amount of '+cash(model.amount)+' - '+model.words+'.',{bold:true});
  if(fees.length)para('Important: Please note that the DLD 4% charges and admin fee must be paid into the Developer Account only, not the escrow account.',{bold:true});
  para('Please note that timely payment of the due instalment is an essential condition of our Booking Form / Sale and Purchase Agreement, and any delay in payment will attract interest charges as specified in the contract.');
