@@ -54,21 +54,11 @@ function ensureStyle(){
     --crm-form-workspace-overlay:rgba(15,26,38,.52);
     --crm-form-workspace-padding:24px;
   }
-  /* The CRM normally contains #app for repaint stability. Release that
-     containing block only while a compact inline editor is open, otherwise
-     fixed dialogs can be positioned against the page instead of the viewport. */
-  body:has(:is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel)) #app{
+  /* A body::before click-shield could render ABOVE editors inside the main
+     stacking context. The dialog itself supplies the dimmed backdrop without
+     placing a pointer-intercepting layer over Save/Cancel. */
+  body:has(:is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel,#transactionEditPanel,#unitCancellationPanel)) #app{
     contain:none!important;
-  }
-  /* One click-shield backdrop instead of letting clicks reach the customer
-     page behind an editor. All original close/save controls remain functional. */
-  body:has(:is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel))::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    z-index:30020;
-    background:var(--crm-form-workspace-overlay);
-    pointer-events:auto;
   }
   /* Small/edit forms share the same centered surface as Record Payment.
      Scroll only when the form exceeds the available viewport. */
@@ -78,6 +68,8 @@ function ensureStyle(){
   #inlineComplianceEditor,
   #customerNotesManagementPanel,
   #creditNoteEditPanel,
+  #transactionEditPanel,
+  #unitCancellationPanel,
   html body:not(.crm-scheduled-ui-open) #scheduledActionPanel{
     position:fixed!important;
     inset:auto!important;
@@ -103,8 +95,33 @@ function ensureStyle(){
     background:var(--paper,#F6F1E4)!important;
     border:1px solid var(--paper-line,#DCD2B6)!important;
     border-radius:var(--crm-form-workspace-radius)!important;
-    box-shadow:0 22px 68px rgba(15,26,38,.22)!important;
+    box-shadow:0 0 0 100vmax var(--crm-form-workspace-overlay),0 22px 68px rgba(15,26,38,.22)!important;
   }
+  /* Existing Transaction Edit and Cancel Unit workflow inputs are retained. */
+  :is(#transactionEditPanel,#unitCancellationPanel){
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:0!important;
+  }
+  :is(#transactionEditPanel,#unitCancellationPanel)>.brand-editor-actions{
+    display:flex!important;
+    flex-direction:row!important;
+    justify-content:flex-end!important;
+    gap:10px!important;
+    position:sticky!important;
+    bottom:-24px!important;
+    margin:16px -24px -24px!important;
+    padding:13px 24px 18px!important;
+    background:var(--paper,#F6F1E4)!important;
+    border-top:1px solid var(--paper-line,#DCD2B6)!important;
+    box-shadow:none!important;
+  }
+  :is(#transactionEditPanel,#unitCancellationPanel)>.brand-editor-actions>button{
+    min-width:140px!important;flex:0 1 auto!important;min-height:43px!important;margin:0!important;border-radius:9px!important;
+  }
+  :is(#transactionEditPanel,#unitCancellationPanel) .brand-field{margin:0 0 13px!important}
+  :is(#transactionEditPanel,#unitCancellationPanel) .brand-field :is(input,select,textarea){max-width:100%!important;min-width:0!important;min-height:43px!important;font-size:14px!important}
   /* Both desktop and mobile use the same original inputs and callbacks. */
   :is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel) .section-label:first-child{
     font:700 23px/1.25 CRMInter,Inter,system-ui,sans-serif!important;
