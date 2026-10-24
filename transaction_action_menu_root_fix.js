@@ -19,7 +19,10 @@ function ensureStyles(){
   var s=document.createElement('style');
   s.id='transactionActionMenuRootFixStyles';
   s.textContent=[
-    '.detail .tx-actions-menu{display:none!important;visibility:hidden!important;pointer-events:none!important}',
+    /* Keep only the original cash-transaction inline menus hidden. Credit Note
+       menus use a different handler and must remain clickable. */
+    '.detail .tx-actions-menu:not(.credit-note-actions-menu){display:none!important;visibility:hidden!important;pointer-events:none!important}',
+    '.detail .credit-note-actions-menu{visibility:visible!important;pointer-events:auto!important}',
     '.detail .tx-actions-btn{-webkit-tap-highlight-color:transparent!important;touch-action:manipulation!important}',
     '#transactionActionsPortal{position:fixed;z-index:20050;width:'+MENU_WIDTH+'px;padding:6px;background:var(--paper,#F6F1E4);border:1px solid rgba(0,0,0,.13);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.18);box-sizing:border-box;animation:none!important;transition:none!important;transform:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;contain:layout paint style;overscroll-behavior:contain;-webkit-tap-highlight-color:transparent}',
     '#transactionActionsPortal button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:7px;font:600 12px/1.3 Inter,Arial,sans-serif;color:var(--ink,#16232F);cursor:pointer;animation:none!important;transition:none!important;-webkit-tap-highlight-color:transparent;touch-action:manipulation}',
