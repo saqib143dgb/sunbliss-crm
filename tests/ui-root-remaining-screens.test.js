@@ -152,8 +152,8 @@ test('desktop compact workspaces use the Record Payment proportions without chan
   assert.match(desktop,/--crm-form-workspace-radius:16px/);
   assert.match(desktop,/body:has\(:is\(#customerEditPanel/);
   assert.match(desktop,/contain:none!important/);
-  assert.match(desktop,/z-index:30020/);
-  assert.match(desktop,/pointer-events:auto/);
+  assert.doesNotMatch(desktop,/body:has\([^\n]+\)::before\{/);
+  assert.match(desktop,/box-shadow:0 0 0 100vmax var\(--crm-form-workspace-overlay\)/);
   assert.match(desktop,/max-height:min\(90dvh,850px\)!important/);
   assert.match(desktop,/overflow-y:auto!important/);
   assert.match(desktop,/min-width:0!important/);

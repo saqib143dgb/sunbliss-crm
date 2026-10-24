@@ -34,14 +34,43 @@
   async function openDeleteDialog(c,stage){ensureDeleteStyles();var existing=document.getElementById('installmentDeleteOverlay');if(existing)existing.remove();var overlay=document.createElement('div');overlay.id='installmentDeleteOverlay';overlay.innerHTML='<div id="installmentDeleteDialog" role="dialog" aria-modal="true"><h3>Delete installment</h3><p class="installment-delete-sub">Checking '+safe(stage.label)+'…</p></div>';document.body.appendChild(overlay);overlay.addEventListener('click',function(ev){if(ev.target===overlay)overlay.remove();});try{renderDeleteDialog(c,await loadStageRow(stage),overlay);}catch(err){var dialog=document.getElementById('installmentDeleteDialog');if(!dialog)return;dialog.innerHTML='<h3>Delete installment</h3><p class="brand-error">'+safe(err&&err.message?err.message:'Could not load installment details.')+'</p><button class="btn-paper" id="idClose">Close</button>';var close=document.getElementById('idClose');if(close)close.onclick=function(){overlay.remove();};}}
   function renderDeleteDialog(c,row,overlay){var dialog=document.getElementById('installmentDeleteDialog');if(!dialog||!row)return;var hasPayment=(Number(row.paid_amount)||0)!==0||!!row.paid_date;dialog.innerHTML='<h3>Delete installment</h3><p class="installment-delete-sub">Unit '+safe(c.unit)+' · '+safe(c.name)+'</p><p class="brand-error" id="idError" style="display:none"></p><div class="installment-delete-meta"><span>Installment</span><strong>'+safe(row.stage_name)+'</strong><span>Due amount</span><strong>'+safe(money(row.due_amount))+'</strong><span>Due date</span><strong>'+safe(dateLabel(row.due_date))+'</strong><span>Paid amount</span><strong>'+safe(money(row.paid_amount))+'</strong></div><div class="installment-delete-warning">Deletion is blocked if the installment has any paid amount, paid date, linked or matching payment transaction, credit note, or carry-forward. A full copy of the deleted row and your reason will be saved in the audit log.</div>'+(hasPayment?'<div class="installment-delete-warning"><b>This installment already has payment activity and cannot be deleted.</b></div>':'')+'<label class="brand-field">Reason for deletion<textarea id="idReason" placeholder="Example: Duplicate installment added in error"></textarea></label><div class="installment-delete-actions"><button class="installment-delete-confirm" type="button" id="idDelete"'+(hasPayment?' disabled':'')+'>Delete installment</button><button class="btn-paper" type="button" id="idCancel">Cancel</button></div>';document.getElementById('idCancel').onclick=function(){overlay.remove();};if(!hasPayment)document.getElementById('idDelete').onclick=function(){deleteInstallment(c,row,overlay);};}
   async function deleteInstallment(c,row,overlay){var reason=text(document.getElementById('idReason').value).trim(),err=document.getElementById('idError'),button=document.getElementById('idDelete');function fail(message){err.textContent=message;err.style.display='block';}if(reason.length<5){fail('Enter a short reason for deleting this installment.');return;}if(!window.confirm('Delete '+row.stage_name+' ('+money(row.due_amount)+') from unit '+c.unit+'?\n\nThis removes the schedule row, but the full deleted record will remain in the audit log.'))return;button.disabled=true;button.textContent='Deleting…';err.style.display='none';try{var rpc=await sb.rpc('crm_delete_installment',{p_schedule_id:row.id,p_unit_id:c.sno,p_reason:reason});if(rpc.error)throw rpc.error;var key=state.selectedUnit,from=state.detailFrom||'list';overlay.remove();await loadFromSupabase();state.selectedUnit=key;state.detailFrom=from;state.view='detail';if(typeof window.renderMain==='function')window.renderMain();else if(typeof window.renderDetail==='function')window.renderDetail();}catch(ex){fail(ex&&ex.message?ex.message:'Could not delete that installment.');button.disabled=false;button.textContent='Delete installment';}}
-  function portalMenus(){ensureDeleteStyles();document.querySelectorAll('.stage-card .installment-menu-pop').forEach(function(menu){var card=menu.closest('.stage-card'),button=card&&card.querySelector('.installment-menu-btn');if(!button)return;attachDeleteAction(menu,card);document.body.appendChild(menu);positionMenu(menu,button);});}
+  function portalMenus(){
+    ensureDeleteStyles();
+    document.querySelectorAll('.stage-card .installment-menu-pop').forEach(function(menu){
+      var card=menu.closest('.stage-card'),button=card&&card.querySelector('.installment-menu-btn');
+      if(!card||!button||!button.isConnected)return;
+      attachDeleteAction(menu,card);
+      // Retain the owning card while this one menu is portaled to the body.
+      // The native click handler searches its own stage-card; moving the menu
+      // previously made its open/close toggle behave like a permanently new menu.
+      menu.__crmSourceCard=card;
+      document.body.appendChild(menu);
+      positionMenu(menu,button);
+    });
+  }
   function closeMenus(){document.querySelectorAll('body > .installment-menu-pop').forEach(function(menu){menu.remove();});}
 
   /* The portal is needed only after the installment menu button is pressed. Watching
      every mutation in document.body caused needless CRM-wide observer traffic. */
   document.addEventListener('click',function(e){
-    if(e.target&&e.target.closest&&e.target.closest('.installment-menu-btn'))setTimeout(portalMenus,0);
+    var button=e.target&&e.target.closest&&e.target.closest('.installment-menu-btn');
+    if(!button)return;
+    var card=button.closest('.stage-card');
+    var alreadyOpen=Array.prototype.some.call(document.querySelectorAll('body > .installment-menu-pop'),function(menu){
+      return menu.__crmSourceCard===card;
+    });
+    if(alreadyOpen){
+      // Handle the second click before the original stage-card handler creates
+      // another copy: second click consistently closes, rather than reopening.
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+      closeMenus();return;
+    }
+    setTimeout(portalMenus,0);
   },true);
-  window.addEventListener('resize',closeMenus);window.addEventListener('scroll',closeMenus,true);
+  window.addEventListener('resize',closeMenus);
+  window.addEventListener('scroll',function(event){
+    if(event.target&&event.target.closest&&event.target.closest('body > .installment-menu-pop'))return;
+    closeMenus();
+  },true);
   ensureDeleteStyles();
 })();
