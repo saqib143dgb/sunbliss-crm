@@ -148,7 +148,6 @@ test('desktop compact workspaces use the Record Payment proportions without chan
   new vm.Script(desktop);
   const begin=desktop.indexOf('/* Desktop form-workspace system.');
   assert.ok(begin>0,'Desktop form-workspace rules should be source-owned');
-  const rules=desktop.slice(begin,desktop.indexOf("}${'\\n'}`;",begin)===-1?undefined:undefined);
   assert.match(desktop,/--crm-form-workspace-width:880px/);
   assert.match(desktop,/--crm-form-workspace-radius:16px/);
   assert.match(desktop,/max-height:min\(90dvh,850px\)!important/);
