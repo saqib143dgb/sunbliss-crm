@@ -54,6 +54,22 @@ function ensureStyle(){
     --crm-form-workspace-overlay:rgba(15,26,38,.52);
     --crm-form-workspace-padding:24px;
   }
+  /* The CRM normally contains #app for repaint stability. Release that
+     containing block only while a compact inline editor is open, otherwise
+     fixed dialogs can be positioned against the page instead of the viewport. */
+  body:has(:is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel)) #app{
+    contain:none!important;
+  }
+  /* One click-shield backdrop instead of letting clicks reach the customer
+     page behind an editor. All original close/save controls remain functional. */
+  body:has(:is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel))::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:30020;
+    background:var(--crm-form-workspace-overlay);
+    pointer-events:auto;
+  }
   /* Small/edit forms share the same centered surface as Record Payment.
      Scroll only when the form exceeds the available viewport. */
   #customerEditPanel,
@@ -87,7 +103,7 @@ function ensureStyle(){
     background:var(--paper,#F6F1E4)!important;
     border:1px solid var(--paper-line,#DCD2B6)!important;
     border-radius:var(--crm-form-workspace-radius)!important;
-    box-shadow:0 0 0 100vmax var(--crm-form-workspace-overlay),0 22px 68px rgba(15,26,38,.22)!important;
+    box-shadow:0 22px 68px rgba(15,26,38,.22)!important;
   }
   /* Both desktop and mobile use the same original inputs and callbacks. */
   :is(#customerEditPanel,#unitEditPanel,#saleComplianceEditPanel,#inlineComplianceEditor,#customerNotesManagementPanel,#creditNoteEditPanel,#scheduledActionPanel) .section-label:first-child{
