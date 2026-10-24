@@ -150,6 +150,10 @@ test('desktop compact workspaces use the Record Payment proportions without chan
   assert.ok(begin>0,'Desktop form-workspace rules should be source-owned');
   assert.match(desktop,/--crm-form-workspace-width:880px/);
   assert.match(desktop,/--crm-form-workspace-radius:16px/);
+  assert.match(desktop,/body:has\(:is\(#customerEditPanel/);
+  assert.match(desktop,/contain:none!important/);
+  assert.match(desktop,/z-index:30020/);
+  assert.match(desktop,/pointer-events:auto/);
   assert.match(desktop,/max-height:min\(90dvh,850px\)!important/);
   assert.match(desktop,/overflow-y:auto!important/);
   assert.match(desktop,/min-width:0!important/);
