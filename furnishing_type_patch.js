@@ -1,6 +1,19 @@
 (function(){
   'use strict';
 
+  // Resolve the current customer's exact sale, never a previous cancelled booking.
+  async function currentSaleId(unitId){
+    var unit=await sb.from('units').select('customer_id').eq('id',Number(unitId)).single();
+    if(unit.error)throw unit.error;
+    if(!unit.data||!unit.data.customer_id)throw new Error('Current customer not found for this unit.');
+    var sale=await sb.from('sales').select('id').eq('unit_id',Number(unitId))
+      .eq('customer_id',unit.data.customer_id).order('id',{ascending:false}).limit(1).single();
+    if(sale.error)throw sale.error;
+    if(!sale.data||!sale.data.id)throw new Error('Current sale record not found for this customer.');
+    return sale.data.id;
+  }
+
+
   if (window.__sunblissFurnishingTypeInstalled) return;
   window.__sunblissFurnishingTypeInstalled = true;
 
@@ -152,7 +165,7 @@
     try{
       var results = await Promise.all([
         sb.from('units').update({unit_type:unitType}).eq('id',c.sno),
-        sb.from('sales').update({furniture_status:furnishing,updated_at:new Date().toISOString()}).eq('unit_id',c.sno)
+        sb.from('sales').update({furniture_status:furnishing,updated_at:new Date().toISOString()}).eq('id',await currentSaleId(c.sno))
       ]);
       results.forEach(function(r){ if (r.error) throw r.error; });
       await loadFromSupabase();
@@ -181,7 +194,7 @@
     state.statusFormValues={spa:spa.value,spaDate:spaDate?spaDate.value:'',oqood:oqood.value,oqoodDate:oqoodDate?oqoodDate.value:'',furniture:furniture.value};
     state.statusFormSaving=true; state.statusFormError=null; renderDetail();
     try{
-      var result=await sb.from('sales').update({spa_status:spa.value,spa_date:spaDate&&spaDate.value?spaDate.value:null,oqood_status:oqood.value,oqood_date:oqoodDate&&oqoodDate.value?oqoodDate.value:null,furniture_status:furniture.value,updated_at:new Date().toISOString()}).eq('unit_id',c.sno);
+      var result=await sb.from('sales').update({spa_status:spa.value,spa_date:spaDate&&spaDate.value?spaDate.value:null,oqood_status:oqood.value,oqood_date:oqoodDate&&oqoodDate.value?oqoodDate.value:null,furniture_status:furniture.value,updated_at:new Date().toISOString()}).eq('id',await currentSaleId(c.sno));
       if (result.error) throw result.error;
       state.statusFormOpen=false; state.statusFormSaving=false; state.statusFormValues=null;
       var key=state.selectedUnit, from=state.detailFrom || 'list';
@@ -217,7 +230,7 @@
     var parts=String(state.selectedUnit).split('::');
     var unitId=parts.length>1?Number(parts[1]):null;
     if (!unitId) return;
-    var result=await sb.from('sales').update({furniture_status:furnishing,updated_at:new Date().toISOString()}).eq('unit_id',unitId);
+    var result=await sb.from('sales').update({furniture_status:furnishing,updated_at:new Date().toISOString()}).eq('id',await currentSaleId(unitId));
     if (result.error){
       alert(result.error.message || 'Customer created, but furnishing type could not be saved.');
       return;
