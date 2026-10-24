@@ -18,7 +18,16 @@ function demandModel(){
  ...finance,words:amountWords(stage.amount)};
 }
 function demandScene(model,measure){
- const pages=[[]],W=595.28,H=841.89,left=60,right=545,width=right-left,contentTop=160,contentBottom=760;
+ // A generated demand letter always has exactly two pages. Try spacing first,
+ // then modest font adjustment; long histories are explicitly summarised.
+ for(const summary of [false,true])for(const [fontScale,gapScale] of [[1,1],[1,.55],[.95,.5],[.9,.4],[.85,.3]]){
+  try{return demandTwoPageLayout(model,measure,{fontScale,gapScale,summary});}
+  catch(error){if(error.message!=='DEMAND_PAGE_FULL')throw error;}
+ }
+ throw Error('The selected details exceed the two-page demand letter format. Please review unusually long customer or bank details.');
+}
+function demandTwoPageLayout(model,measure,{fontScale,gapScale,summary}){
+ const pages=[[]],W=595.28,H=841.89,left=60,right=545,width=right-left,contentTop=172,contentBottom=760;
  let page=pages[0],y=230;
  const date=d=>{const parts=String(d||'').slice(0,10).split('-');return parts.length===3?parts[2]+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(parts[1])-1]+'-'+parts[0]:'-';};
  const money=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -27,17 +36,17 @@ function demandScene(model,measure){
  function wrap(text,max,size,bold){const lines=[];for(const para of normal(text).split('\n')){let row='';for(const word of para.split(/\s+/)){if(!word)continue;const next=row?row+' '+word:word;if(measure(next,size,bold)<=max){row=next;continue;}if(row)lines.push(row);row='';for(const char of word){if(row&&measure(row+char,size,bold)>max){lines.push(row);row='';}row+=char;}}lines.push(row);}return lines;}
  function add(text,x,at,size=10.5,bold=false,align='left'){text=normal(text);page.push({text,x:align==='center'?x-measure(text,size,bold)/2:align==='right'?x-measure(text,size,bold):x,y:at,size,bold,width:measure(text,size,bold)});}
  function next(){page=[];pages.push(page);y=contentTop;}
- function ensure(h){if(y+h>contentBottom)next();}
- function para(text,{bold=false,size=10.5,gap=11,align='left',indent=0}={}){const lines=wrap(text,width-indent,size,bold);for(const line of lines){ensure(size*1.25);add(line,align==='center'?(left+right)/2:left+indent,y,size,bold,align);y+=size*1.25;}y+=gap;}
+ function ensure(h){if(y+h>contentBottom)throw Error('DEMAND_PAGE_FULL');}
+ function para(text,{bold=false,size=10.5,gap=11,align='left',indent=0}={}){size*=fontScale;gap*=gapScale;const lines=wrap(text,width-indent,size,bold);for(const line of lines){ensure(size*1.25);add(line,align==='center'?(left+right)/2:left+indent,y,size,bold,align);y+=size*1.25;}y+=gap;}
  function line(x,a,x2,b){page.push({line:[x,a,x2,b]});}
  function table(heads,rows,widths,{size=10,accountColumn=-1}={}){
-  const ws=widths.map(w=>w*width),leading=size*1.2;
+  size*=fontScale;const ws=widths.map(w=>w*width),leading=size*1.2;
   function draw(cells,header=false){const lines=cells.map((c,i)=>wrap(c,ws[i]-10,size,header));const h=Math.max(...lines.map(a=>a.length))*leading+12;
-   if(h+(header?0:Math.max(...heads.map((c,i)=>wrap(c,ws[i]-10,size,true).length))*leading+12)>contentBottom-contentTop)throw Error('The account details are too long for the demand letter. Review the project payment instructions.');
-   if(y+h>contentBottom){next();if(!header)draw(heads,true);}
+   if(h+(header?0:Math.max(...heads.map((c,i)=>wrap(c,ws[i]-10,size,true).length))*leading+12)>contentBottom-contentTop)throw Error('DEMAND_PAGE_FULL');
+   ensure(h);
    let x=left;const top=y;cells.forEach((c,i)=>{line(x,top,x+ws[i],top);line(x,top,x,top+h);line(x,top+h,x+ws[i],top+h);const isAccount=!header&&i===accountColumn;const at=top+(h-lines[i].length*leading)/2+size;lines[i].forEach((t,j)=>add(t,isAccount?x+5:x+ws[i]/2,at+j*leading,size,header,isAccount?'left':'center'));x+=ws[i];});line(right,top,right,top+h);y+=h;
   }
-  draw(heads,true);rows.forEach(r=>draw(r));y+=12;
+  draw(heads,true);rows.forEach(r=>draw(r));y+=12*gapScale;
  }
  add('DEMAND LETTER',W/2,164,12.3,true,'center');const titleWidth=measure('DEMAND LETTER',12.3,true);line(W/2-titleWidth/2,166,W/2+titleWidth/2,166);
  add(date(model.date),right,213,10.5,false,'right');
@@ -52,19 +61,26 @@ function demandScene(model,measure){
  if(installments.length){heads.push('Amount Due\n'+installments.map(r=>r.label).join(' + '));vals.push(cash(installments.reduce((n,r)=>n+Number(r.amount),0)));}
  if(fees.length){heads.push('DLD 4% + Admin Fees + ERES + Knowledge Fee');vals.push(cash(fees.reduce((n,r)=>n+Number(r.amount),0)));}
  heads.push('Balance');vals.push(cash(model.balance));table(heads,[vals],heads.map(()=>1/heads.length),{size:9.5});
- para('Payment Received to Date: -');
+ para(summary?'Payment Received to Date (Summary):':'Payment Received to Date: -');
  if(!model.payments.length)para('No Accounts-confirmed payments recorded.',{indent:14});
- for(const tx of model.payments)para('• '+cash(tx.amount)+' paid on '+date(tx.payment_date)+' ('+(tx.payment_type||'Payment')+')',{indent:14,gap:2,size:10});
- y+=8;para('Amount Due with Payment Account Information',{bold:true});para('Please make the payment via cheque or net banking as follows:');
- for(const r of model.rows)para('• For '+r.label+' of '+cash(r.amount)+': '+(r.kind==='dld'?'Developer Account':'Escrow Account'),{indent:14,gap:2,size:10});
+ if(summary&&model.payments.length){
+  const groups=new Map();for(const tx of model.payments){const key=/dld|admin|eres|knowledge/i.test(tx.payment_type||'')?'DLD + Admin Fees':'Unit payments';const g=groups.get(key)||{count:0,cents:0};g.count++;g.cents+=Math.round(Number(tx.amount)*100);groups.set(key,g);}
+  for(const [label,g] of groups)para('• '+label+': '+cash(g.cents/100)+' ('+g.count+' payments)',{indent:14,gap:2,size:10});
+  para('Full transaction dates and details are available in the Statement of Account.',{size:9,gap:4});
+ }else for(const tx of model.payments)para('• '+cash(tx.amount)+' paid on '+date(tx.payment_date)+' ('+(tx.payment_type||'Payment')+')',{indent:14,gap:2,size:10});
  next();
- table(['S.No','Description','Amount (AED)','Payable To','Account Details'],model.rows.map((r,i)=>[String(i+1),r.label,money(r.amount),r.kind==='dld'?'Developer Account':'Escrow Account',r.account]).concat([['','Total Amount Due',money(model.amount),'-','-']]),[.07,.23,.14,.13,.43],{size:9.5,accountColumn:4});
+ para('Amount Due with Payment Account Information',{bold:true});para('Please make the payment via cheque or net banking as follows:');
+ // Group repeated bank details once per account when many installments are selected.
+ const accountRows=[];
+ for(const r of model.rows){const key=r.kind==='dld'?'Developer Account':'Escrow Account';let row=accountRows.find(x=>x.key===key&&x.account===r.account);if(!row){row={key,account:r.account,items:[],cents:0};accountRows.push(row);}row.items.push(r);row.cents+=Math.round(Number(r.amount)*100);}
+ table(['S.No','Description','Amount (AED)','Payable To','Account Details'],accountRows.map((r,i)=>[String(i+1),r.items.map(x=>x.label+(r.items.length>1?' - '+cash(x.amount):'')).join('\n'),money(r.cents/100),r.key,r.account]).concat([['','Total Amount Due',money(model.amount),'-','-']]),[.07,.23,.14,.13,.43],{size:9.5,accountColumn:4});
  para('We kindly request you to remit the above-mentioned amount of '+cash(model.amount)+' - '+model.words+'.',{bold:true});
  if(fees.length)para('Important: Please note that the DLD 4% charges and admin fee must be paid into the Developer Account only, not the escrow account.',{bold:true});
  para('Please note that timely payment of the due instalment is an essential condition of our Booking Form / Sale and Purchase Agreement, and any delay in payment will attract interest charges as specified in the contract.');
  para('We greatly appreciate your prompt attention to this matter, as it will help ensure the timely completion of the project and a smooth process for all parties involved. Should you have any questions or require further information, please do not hesitate to contact us.');
  para('Thank you for your cooperation.',{align:'center',gap:35});
- ensure(55);para('Imran Alam Khan (Manager & Authorised Signatory)\nFor & On behalf of\nPurvanchal Real Estate Developers LLC',{bold:true,gap:0});
+ ensure(42*fontScale);para('Imran Alam Khan (Manager & Authorised Signatory)\nFor & On behalf of\nPurvanchal Real Estate Developers LLC',{bold:true,gap:0});
+ if(pages.length!==2)throw Error('DEMAND_PAGE_FULL');
  return pages;
 }
 async function demandPrepared(){
